@@ -17,11 +17,11 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.06, ease: [0.34, 1.56, 0.64, 1] }}
       className="glass spring-smooth mx-5 flex gap-3 p-3 active:scale-[0.98]"
-      style={{ cursor: "pointer" }}
+      style={{ cursor: "pointer", borderRadius: 20 }}
       onClick={() => setSelectedArticleId(article.id)}
     >
-      {/* Thumbnail */}
-      <div className="h-[90px] w-[90px] shrink-0 overflow-hidden" style={{ borderRadius: 16 }}>
+      {/* Thumbnail - 90x90 radius-md */}
+      <div className="shrink-0 overflow-hidden" style={{ width: 90, height: 90, borderRadius: 16 }}>
         <img
           src={article.imageUrl}
           alt={article.title}
@@ -33,12 +33,12 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
         <div>
-          <div className="mb-1.5 flex items-center gap-2">
+          <div className="mb-1.5">
             <CategoryBadge category={article.category} />
           </div>
           <h3
-            className="line-clamp-2 font-sans text-[15px] font-semibold leading-snug"
-            style={{ color: "var(--text-primary)" }}
+            className="line-clamp-2 font-sans text-[15px] font-semibold"
+            style={{ color: "var(--text-primary)", lineHeight: 1.35 }}
           >
             {article.title}
           </h3>
@@ -51,10 +51,10 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
               className="h-3.5 w-3.5 rounded-full object-contain"
               crossOrigin="anonymous"
             />
-            <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+            <span className="font-sans text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
               {article.sourceName}
             </span>
-            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <span className="font-sans text-[11px]" style={{ color: "var(--text-muted)" }}>
               {"/"} {timeAgo(article.publishedAt)}
             </span>
           </div>
@@ -63,12 +63,13 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
               e.stopPropagation()
               toggleSaveArticle(article.id)
             }}
-            className="spring-bounce flex h-7 w-7 items-center justify-center rounded-full active:scale-90"
+            className="spring-bounce flex items-center justify-center rounded-full active:scale-90"
+            style={{ width: 32, height: 32 }}
           >
             {isSaved ? (
-              <BookmarkCheck size={14} strokeWidth={1.5} style={{ color: "#0066FF" }} />
+              <BookmarkCheck size={16} strokeWidth={1.5} style={{ color: "#0066FF" }} />
             ) : (
-              <Bookmark size={14} strokeWidth={1.5} style={{ color: "var(--text-muted)" }} />
+              <Bookmark size={16} strokeWidth={1.5} style={{ color: "var(--text-muted)" }} />
             )}
           </button>
         </div>

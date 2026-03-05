@@ -24,7 +24,8 @@ export function FeedScreen() {
       <SourceRow />
       <CategoryTabs />
 
-      <div className="mt-2 flex flex-col gap-3">
+      {/* Card gap: 12px per spec */}
+      <div className="mt-3 flex flex-col gap-3">
         {hero && <HeroCard article={hero} />}
         {rest.map((article, i) => (
           <ArticleCard key={article.id} article={article} index={i} />
@@ -33,7 +34,7 @@ export function FeedScreen() {
 
       {filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center px-5 py-20">
-          <p className="text-center text-[15px]" style={{ color: "var(--text-muted)" }}>
+          <p className="text-center font-sans text-[15px]" style={{ color: "var(--text-muted)" }}>
             No articles in this category yet.
           </p>
         </div>

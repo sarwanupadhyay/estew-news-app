@@ -17,10 +17,18 @@ export function BottomNav() {
 
   return (
     <nav
-      className="glass-heavy fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-[428px]"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-[428px]"
+      style={{
+        background: "rgba(255, 255, 255, 0.18)",
+        backdropFilter: "blur(40px) saturate(200%)",
+        WebkitBackdropFilter: "blur(40px) saturate(200%)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.28)",
+        boxShadow: "0 -4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+        paddingBottom: "env(safe-area-inset-bottom, 8px)",
+        height: "auto",
+      }}
     >
-      <div className="flex items-center justify-around px-2 py-2">
+      <div className="flex items-center justify-around px-2 py-2" style={{ height: 64 }}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
           return (
@@ -35,10 +43,10 @@ export function BottomNav() {
                 className="spring-bounce"
                 style={{ color: isActive ? "#0066FF" : "#9CA3AF" }}
               />
-              {isActive && (
+              {isActive ? (
                 <>
                   <span
-                    className="text-[10px] font-medium"
+                    className="font-sans text-[10px] font-medium"
                     style={{ color: "#0066FF" }}
                   >
                     {tab.label}
@@ -50,6 +58,10 @@ export function BottomNav() {
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 </>
+              ) : (
+                <span className="font-sans text-[10px] font-medium" style={{ color: "transparent" }}>
+                  {tab.label}
+                </span>
               )}
             </button>
           )

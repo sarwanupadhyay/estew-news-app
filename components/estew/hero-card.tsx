@@ -23,7 +23,7 @@ export function HeroCard({ article }: { article: Article }) {
         onClick={() => setSelectedArticleId(article.id)}
         className="block w-full text-left"
       >
-        {/* Image */}
+        {/* 16:9 Image */}
         <div className="relative aspect-[16/9] w-full overflow-hidden" style={{ borderRadius: 20 }}>
           <img
             src={article.imageUrl}
@@ -31,11 +31,11 @@ export function HeroCard({ article }: { article: Article }) {
             className="h-full w-full object-cover"
             crossOrigin="anonymous"
           />
-          {/* Dark glass overlay */}
+          {/* Dark glass overlay on bottom 60% */}
           <div
             className="absolute inset-0"
             style={{
-              background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 50%, transparent 100%)",
+              background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.25) 40%, transparent 60%)",
             }}
           />
 
@@ -44,46 +44,83 @@ export function HeroCard({ article }: { article: Article }) {
             <CategoryBadge category={article.category} />
           </div>
 
-          {/* Source chip - top right */}
-          <div className="glass-dark absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-2.5 py-1">
+          {/* Source chip - top right (glass pill) */}
+          <div
+            className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-2.5 py-1"
+            style={{
+              background: "rgba(0, 0, 0, 0.35)",
+              backdropFilter: "blur(20px) saturate(150%)",
+              WebkitBackdropFilter: "blur(20px) saturate(150%)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
             <img
               src={article.sourceLogoUrl}
               alt={article.sourceName}
               className="h-4 w-4 rounded-full object-contain"
               crossOrigin="anonymous"
             />
-            <span className="text-[11px] font-medium text-white/90">{article.sourceName}</span>
+            <span className="font-sans text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.9)" }}>
+              {article.sourceName}
+            </span>
           </div>
 
           {/* Content overlay - bottom */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
             <h2
-              className="mb-2 font-serif text-xl font-bold leading-tight text-white"
-              style={{ letterSpacing: "-0.02em", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+              className="mb-2 font-serif font-bold leading-tight"
+              style={{
+                color: "#FFFFFF",
+                letterSpacing: "-0.02em",
+                fontSize: "clamp(20px, 5vw, 24px)",
+                lineHeight: 1.15,
+                textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              }}
             >
               {article.title}
             </h2>
-            <div className="flex items-center gap-2 text-[11px] text-white/70">
-              <span>{timeAgo(article.publishedAt)}</span>
-              <span>{"/"}</span>
-              <span>{formatViewCount(article.viewCount)} views</span>
+            {/* Meta row */}
+            <div className="flex items-center gap-2">
+              <img
+                src={article.sourceLogoUrl}
+                alt=""
+                className="h-4 w-4 rounded-full object-contain"
+                crossOrigin="anonymous"
+              />
+              <span className="font-sans text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>
+                {article.sourceName}
+              </span>
+              <span className="font-sans text-[11px]" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {"/"} {timeAgo(article.publishedAt)}
+              </span>
+              <span className="font-sans text-[11px]" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {"/"} {formatViewCount(article.viewCount)} views
+              </span>
             </div>
           </div>
         </div>
       </button>
 
-      {/* Bookmark button */}
+      {/* Bookmark - glass circle button */}
       <button
         onClick={(e) => {
           e.stopPropagation()
           toggleSaveArticle(article.id)
         }}
-        className="glass-dark spring-bounce absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full active:scale-95"
+        className="spring-bounce absolute bottom-4 right-4 flex items-center justify-center rounded-full active:scale-95"
+        style={{
+          width: 40,
+          height: 40,
+          background: "rgba(0, 0, 0, 0.35)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+        }}
       >
         {isSaved ? (
-          <BookmarkCheck size={16} strokeWidth={1.5} style={{ color: "#0066FF" }} />
+          <BookmarkCheck size={18} strokeWidth={1.5} style={{ color: "#0066FF" }} />
         ) : (
-          <Bookmark size={16} strokeWidth={1.5} className="text-white/80" />
+          <Bookmark size={18} strokeWidth={1.5} style={{ color: "rgba(255,255,255,0.8)" }} />
         )}
       </button>
     </motion.div>
