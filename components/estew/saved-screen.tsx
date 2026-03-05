@@ -1,7 +1,7 @@
 "use client"
 
-import { mockArticles } from "@/lib/mock-data"
 import { useAppStore } from "@/lib/store"
+import { useArticles } from "@/lib/use-articles"
 import { CategoryBadge } from "./category-badge"
 import { Bookmark, BookmarkCheck } from "lucide-react"
 import { motion } from "framer-motion"
@@ -9,9 +9,11 @@ import { useState } from "react"
 import Image from "next/image"
 
 export function SavedScreen() {
-  const { savedArticleIds, toggleSaveArticle, setSelectedArticleId } = useAppStore()
+  const { savedArticleIds, toggleSaveArticle, setSelectedArticleId, articles: storeArticles } = useAppStore()
+  const { articles: fetchedArticles } = useArticles("All")
+  const allArticles = storeArticles.length > 0 ? storeArticles : fetchedArticles
   const [filter, setFilter] = useState("All")
-  const saved = mockArticles.filter((a) => savedArticleIds.includes(a.id))
+  const saved = allArticles.filter((a) => savedArticleIds.includes(a.id))
   const filtered = filter === "All" ? saved : saved.filter((a) => a.category === filter)
   const filterCats = ["All", "AI", "Launches", "Market"]
 

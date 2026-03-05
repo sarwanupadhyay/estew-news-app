@@ -1,15 +1,18 @@
 "use client"
 
-import { mockArticles, CATEGORY_COLORS } from "@/lib/mock-data"
+import { CATEGORY_COLORS } from "@/lib/mock-data"
 import { useAppStore } from "@/lib/store"
+import { useArticles } from "@/lib/use-articles"
 import { timeAgo, formatViewCount } from "@/lib/time"
 import { TrendingUp } from "lucide-react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 
 export function TrendingScreen() {
-  const { setSelectedArticleId } = useAppStore()
-  const sorted = [...mockArticles].sort((a, b) => b.viewCount - a.viewCount)
+  const { setSelectedArticleId, articles: storeArticles } = useAppStore()
+  const { articles: fetchedArticles } = useArticles("All")
+  const allArticles = storeArticles.length > 0 ? storeArticles : fetchedArticles
+  const sorted = [...allArticles].sort((a, b) => b.viewCount - a.viewCount)
 
   return (
     <div className="flex flex-col pb-20">

@@ -1,15 +1,15 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { mockArticles } from "@/lib/mock-data"
+import { useAiSummary } from "@/lib/use-articles"
 import { timeAgo } from "@/lib/time"
 import { CategoryBadge } from "./category-badge"
-import { ExternalLink, X, Bookmark, BookmarkCheck } from "lucide-react"
+import { ExternalLink, X, Bookmark, BookmarkCheck, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 export function ArticleDetail() {
-  const { selectedArticleId, setSelectedArticleId, savedArticleIds, toggleSaveArticle } = useAppStore()
-  const article = mockArticles.find((a) => a.id === selectedArticleId)
+  const { selectedArticleId, setSelectedArticleId, savedArticleIds, toggleSaveArticle, articles } = useAppStore()
+  const article = articles.find((a) => a.id === selectedArticleId)
 
   return (
     <AnimatePresence>
@@ -91,9 +91,12 @@ export function ArticleDetail() {
               </h2>
 
               {/* Summary */}
-              <p className="mb-8 font-sans text-[15px] leading-relaxed text-muted-foreground">
+              <p className="mb-4 font-sans text-[15px] leading-relaxed text-muted-foreground">
                 {article.summary}
               </p>
+
+              {/* AI Summary */}
+              <AiSummarySection title={article.title} summary={article.summary} url={article.originalUrl} />
 
               {/* Actions */}
               <div className="flex gap-3">
@@ -122,5 +125,38 @@ export function ArticleDetail() {
         </>
       )}
     </AnimatePresence>
+  )
+}
+
+function AiSummarySection({ title, summary, url }: { title: string; summary: string; url: string }) {
+  const { aiSummary, isLoading } = useAiSummary(title, summary, url, true)
+
+  if (isLoading) {
+    return (
+      <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <Sparkles size={14} className="animate-pulse text-primary" />
+          <span className="font-sans text-[12px] font-semibold text-primary">AI Summary</span>
+        </div>
+        <div className="space-y-2">
+          <div className="h-3 w-full animate-pulse rounded bg-primary/10" />
+          <div className="h-3 w-4/5 animate-pulse rounded bg-primary/10" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!aiSummary) return null
+
+  return (
+    <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <Sparkles size={14} className="text-primary" />
+        <span className="font-sans text-[12px] font-semibold text-primary">AI Summary</span>
+      </div>
+      <p className="font-sans text-[14px] leading-relaxed text-foreground">
+        {aiSummary}
+      </p>
+    </div>
   )
 }

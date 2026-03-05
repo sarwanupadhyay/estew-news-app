@@ -1,5 +1,12 @@
+"use client"
+
+import { AuthProvider } from "@/lib/auth-context"
 import { AppShell } from "@/components/estew/app-shell"
 
 export default function Home() {
-  return <AppShell />
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  )
 }

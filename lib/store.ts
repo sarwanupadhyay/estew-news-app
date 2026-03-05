@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { Category } from "./types"
+import type { Article, Category } from "./types"
 
 interface AppStore {
   activeTab: "home" | "explore" | "trending" | "saved" | "profile"
@@ -10,6 +10,8 @@ interface AppStore {
   toggleSaveArticle: (id: string) => void
   selectedArticleId: string | null
   setSelectedArticleId: (id: string | null) => void
+  articles: Article[]
+  setArticles: (articles: Article[]) => void
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -17,7 +19,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   activeCategory: "All",
   setActiveCategory: (cat) => set({ activeCategory: cat }),
-  savedArticleIds: ["art-1", "art-4", "art-7"],
+  savedArticleIds: [],
   toggleSaveArticle: (id) =>
     set((state) => ({
       savedArticleIds: state.savedArticleIds.includes(id)
@@ -26,4 +28,6 @@ export const useAppStore = create<AppStore>((set) => ({
     })),
   selectedArticleId: null,
   setSelectedArticleId: (id) => set({ selectedArticleId: id }),
+  articles: [],
+  setArticles: (articles) => set({ articles }),
 }))
