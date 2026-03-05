@@ -1,60 +1,28 @@
 "use client"
 
 import { mockAgencies } from "@/lib/mock-data"
-import { Compass } from "lucide-react"
 
 export function SourceRow() {
   return (
-    <div className="no-scrollbar flex gap-4 overflow-x-auto px-5 py-3">
-      {/* Discover circle */}
-      <div className="flex flex-col items-center gap-1.5">
-        <div
-          className="flex shrink-0 items-center justify-center rounded-full"
-          style={{
-            width: 56,
-            height: 56,
-            background: "linear-gradient(135deg, #0066FF, #4F46E5)",
-          }}
-        >
-          <Compass size={24} strokeWidth={1.5} style={{ color: "#FFFFFF" }} />
-        </div>
-        <span
-          className="w-14 truncate text-center font-sans text-[11px] font-medium"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Discover
-        </span>
-      </div>
-      {/* Agency circles */}
+    <div className="no-scrollbar flex gap-4 overflow-x-auto px-5 py-4">
       {mockAgencies.map((agency) => (
-        <div key={agency.id} className="flex flex-col items-center gap-1.5">
-          <div
-            className="flex shrink-0 items-center justify-center overflow-hidden rounded-full p-[2px]"
-            style={{
-              width: 56,
-              height: 56,
-              background: "linear-gradient(135deg, #0066FF, #4F46E5)",
-            }}
+        <button key={agency.id} className="flex shrink-0 flex-col items-center gap-1.5">
+          <div className="rounded-full p-[2px]"
+            style={{ background: "linear-gradient(135deg, var(--primary), #D97706)" }}
           >
-            <div
-              className="flex h-full w-full items-center justify-center overflow-hidden rounded-full"
-              style={{ background: "var(--bg-primary)" }}
-            >
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-card">
               <img
                 src={agency.logoUrl}
                 alt={agency.name}
-                className="h-7 w-7 object-contain"
+                className="h-8 w-8 object-contain"
                 crossOrigin="anonymous"
               />
             </div>
           </div>
-          <span
-            className="w-14 truncate text-center font-sans text-[11px] font-medium"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <span className="max-w-[64px] truncate text-center font-sans text-[11px] text-muted-foreground">
             {agency.name}
           </span>
-        </div>
+        </button>
       ))}
     </div>
   )

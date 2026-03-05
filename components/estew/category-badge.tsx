@@ -1,21 +1,20 @@
-import { CATEGORY_COLORS } from "@/lib/mock-data"
+import type { Category } from "@/lib/types"
 
-export function CategoryBadge({ category, size = "sm" }: { category: string; size?: "sm" | "md" }) {
-  const color = CATEGORY_COLORS[category] || "#6B7280"
-  const isSmall = size === "sm"
+const BADGE_COLORS: Record<string, { bg: string; text: string }> = {
+  AI: { bg: "rgba(139,92,246,0.12)", text: "#8B5CF6" },
+  Market: { bg: "rgba(13,148,136,0.12)", text: "#0D9488" },
+  Launches: { bg: "rgba(217,119,6,0.12)", text: "#D97706" },
+  Apps: { bg: "rgba(37,99,235,0.12)", text: "#2563EB" },
+  Startups: { bg: "rgba(239,68,68,0.12)", text: "#EF4444" },
+  Products: { bg: "rgba(236,72,153,0.12)", text: "#EC4899" },
+}
 
+export function CategoryBadge({ category }: { category: Category }) {
+  const c = BADGE_COLORS[category] || { bg: "rgba(136,136,136,0.12)", text: "#888" }
   return (
     <span
-      className="inline-flex items-center font-sans font-medium uppercase"
-      style={{
-        background: color,
-        color: "#FFFFFF",
-        borderRadius: 999,
-        padding: isSmall ? "2px 8px" : "3px 10px",
-        fontSize: isSmall ? 10 : 11,
-        letterSpacing: "0.08em",
-        lineHeight: 1.5,
-      }}
+      className="inline-block rounded-full px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-wider"
+      style={{ background: c.bg, color: c.text }}
     >
       {category}
     </span>

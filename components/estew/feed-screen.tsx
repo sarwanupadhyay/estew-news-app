@@ -19,13 +19,12 @@ export function FeedScreen() {
   const rest = filtered.slice(1)
 
   return (
-    <div className="flex flex-col pb-24">
+    <div className="flex flex-col pb-20">
       <TopHeader />
       <SourceRow />
       <CategoryTabs />
 
-      {/* Card gap: 12px per spec */}
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-3 flex flex-col">
         {hero && <HeroCard article={hero} />}
         {rest.map((article, i) => (
           <ArticleCard key={article.id} article={article} index={i} />
@@ -34,7 +33,7 @@ export function FeedScreen() {
 
       {filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center px-5 py-20">
-          <p className="text-center font-sans text-[15px]" style={{ color: "var(--text-muted)" }}>
+          <p className="text-center font-sans text-[15px] text-muted-foreground">
             No articles in this category yet.
           </p>
         </div>

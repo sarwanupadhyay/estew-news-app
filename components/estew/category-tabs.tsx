@@ -8,28 +8,21 @@ export function CategoryTabs() {
   const { activeCategory, setActiveCategory } = useAppStore()
 
   return (
-    <div className="no-scrollbar flex gap-1 overflow-x-auto px-5 py-2">
+    <div className="no-scrollbar flex gap-0 overflow-x-auto border-b border-border px-5">
       {CATEGORIES.map((cat) => {
         const isActive = activeCategory === cat.value
         return (
           <button
             key={cat.value}
             onClick={() => setActiveCategory(cat.value)}
-            className="spring-bounce relative shrink-0 px-4 py-2 font-sans text-[13px] font-medium"
-            style={{
-              color: isActive ? "#0066FF" : "var(--text-muted)",
-            }}
+            className="relative shrink-0 px-3.5 py-2.5 font-sans text-[13px] font-medium transition-colors"
+            style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)" }}
           >
             {cat.label}
             {isActive && (
               <motion.div
                 layoutId="cat-underline"
-                className="absolute bottom-0 left-2 right-2"
-                style={{
-                  height: 2,
-                  borderRadius: 999,
-                  background: "#0066FF",
-                }}
+                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-primary"
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
               />
             )}
