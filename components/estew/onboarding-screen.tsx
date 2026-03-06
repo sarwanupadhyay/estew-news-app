@@ -130,7 +130,7 @@ export function OnboardingScreen() {
       <div className="relative z-10 flex flex-1 flex-col">
         {/* Logo + step indicator */}
         <div className="mb-6 flex items-center gap-3">
-          <Image src="/images/logo.png" alt="Estew" width={24} height={24} className="dark:invert" />
+          <Image src="/images/logo.png" alt="Estew" width={24} height={24} className="dark:invert" style={{ width: 24, height: 'auto' }} />
           <div className="flex flex-1 gap-2">
             {[0, 1, 2].map((s) => (
               <div

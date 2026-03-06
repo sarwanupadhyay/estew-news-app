@@ -80,6 +80,7 @@ export function LandingScreen() {
             width={72}
             height={72}
             className="dark:invert"
+            style={{ width: 72, height: 'auto' }}
             priority
           />
         </motion.div>

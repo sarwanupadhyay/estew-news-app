@@ -28,6 +28,7 @@ export function TopHeader() {
           width={28}
           height={28}
           className="dark:invert"
+          style={{ width: 28, height: 'auto' }}
         />
         <span className="font-serif text-xl font-bold tracking-tight text-foreground">
           estew
