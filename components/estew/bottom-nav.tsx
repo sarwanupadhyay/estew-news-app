@@ -14,9 +14,15 @@ const tabs = [
 export function BottomNav() {
   const { activeTab, setActiveTab } = useAppStore()
 
+  const handleTabClick = (tabId: typeof tabs[number]["id"]) => {
+    // Always scroll to top when switching tabs
+    window.scrollTo({ top: 0, behavior: "instant" })
+    setActiveTab(tabId)
+  }
+
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-[428px] border-t border-border bg-background/90 backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-[428px] border-t border-border bg-background/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
     >
       <div className="flex items-center justify-around px-2" style={{ height: 56 }}>
@@ -25,7 +31,7 @@ export function BottomNav() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabClick(tab.id)}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors"
             >
               <tab.icon

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import type { Article } from "@/lib/types"
 import { CategoryBadge } from "./category-badge"
 import { Bookmark, BookmarkCheck } from "lucide-react"
@@ -8,15 +9,37 @@ import { useAuth } from "@/lib/auth-context"
 import { timeAgo } from "@/lib/time"
 import { motion } from "framer-motion"
 
+// Get favicon for source
+function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
+  let domain = sourceUrl || ""
+  if (!domain.includes(".")) {
+    domain = `${sourceName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
+  } else {
+    try {
+      const url = new URL(domain.startsWith("http") ? domain : `https://${domain}`)
+      domain = url.hostname
+    } catch {
+      domain = `${sourceName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
+    }
+  }
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+}
+
 export function HeroCard({ article }: { article: Article }) {
   const { setSelectedArticleId } = useAppStore()
   const { profile, toggleSaveArticle } = useAuth()
   const isSaved = profile?.savedArticles?.includes(article.id) || false
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const [imgError, setImgError] = useState(false)
+  const [logoError, setLogoError] = useState(false)
 
   const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation()
     await toggleSaveArticle(article.id)
   }
+
+  const sourceInitial = article.sourceName.charAt(0).toUpperCase()
+  const faviconUrl = getSourceFavicon(article.sourceName, article.originalUrl)
 
   return (
     <motion.div
@@ -29,16 +52,31 @@ export function HeroCard({ article }: { article: Article }) {
         onClick={() => setSelectedArticleId(article.id)}
         className="block w-full text-left"
       >
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl">
-          <img
-            src={article.imageUrl}
-            alt={article.title}
-            className="h-full w-full object-cover"
-            crossOrigin="anonymous"
-            onError={(e) => {
-              e.currentTarget.src = "https://via.placeholder.com/640x360/1a1b2e/666?text=Tech+News"
-            }}
-          />
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted">
+          {/* Loading skeleton */}
+          {!imgLoaded && !imgError && (
+            <div className="absolute inset-0 animate-pulse bg-muted" />
+          )}
+          
+          {/* Error fallback */}
+          {imgError ? (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+              <span className="font-serif text-4xl font-bold text-primary/30">
+                {article.category}
+              </span>
+            </div>
+          ) : (
+            <img
+              src={article.imageUrl}
+              alt=""
+              className={`h-full w-full object-cover transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+              crossOrigin="anonymous"
+              referrerPolicy="no-referrer"
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+          )}
+          
           <div
             className="absolute inset-0"
             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)" }}
@@ -55,20 +93,19 @@ export function HeroCard({ article }: { article: Article }) {
               {article.title}
             </h2>
             <div className="flex items-center gap-2">
-              {article.sourceLogoUrl ? (
-                <img
-                  src={article.sourceLogoUrl}
-                  alt=""
-                  className="h-4 w-4 rounded-full bg-white/90 object-contain"
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                  }}
-                />
-              ) : (
+              {logoError ? (
                 <div className="flex h-4 w-4 items-center justify-center rounded-full bg-white/90 text-[8px] font-bold text-gray-800">
-                  {article.sourceName.charAt(0)}
+                  {sourceInitial}
                 </div>
+              ) : (
+                <img
+                  src={faviconUrl}
+                  alt=""
+                  className="h-4 w-4 rounded-sm bg-white/90 object-contain"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
+                  onError={() => setLogoError(true)}
+                />
               )}
               <span className="font-sans text-[12px] font-medium text-white/90">
                 {article.sourceName}

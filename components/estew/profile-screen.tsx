@@ -18,6 +18,10 @@ import {
   Check,
   X,
   Sparkles,
+  Zap,
+  Shield,
+  Search,
+  Newspaper,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
@@ -44,15 +48,32 @@ interface RazorpayInstance {
 }
 
 const accountSettings = [
-  { icon: User, label: "Your Profile" },
-  { icon: Heart, label: "Followed Topics" },
+  { icon: User, label: "Your Profile", action: "profile" },
+  { icon: Heart, label: "Followed Topics", action: "topics" },
 ]
 
 const appSettings = [
-  { icon: Bell, label: "Notifications" },
-  { icon: CreditCard, label: "Plan & Billing" },
-  { icon: Mail, label: "Newsletter" },
-  { icon: Clock, label: "Activity History" },
+  { icon: Bell, label: "Notifications", action: "notifications" },
+  { icon: CreditCard, label: "Plan & Billing", action: "billing" },
+  { icon: Mail, label: "Newsletter", action: "newsletter" },
+  { icon: Clock, label: "Activity History", action: "history" },
+]
+
+// Plan features
+const FREE_FEATURES = [
+  { icon: Newspaper, text: "20 articles per day" },
+  { icon: Search, text: "Basic search" },
+  { icon: Bookmark, text: "Save up to 10 articles" },
+]
+
+const PRO_FEATURES = [
+  { icon: Newspaper, text: "Unlimited articles" },
+  { icon: Sparkles, text: "AI-powered summaries" },
+  { icon: Search, text: "Advanced search & filters" },
+  { icon: Bookmark, text: "Unlimited saved articles" },
+  { icon: Zap, text: "Priority breaking alerts" },
+  { icon: Shield, text: "Ad-free experience" },
+  { icon: Mail, text: "Extended newsletters" },
 ]
 
 export function ProfileScreen() {
@@ -61,6 +82,7 @@ export function ProfileScreen() {
   const [editName, setEditName] = useState("")
   const [saving, setSaving] = useState(false)
   const [processingPayment, setProcessingPayment] = useState(false)
+  const [showBillingModal, setShowBillingModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "Guest"
@@ -85,7 +107,7 @@ export function ProfileScreen() {
       await updateDisplayName(editName.trim())
       setIsEditing(false)
     } catch (err) {
-      console.error("[v0] Error updating name:", err)
+      console.error("Error updating name:", err)
     } finally {
       setSaving(false)
     }
@@ -104,17 +126,23 @@ export function ProfileScreen() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Convert to base64 data URL (for demo - in production use Firebase Storage)
     const reader = new FileReader()
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string
       try {
         await updatePhotoURL(dataUrl)
       } catch (err) {
-        console.error("[v0] Error uploading photo:", err)
+        console.error("Error uploading photo:", err)
       }
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleSettingClick = (action: string) => {
+    if (action === "billing") {
+      setShowBillingModal(true)
+    }
+    // Other actions can be implemented later
   }
 
   const handleUpgradeToPro = async () => {
@@ -126,7 +154,6 @@ export function ProfileScreen() {
 
     setProcessingPayment(true)
 
-    // Load Razorpay script if not already loaded
     if (!window.Razorpay) {
       const script = document.createElement("script")
       script.src = "https://checkout.razorpay.com/v1/checkout.js"
@@ -139,13 +166,14 @@ export function ProfileScreen() {
 
     const options: RazorpayOptions = {
       key: razorpayKey,
-      amount: 59900, // Rs 599 in paise
+      amount: 59900,
       currency: "INR",
       name: "Estew Pro",
       description: "Unlimited articles, AI summaries, priority alerts",
       handler: async function (response) {
         if (response.razorpay_payment_id) {
           await saveProfile({ plan: "pro" })
+          setShowBillingModal(false)
         }
         setProcessingPayment(false)
       },
@@ -258,15 +286,18 @@ export function ProfileScreen() {
         <p className="mt-0.5 font-sans text-[13px] text-muted-foreground">
           {email}
         </p>
-        <div className="mt-2">
-          <span className={`rounded-full px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-wider ${
+        <button 
+          onClick={() => setShowBillingModal(true)}
+          className="mt-2"
+        >
+          <span className={`rounded-full px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-wider transition-colors ${
             isPro 
-              ? "bg-primary/10 text-primary" 
-              : "bg-muted text-muted-foreground"
+              ? "bg-primary/10 text-primary hover:bg-primary/20" 
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}>
-            {isPro ? "Pro" : "Free"}
+            {isPro ? "Pro" : "Free"} Plan
           </span>
-        </div>
+        </button>
       </motion.div>
 
       {/* Stats */}
@@ -303,14 +334,13 @@ export function ProfileScreen() {
             <h3 className="font-serif text-lg font-bold text-foreground">Unlock Pro</h3>
           </div>
           <p className="mt-1 font-sans text-[13px] leading-relaxed text-muted-foreground">
-            Unlimited articles, extended newsletters, advanced search. Rs 599/month.
+            Unlimited articles, AI summaries, advanced search. Rs 599/month.
           </p>
           <button 
-            onClick={handleUpgradeToPro}
-            disabled={processingPayment}
-            className="mt-4 rounded-full bg-primary px-6 py-2.5 font-sans text-[14px] font-semibold text-primary-foreground transition-transform active:scale-[0.97] disabled:opacity-50"
+            onClick={() => setShowBillingModal(true)}
+            className="mt-4 rounded-full bg-primary px-6 py-2.5 font-sans text-[14px] font-semibold text-primary-foreground transition-transform active:scale-[0.97]"
           >
-            {processingPayment ? "Processing..." : "Upgrade to Pro"}
+            View Plans
           </button>
         </motion.div>
       )}
@@ -340,7 +370,11 @@ export function ProfileScreen() {
         </p>
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           {accountSettings.map((item) => (
-            <button key={item.label} className="flex w-full items-center gap-3 border-b border-border px-4 py-3.5 transition-colors last:border-0 active:bg-muted/40">
+            <button 
+              key={item.label} 
+              onClick={() => handleSettingClick(item.action)}
+              className="flex w-full items-center gap-3 border-b border-border px-4 py-3.5 transition-colors last:border-0 active:bg-muted/40"
+            >
               <item.icon size={16} strokeWidth={1.5} className="text-muted-foreground" />
               <span className="flex-1 text-left font-sans text-[14px] text-foreground">{item.label}</span>
               <ChevronRight size={14} strokeWidth={1.5} className="text-muted-foreground/50" />
@@ -356,7 +390,11 @@ export function ProfileScreen() {
         </p>
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           {appSettings.map((item) => (
-            <button key={item.label} className="flex w-full items-center gap-3 border-b border-border px-4 py-3.5 transition-colors last:border-0 active:bg-muted/40">
+            <button 
+              key={item.label} 
+              onClick={() => handleSettingClick(item.action)}
+              className="flex w-full items-center gap-3 border-b border-border px-4 py-3.5 transition-colors last:border-0 active:bg-muted/40"
+            >
               <item.icon size={16} strokeWidth={1.5} className="text-muted-foreground" />
               <span className="flex-1 text-left font-sans text-[14px] text-foreground">{item.label}</span>
               <ChevronRight size={14} strokeWidth={1.5} className="text-muted-foreground/50" />
@@ -381,6 +419,110 @@ export function ProfileScreen() {
       <p className="mt-6 text-center font-sans text-[11px] text-muted-foreground/60">
         {user ? `Signed in as ${email}` : "Guest mode"}
       </p>
+
+      {/* Plan & Billing Modal */}
+      <AnimatePresence>
+        {showBillingModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowBillingModal(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-[428px] rounded-t-3xl bg-background"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+              </div>
+
+              <div className="max-h-[80vh] overflow-y-auto px-5 pb-8">
+                <h2 className="mb-1 font-serif text-2xl font-bold text-foreground">Plan & Billing</h2>
+                <p className="mb-6 font-sans text-[14px] text-muted-foreground">
+                  {isPro ? "You're currently on the Pro plan" : "Choose the plan that's right for you"}
+                </p>
+
+                {/* Free Plan */}
+                <div className={`mb-4 rounded-xl border p-5 ${!isPro ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-foreground">Free</h3>
+                      <p className="font-sans text-[24px] font-bold text-foreground">
+                        Rs 0<span className="text-[14px] font-normal text-muted-foreground">/month</span>
+                      </p>
+                    </div>
+                    {!isPro && (
+                      <span className="rounded-full bg-primary px-3 py-1 font-sans text-[10px] font-bold uppercase text-primary-foreground">
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <ul className="space-y-2">
+                    {FREE_FEATURES.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <feature.icon size={14} strokeWidth={1.5} className="text-muted-foreground" />
+                        <span className="font-sans text-[13px] text-muted-foreground">{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Pro Plan */}
+                <div className={`rounded-xl border p-5 ${isPro ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-serif text-lg font-bold text-foreground">Pro</h3>
+                        <Sparkles size={14} className="text-amber-500" />
+                      </div>
+                      <p className="font-sans text-[24px] font-bold text-foreground">
+                        Rs 599<span className="text-[14px] font-normal text-muted-foreground">/month</span>
+                      </p>
+                    </div>
+                    {isPro && (
+                      <span className="rounded-full bg-primary px-3 py-1 font-sans text-[10px] font-bold uppercase text-primary-foreground">
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <ul className="space-y-2">
+                    {PRO_FEATURES.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <feature.icon size={14} strokeWidth={1.5} className="text-primary" />
+                        <span className="font-sans text-[13px] text-foreground">{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {!isPro && (
+                    <button
+                      onClick={handleUpgradeToPro}
+                      disabled={processingPayment}
+                      className="mt-4 w-full rounded-full bg-primary py-3 font-sans text-[14px] font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {processingPayment ? "Processing..." : "Upgrade to Pro"}
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowBillingModal(false)}
+                  className="mt-6 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

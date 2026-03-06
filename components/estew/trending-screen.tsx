@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 import { useAppStore } from "@/lib/store"
 import { useArticles } from "@/lib/use-articles"
@@ -27,57 +28,83 @@ export function TrendingScreen() {
       </div>
 
       <div className="flex flex-col px-5">
-        {sorted.map((article, i) => {
-          const accentColor = CATEGORY_COLORS[article.category] || "#888"
-          return (
-            <motion.div
-              key={article.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              onClick={() => setSelectedArticleId(article.id)}
-              className="flex cursor-pointer items-center gap-3 border-b border-border py-3.5 transition-colors active:bg-muted/30"
-            >
-              {/* Rank */}
-              <span
-                className="w-7 text-center font-serif text-xl font-bold"
-                style={{ color: i < 3 ? "var(--primary)" : "var(--muted-foreground)", opacity: i < 3 ? 1 : 0.5 }}
-              >
-                {i + 1}
-              </span>
-
-              {/* Thumbnail */}
-              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg">
-                <img 
-                  src={article.imageUrl} 
-                  alt={article.title} 
-                  className="h-full w-full object-cover" 
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    e.currentTarget.src = "https://via.placeholder.com/56x56/1a1b2e/666?text=News"
-                  }}
-                />
-              </div>
-
-              {/* Content */}
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <h3 className="line-clamp-2 font-sans text-[13px] font-semibold leading-snug text-foreground">
-                  {article.title}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span className="font-sans text-[11px] text-muted-foreground">
-                    {formatViewCount(article.viewCount)} views
-                  </span>
-                  <TrendingUp size={11} style={{ color: accentColor }} />
-                  <span className="font-sans text-[11px] text-muted-foreground">
-                    {timeAgo(article.publishedAt)}
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          )
-        })}
+        {sorted.map((article, i) => (
+          <TrendingItem 
+            key={article.id} 
+            article={article} 
+            rank={i + 1} 
+            onClick={() => setSelectedArticleId(article.id)} 
+          />
+        ))}
       </div>
     </div>
+  )
+}
+
+function TrendingItem({ article, rank, onClick }: { 
+  article: { id: string; title: string; imageUrl: string; category: string; viewCount: number; publishedAt: string }
+  rank: number
+  onClick: () => void 
+}) {
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const [imgError, setImgError] = useState(false)
+  const accentColor = CATEGORY_COLORS[article.category as keyof typeof CATEGORY_COLORS] || "#888"
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: (rank - 1) * 0.04 }}
+      onClick={onClick}
+      className="flex cursor-pointer items-center gap-3 border-b border-border py-3.5 transition-colors active:bg-muted/30"
+    >
+      {/* Rank */}
+      <span
+        className="w-7 text-center font-serif text-xl font-bold"
+        style={{ color: rank <= 3 ? "var(--primary)" : "var(--muted-foreground)", opacity: rank <= 3 ? 1 : 0.5 }}
+      >
+        {rank}
+      </span>
+
+      {/* Thumbnail */}
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+        {!imgLoaded && !imgError && (
+          <div className="absolute inset-0 animate-pulse bg-muted" />
+        )}
+        {imgError ? (
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <span className="font-serif text-lg font-bold text-muted-foreground/30">
+              {article.category.charAt(0)}
+            </span>
+          </div>
+        ) : (
+          <img 
+            src={article.imageUrl} 
+            alt="" 
+            className={`h-full w-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+          />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h3 className="line-clamp-2 font-sans text-[13px] font-semibold leading-snug text-foreground">
+          {article.title}
+        </h3>
+        <div className="flex items-center gap-2">
+          <span className="font-sans text-[11px] text-muted-foreground">
+            {formatViewCount(article.viewCount)} views
+          </span>
+          <TrendingUp size={11} style={{ color: accentColor }} />
+          <span className="font-sans text-[11px] text-muted-foreground">
+            {timeAgo(article.publishedAt)}
+          </span>
+        </div>
+      </div>
+    </motion.div>
   )
 }
