@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
 import { useAuth } from "@/lib/auth-context"
 import { BottomNav } from "./bottom-nav"
@@ -14,30 +13,9 @@ import { LandingScreen } from "./landing-screen"
 import { OnboardingScreen } from "./onboarding-screen"
 import { AnimatePresence, motion } from "framer-motion"
 
-type AppState = "landing" | "onboarding" | "app"
-
 export function AppShell() {
-  const { user, loading } = useAuth()
-  const [appState, setAppState] = useState<AppState>("landing")
-  const [hasOnboarded, setHasOnboarded] = useState(false)
+  const { user, profile, loading } = useAuth()
   const { activeTab } = useAppStore()
-
-  useEffect(() => {
-    if (!loading && user && !hasOnboarded) {
-      setAppState("onboarding")
-    } else if (!loading && user && hasOnboarded) {
-      setAppState("app")
-    }
-  }, [user, loading, hasOnboarded])
-
-  const handleLogin = () => {
-    setAppState("onboarding")
-  }
-
-  const handleOnboardingComplete = () => {
-    setHasOnboarded(true)
-    setAppState("app")
-  }
 
   // Show a loading screen while auth initializes
   if (loading) {
@@ -51,22 +29,25 @@ export function AppShell() {
     )
   }
 
-  if (appState === "landing") {
+  // Not logged in - show landing
+  if (!user) {
     return (
       <div className="mx-auto max-w-[428px]">
-        <LandingScreen onLogin={handleLogin} />
+        <LandingScreen />
       </div>
     )
   }
 
-  if (appState === "onboarding") {
+  // Logged in but hasn't completed onboarding
+  if (profile && !profile.hasOnboarded) {
     return (
       <div className="mx-auto max-w-[428px]">
-        <OnboardingScreen onComplete={handleOnboardingComplete} />
+        <OnboardingScreen />
       </div>
     )
   }
 
+  // Fully authenticated and onboarded
   return (
     <div className="relative mx-auto min-h-screen max-w-[428px] bg-background">
       <div className="relative z-10">

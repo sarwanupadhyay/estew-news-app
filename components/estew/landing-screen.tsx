@@ -2,15 +2,11 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Mail, ArrowRight, Eye, EyeOff } from "lucide-react"
+import { Mail, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 
-interface LandingScreenProps {
-  onLogin: () => void
-}
-
-export function LandingScreen({ onLogin }: LandingScreenProps) {
+export function LandingScreen() {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth()
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -25,11 +21,12 @@ export function LandingScreen({ onLogin }: LandingScreenProps) {
     setError("")
     try {
       await signInWithGoogle()
-      onLogin()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Google sign-in failed"
-      if (msg.includes("auth/configuration-not-found") || msg.includes("auth/invalid-api-key")) {
-        setError("Firebase not configured. Add API keys to .env.local")
+      if (msg.includes("popup-closed-by-user")) {
+        setError("")
+      } else if (msg.includes("auth/configuration-not-found") || msg.includes("auth/invalid-api-key")) {
+        setError("Firebase not configured. Add API keys in Settings > Vars.")
       } else {
         setError(msg)
       }
@@ -49,11 +46,10 @@ export function LandingScreen({ onLogin }: LandingScreenProps) {
       } else {
         await signInWithEmail(email, password)
       }
-      onLogin()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Authentication failed"
       if (msg.includes("auth/configuration-not-found") || msg.includes("auth/invalid-api-key")) {
-        setError("Firebase not configured. Add API keys to .env.local")
+        setError("Firebase not configured. Add API keys in Settings > Vars.")
       } else if (msg.includes("auth/user-not-found") || msg.includes("auth/invalid-credential")) {
         setError("Invalid email or password")
       } else if (msg.includes("auth/email-already-in-use")) {
@@ -133,7 +129,7 @@ export function LandingScreen({ onLogin }: LandingScreenProps) {
               <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
               <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
             </svg>
-            Continue with Google
+            {loading ? "Signing in..." : "Continue with Google"}
           </button>
 
           {/* Email toggle */}
@@ -195,18 +191,6 @@ export function LandingScreen({ onLogin }: LandingScreenProps) {
             </motion.form>
           )}
         </motion.div>
-
-        {/* Skip */}
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
-          onClick={onLogin}
-          className="mt-6 flex items-center gap-1 font-sans text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Skip for now
-          <ArrowRight size={14} strokeWidth={1.5} />
-        </motion.button>
 
         <motion.p
           initial={{ opacity: 0 }}

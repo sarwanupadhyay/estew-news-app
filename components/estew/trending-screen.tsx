@@ -48,7 +48,15 @@ export function TrendingScreen() {
 
               {/* Thumbnail */}
               <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg">
-                <img src={article.imageUrl} alt={article.title} className="h-full w-full object-cover" crossOrigin="anonymous" />
+                <img 
+                  src={article.imageUrl} 
+                  alt={article.title} 
+                  className="h-full w-full object-cover" 
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://via.placeholder.com/56x56/1a1b2e/666?text=News"
+                  }}
+                />
               </div>
 
               {/* Content */}

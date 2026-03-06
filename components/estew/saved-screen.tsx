@@ -1,6 +1,7 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
+import { useAuth } from "@/lib/auth-context"
 import { useArticles } from "@/lib/use-articles"
 import { CategoryBadge } from "./category-badge"
 import { Bookmark, BookmarkCheck } from "lucide-react"
@@ -9,13 +10,21 @@ import { useState } from "react"
 import Image from "next/image"
 
 export function SavedScreen() {
-  const { savedArticleIds, toggleSaveArticle, setSelectedArticleId, articles: storeArticles } = useAppStore()
+  const { setSelectedArticleId, articles: storeArticles } = useAppStore()
+  const { profile, toggleSaveArticle } = useAuth()
   const { articles: fetchedArticles } = useArticles("All")
   const allArticles = storeArticles.length > 0 ? storeArticles : fetchedArticles
   const [filter, setFilter] = useState("All")
+  
+  // Use profile's saved articles from Firestore
+  const savedArticleIds = profile?.savedArticles || []
   const saved = allArticles.filter((a) => savedArticleIds.includes(a.id))
   const filtered = filter === "All" ? saved : saved.filter((a) => a.category === filter)
   const filterCats = ["All", "AI", "Launches", "Market"]
+
+  const handleUnsave = async (articleId: string) => {
+    await toggleSaveArticle(articleId)
+  }
 
   return (
     <div className="flex flex-col pb-20">
@@ -32,7 +41,7 @@ export function SavedScreen() {
       </div>
 
       {/* Filter chips */}
-      <div className="no-scrollbar flex gap-2 px-5 py-3">
+      <div className="no-scrollbar flex gap-2 overflow-x-auto px-5 py-3">
         {filterCats.map((cat) => {
           const isActive = filter === cat
           return (
@@ -81,8 +90,11 @@ export function SavedScreen() {
                     alt={article.title}
                     className="h-full w-full object-cover"
                     crossOrigin="anonymous"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://via.placeholder.com/200x150/1a1b2e/666?text=News"
+                    }}
                   />
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)" }} />
                   <div className="absolute bottom-2 left-2 right-2">
                     <h3 className="line-clamp-2 font-sans text-[12px] font-semibold leading-snug text-white">
                       {article.title}
@@ -94,14 +106,28 @@ export function SavedScreen() {
                 </div>
               </button>
               <button
-                onClick={() => toggleSaveArticle(article.id)}
+                onClick={() => handleUnsave(article.id)}
                 className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform active:scale-90"
               >
                 <BookmarkCheck size={12} strokeWidth={1.5} className="text-primary" />
               </button>
               <div className="flex items-center gap-1.5 px-2.5 py-2">
-                <img src={article.sourceLogoUrl} alt={article.sourceName} className="h-3.5 w-3.5 rounded-full object-contain" crossOrigin="anonymous" />
-                <span className="font-sans text-[10px] text-muted-foreground">{article.sourceName}</span>
+                {article.sourceLogoUrl ? (
+                  <img 
+                    src={article.sourceLogoUrl} 
+                    alt={article.sourceName} 
+                    className="h-3.5 w-3.5 rounded-full object-contain" 
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-muted text-[7px] font-bold text-muted-foreground">
+                    {article.sourceName.charAt(0)}
+                  </div>
+                )}
+                <span className="truncate font-sans text-[10px] text-muted-foreground">{article.sourceName}</span>
               </div>
             </motion.div>
           ))}

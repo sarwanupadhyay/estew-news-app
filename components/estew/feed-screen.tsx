@@ -55,6 +55,9 @@ export function FeedScreen() {
           </p>
         </div>
       )}
+      
+      {/* Bottom spacing */}
+      <div className="h-4" />
     </div>
   )
 }

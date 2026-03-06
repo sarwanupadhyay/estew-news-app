@@ -1,6 +1,7 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
+import { useAuth } from "@/lib/auth-context"
 import { useAiSummary } from "@/lib/use-articles"
 import { timeAgo } from "@/lib/time"
 import { CategoryBadge } from "./category-badge"
@@ -8,8 +9,16 @@ import { ExternalLink, X, Bookmark, BookmarkCheck, Sparkles } from "lucide-react
 import { motion, AnimatePresence } from "framer-motion"
 
 export function ArticleDetail() {
-  const { selectedArticleId, setSelectedArticleId, savedArticleIds, toggleSaveArticle, articles } = useAppStore()
+  const { selectedArticleId, setSelectedArticleId, articles } = useAppStore()
+  const { profile, toggleSaveArticle } = useAuth()
   const article = articles.find((a) => a.id === selectedArticleId)
+  const isSaved = profile?.savedArticles?.includes(article?.id || "") || false
+
+  const handleSave = async () => {
+    if (article) {
+      await toggleSaveArticle(article.id)
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -56,17 +65,29 @@ export function ArticleDetail() {
                   alt={article.title}
                   className="aspect-video w-full object-cover"
                   crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://via.placeholder.com/640x360/1a1b2e/666?text=Tech+News"
+                  }}
                 />
               </div>
 
               {/* Source bar */}
               <div className="mb-4 flex items-center gap-2">
-                <img
-                  src={article.sourceLogoUrl}
-                  alt={article.sourceName}
-                  className="h-5 w-5 rounded-full object-contain"
-                  crossOrigin="anonymous"
-                />
+                {article.sourceLogoUrl ? (
+                  <img
+                    src={article.sourceLogoUrl}
+                    alt={article.sourceName}
+                    className="h-5 w-5 rounded-full object-contain"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                    {article.sourceName.charAt(0)}
+                  </div>
+                )}
                 <span className="font-sans text-[13px] font-medium text-foreground">
                   {article.sourceName}
                 </span>
@@ -110,10 +131,10 @@ export function ArticleDetail() {
                   <ExternalLink size={15} strokeWidth={1.5} />
                 </a>
                 <button
-                  onClick={() => toggleSaveArticle(article.id)}
+                  onClick={handleSave}
                   className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card transition-transform active:scale-[0.97]"
                 >
-                  {savedArticleIds.includes(article.id) ? (
+                  {isSaved ? (
                     <BookmarkCheck size={18} strokeWidth={1.5} className="text-primary" />
                   ) : (
                     <Bookmark size={18} strokeWidth={1.5} className="text-muted-foreground" />
