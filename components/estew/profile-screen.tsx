@@ -93,6 +93,13 @@ export function ProfileScreen() {
   const [subscriptionDetails, setSubscriptionDetails] = useState<UserSubscription | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Derived state - must be declared before useEffects that depend on it
+  const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "Guest"
+  const email = user?.email || "Not signed in"
+  const initial = displayName.charAt(0).toUpperCase()
+  const photoURL = profile?.photoURL || user?.photoURL
+  const isPro = profile?.plan === "pro"
+
   // Load activities when modal opens
   useEffect(() => {
     if (showActivityModal && user && profile) {
@@ -112,12 +119,6 @@ export function ProfileScreen() {
         .catch((err) => console.error("Failed to load subscription:", err))
     }
   }, [showBillingModal, user, isPro])
-
-  const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "Guest"
-  const email = user?.email || "Not signed in"
-  const initial = displayName.charAt(0).toUpperCase()
-  const photoURL = profile?.photoURL || user?.photoURL
-  const isPro = profile?.plan === "pro"
 
   const handleLogout = async () => {
     await signOut()
