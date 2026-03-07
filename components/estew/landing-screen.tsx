@@ -15,6 +15,7 @@ export function LandingScreen() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(true)
 
   const handleGoogle = async () => {
     setLoading(true)
@@ -42,7 +43,7 @@ export function LandingScreen() {
     setError("")
     try {
       if (isSignUp) {
-        await signUpWithEmail(email, password)
+        await signUpWithEmail(email, password, subscribeNewsletter)
       } else {
         await signInWithEmail(email, password)
       }
@@ -173,6 +174,19 @@ export function LandingScreen() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {isSignUp && (
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={subscribeNewsletter}
+                    onChange={(e) => setSubscribeNewsletter(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border bg-input accent-primary"
+                  />
+                  <span className="font-sans text-[12px] text-muted-foreground leading-relaxed">
+                    Subscribe to our daily newsletter with AI-curated tech news
+                  </span>
+                </label>
+              )}
               <button
                 type="submit"
                 disabled={loading}

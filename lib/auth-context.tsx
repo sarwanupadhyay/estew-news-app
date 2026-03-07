@@ -31,6 +31,7 @@ export interface UserProfile {
   displayName: string
   photoURL?: string
   hasOnboarded: boolean
+  newsletterSubscribed: boolean
 }
 
 export interface UsageStats {
@@ -46,7 +47,7 @@ interface AuthContextType {
   usage: UsageStats
   signInWithGoogle: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
-  signUpWithEmail: (email: string, password: string) => Promise<void>
+  signUpWithEmail: (email: string, password: string, newsletterSubscribed?: boolean) => Promise<void>
   signOut: () => Promise<void>
   saveProfile: (data: Partial<UserProfile>) => Promise<void>
   toggleSaveArticle: (articleId: string) => Promise<void>
@@ -64,6 +65,7 @@ const defaultProfile: UserProfile = {
   savedArticles: [],
   displayName: "",
   hasOnboarded: false,
+  newsletterSubscribed: false,
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               displayName: data.displayName || firebaseUser.displayName || "",
               photoURL: data.photoURL || firebaseUser.photoURL || undefined,
               hasOnboarded: data.hasOnboarded ?? true,
+              newsletterSubscribed: data.newsletterSubscribed ?? false,
             })
             // Load usage stats
             const stats = await getUsageStats(firebaseUser.uid, plan)
@@ -149,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password)
   }
 
-  const signUpWithEmailFn = async (email: string, password: string) => {
+  const signUpWithEmailFn = async (email: string, password: string, newsletterSubscribed: boolean = false) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
     // Create initial profile
     await createUserProfile(result.user.uid, {
@@ -159,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       topics: [],
       companies: [],
       savedArticles: [],
+      newsletterSubscribed,
     })
   }
 

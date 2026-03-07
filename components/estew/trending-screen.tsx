@@ -4,16 +4,31 @@ import { useState } from "react"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 import { useAppStore } from "@/lib/store"
 import { useArticles } from "@/lib/use-articles"
+import { useAuth } from "@/lib/auth-context"
 import { timeAgo, formatViewCount } from "@/lib/time"
-import { TrendingUp } from "lucide-react"
-import { motion } from "framer-motion"
+import { TrendingUp, Lock, Sparkles } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 
 export function TrendingScreen() {
   const { setSelectedArticleId, articles: storeArticles } = useAppStore()
   const { articles: fetchedArticles } = useArticles("All")
+  const { profile, checkArticleAccess } = useAuth()
   const allArticles = storeArticles.length > 0 ? storeArticles : fetchedArticles
   const sorted = [...allArticles].sort((a, b) => b.viewCount - a.viewCount)
+
+  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [limitMessage, setLimitMessage] = useState("")
+
+  const handleArticleClick = async (articleId: string) => {
+    const result = await checkArticleAccess()
+    if (!result.allowed) {
+      setLimitMessage(result.message || "Daily limit reached")
+      setShowLimitModal(true)
+      return
+    }
+    setSelectedArticleId(articleId)
+  }
 
   return (
     <div className="flex flex-col pb-20">
@@ -35,10 +50,60 @@ export function TrendingScreen() {
             key={article.id} 
             article={article} 
             rank={i + 1} 
-            onClick={() => setSelectedArticleId(article.id)} 
+            onClick={() => handleArticleClick(article.id)} 
           />
         ))}
       </div>
+
+      {/* Rate Limit Modal */}
+      <AnimatePresence>
+        {showLimitModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-8"
+            onClick={() => setShowLimitModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10 mx-auto">
+                <Lock size={24} className="text-amber-500" />
+              </div>
+              <h3 className="text-center font-serif text-xl font-bold text-foreground mb-2">
+                Daily Limit Reached
+              </h3>
+              <p className="text-center font-sans text-[14px] text-muted-foreground mb-6">
+                {limitMessage}
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowLimitModal(false)
+                    // Navigate to profile billing
+                    useAppStore.getState().setActiveTab("profile")
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary py-3 font-sans text-[14px] font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
+                >
+                  <Sparkles size={16} />
+                  Upgrade to Pro
+                </button>
+                <button
+                  onClick={() => setShowLimitModal(false)}
+                  className="rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors hover:bg-muted"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

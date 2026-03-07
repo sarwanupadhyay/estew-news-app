@@ -83,6 +83,8 @@ export function ProfileScreen() {
   const [saving, setSaving] = useState(false)
   const [processingPayment, setProcessingPayment] = useState(false)
   const [showBillingModal, setShowBillingModal] = useState(false)
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false)
+  const [savingNewsletter, setSavingNewsletter] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "Guest"
@@ -141,8 +143,21 @@ export function ProfileScreen() {
   const handleSettingClick = (action: string) => {
     if (action === "billing") {
       setShowBillingModal(true)
+    } else if (action === "newsletter") {
+      setShowNewsletterModal(true)
     }
     // Other actions can be implemented later
+  }
+
+  const handleToggleNewsletter = async () => {
+    setSavingNewsletter(true)
+    try {
+      await saveProfile({ newsletterSubscribed: !profile?.newsletterSubscribed })
+    } catch (err) {
+      console.error("Error toggling newsletter:", err)
+    } finally {
+      setSavingNewsletter(false)
+    }
   }
 
   const handleUpgradeToPro = async () => {
@@ -545,6 +560,111 @@ export function ProfileScreen() {
                 <button
                   onClick={() => setShowBillingModal(false)}
                   className="mt-6 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Newsletter Modal */}
+      <AnimatePresence>
+        {showNewsletterModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowNewsletterModal(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-[428px] rounded-t-3xl bg-background"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+              </div>
+
+              <div className="px-5 pb-8">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mx-auto">
+                  <Mail size={24} className="text-primary" />
+                </div>
+                <h2 className="text-center font-serif text-2xl font-bold text-foreground mb-2">
+                  Newsletter
+                </h2>
+                <p className="text-center font-sans text-[14px] text-muted-foreground mb-6">
+                  Get a daily digest of the top tech news, curated by AI and delivered to your inbox.
+                </p>
+
+                {/* Current status */}
+                <div className="rounded-xl border border-border bg-card p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-sans text-[14px] font-semibold text-foreground">Daily Newsletter</p>
+                      <p className="font-sans text-[12px] text-muted-foreground">
+                        {profile?.newsletterSubscribed ? "You're subscribed" : "You're not subscribed"}
+                      </p>
+                    </div>
+                    <div 
+                      className={`h-6 w-11 rounded-full p-0.5 cursor-pointer transition-colors ${
+                        profile?.newsletterSubscribed ? "bg-primary" : "bg-muted"
+                      }`}
+                      onClick={handleToggleNewsletter}
+                    >
+                      <div 
+                        className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                          profile?.newsletterSubscribed ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Newsletter benefits */}
+                <div className="rounded-xl border border-border bg-card p-4 mb-6">
+                  <h3 className="font-sans text-[13px] font-semibold text-foreground mb-3">What you'll get:</h3>
+                  <ul className="space-y-2">
+                    {[
+                      "Top 5 stories of the day",
+                      "AI-generated summaries",
+                      "Personalized based on your interests",
+                      "Delivered every morning at 8 AM",
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <Check size={14} strokeWidth={2} className="text-primary" />
+                        <span className="font-sans text-[13px] text-muted-foreground">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  onClick={handleToggleNewsletter}
+                  disabled={savingNewsletter}
+                  className={`w-full rounded-full py-3 font-sans text-[14px] font-semibold transition-transform active:scale-[0.98] disabled:opacity-50 ${
+                    profile?.newsletterSubscribed
+                      ? "border border-border bg-card text-foreground"
+                      : "bg-primary text-primary-foreground"
+                  }`}
+                >
+                  {savingNewsletter 
+                    ? "Saving..." 
+                    : profile?.newsletterSubscribed 
+                      ? "Unsubscribe" 
+                      : "Subscribe to Newsletter"
+                  }
+                </button>
+
+                <button
+                  onClick={() => setShowNewsletterModal(false)}
+                  className="mt-3 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
                 >
                   Close
                 </button>

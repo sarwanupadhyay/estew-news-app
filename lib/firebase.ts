@@ -48,6 +48,7 @@ export async function createUserProfile(uid: string, data: {
   topics: string[]
   companies: string[]
   savedArticles: string[]
+  newsletterSubscribed?: boolean
 }) {
   const docRef = doc(db, "users", uid)
   await setDoc(docRef, {
@@ -64,6 +65,8 @@ export async function updateUserProfile(uid: string, data: Partial<{
   topics: string[]
   companies: string[]
   savedArticles: string[]
+  newsletterSubscribed: boolean
+  hasOnboarded: boolean
 }>) {
   const docRef = doc(db, "users", uid)
   await updateDoc(docRef, {
