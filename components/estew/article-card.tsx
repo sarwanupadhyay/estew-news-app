@@ -41,8 +41,10 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
   }
 
   const handleClick = async () => {
+    console.log("[v0] Article clicked:", article.id, article.title)
     // Check rate limit before opening
     const result = await checkArticleAccess()
+    console.log("[v0] Rate limit check:", result)
     if (!result.allowed) {
       setLimitReached(true)
       setLimitMessage(result.message || "Daily limit reached")

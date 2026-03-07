@@ -16,9 +16,10 @@ export function FeedScreen() {
   // Sync fetched articles to the global store so other screens (detail, saved, trending) can access them
   useEffect(() => {
     if (articles.length > 0) {
+      console.log("[v0] Feed loaded", articles.length, "articles for category:", activeCategory)
       setArticles(articles)
     }
-  }, [articles, setArticles])
+  }, [articles, setArticles, activeCategory])
 
   const hero = articles[0]
   const rest = articles.slice(1)
