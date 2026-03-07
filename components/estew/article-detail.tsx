@@ -6,17 +6,41 @@ import { useAiSummary } from "@/lib/use-articles"
 import { timeAgo } from "@/lib/time"
 import { CategoryBadge } from "./category-badge"
 import { saveArticleForUser, removeSavedArticle } from "@/lib/article-storage"
-import { ExternalLink, X, Bookmark, BookmarkCheck, Sparkles } from "lucide-react"
+import { recordActivity } from "@/lib/activity-service"
+import { ExternalLink, X, Bookmark, BookmarkCheck, Sparkles, Lock } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 
 export function ArticleDetail() {
   const { selectedArticleId, setSelectedArticleId, getArticleById } = useAppStore()
   const { profile, user } = useAuth()
   const [isSavingArticle, setIsSavingArticle] = useState(false)
+  const hasRecordedActivity = useRef(false)
   // Use the optimized lookup map instead of array.find
   const article = selectedArticleId ? getArticleById(selectedArticleId) : undefined
   const isSaved = profile?.savedArticles?.includes(article?.id || "") || false
+  const isPro = profile?.plan === "pro"
+
+  // Record article read activity when article is opened
+  useEffect(() => {
+    if (article && user && !hasRecordedActivity.current) {
+      hasRecordedActivity.current = true
+      recordActivity(user.uid, {
+        type: "article_read",
+        articleId: article.id,
+        articleTitle: article.title,
+        articleSource: article.sourceName,
+        articleCategory: article.category,
+      }).catch((err) => console.error("Failed to record activity:", err))
+    }
+    
+    // Reset when article changes
+    return () => {
+      if (!selectedArticleId) {
+        hasRecordedActivity.current = false
+      }
+    }
+  }, [article, user, selectedArticleId])
 
   const handleSave = async () => {
     if (!article || !user) return
@@ -25,8 +49,24 @@ export function ArticleDetail() {
     try {
       if (isSaved) {
         await removeSavedArticle(user.uid, article.id)
+        // Record unsave activity
+        await recordActivity(user.uid, {
+          type: "article_unsaved",
+          articleId: article.id,
+          articleTitle: article.title,
+          articleSource: article.sourceName,
+          articleCategory: article.category,
+        })
       } else {
         await saveArticleForUser(user.uid, article.id)
+        // Record save activity
+        await recordActivity(user.uid, {
+          type: "article_saved",
+          articleId: article.id,
+          articleTitle: article.title,
+          articleSource: article.sourceName,
+          articleCategory: article.category,
+        })
       }
       // Update local state via auth context
       window.location.reload() // Reload to refresh profile data
@@ -133,8 +173,8 @@ export function ArticleDetail() {
                 {article.summary}
               </p>
 
-              {/* AI Summary */}
-              <AiSummarySection title={article.title} summary={article.summary} url={article.originalUrl} />
+              {/* AI Summary - Only for Pro users */}
+              <AiSummarySection title={article.title} summary={article.summary} url={article.originalUrl} isPro={isPro} />
 
               {/* Actions */}
               <div className="flex gap-3">
@@ -167,8 +207,28 @@ export function ArticleDetail() {
   )
 }
 
-function AiSummarySection({ title, summary, url }: { title: string; summary: string; url: string }) {
-  const { aiSummary, isLoading } = useAiSummary(title, summary, url, true)
+function AiSummarySection({ title, summary, url, isPro }: { title: string; summary: string; url: string; isPro: boolean }) {
+  // Only fetch AI summary for Pro users
+  const { aiSummary, isLoading } = useAiSummary(title, summary, url, isPro)
+
+  // Show upgrade prompt for free users
+  if (!isPro) {
+    return (
+      <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <Lock size={14} className="text-amber-500" />
+          <span className="font-sans text-[12px] font-semibold text-amber-500">AI Summary</span>
+        </div>
+        <p className="font-sans text-[13px] leading-relaxed text-muted-foreground">
+          AI-powered summaries are available with Estew Pro.
+        </p>
+        <button className="mt-3 flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 font-sans text-[12px] font-semibold text-amber-500 transition-colors hover:bg-amber-500/20">
+          <Sparkles size={12} />
+          Upgrade to Pro
+        </button>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (

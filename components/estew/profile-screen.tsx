@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { getReadingHistory, type Activity } from "@/lib/activity-service"
+import { createSubscription, getUserSubscription, type UserSubscription } from "@/lib/subscription-service"
 import {
   User,
   Heart,
@@ -85,7 +87,31 @@ export function ProfileScreen() {
   const [showBillingModal, setShowBillingModal] = useState(false)
   const [showNewsletterModal, setShowNewsletterModal] = useState(false)
   const [savingNewsletter, setSavingNewsletter] = useState(false)
+  const [showActivityModal, setShowActivityModal] = useState(false)
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(false)
+  const [subscriptionDetails, setSubscriptionDetails] = useState<UserSubscription | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load activities when modal opens
+  useEffect(() => {
+    if (showActivityModal && user && profile) {
+      setLoadingActivities(true)
+      getReadingHistory(user.uid, profile.plan, usage.articlesLimit)
+        .then(setActivities)
+        .catch((err) => console.error("Failed to load activities:", err))
+        .finally(() => setLoadingActivities(false))
+    }
+  }, [showActivityModal, user, profile, usage.articlesLimit])
+
+  // Load subscription details when billing modal opens
+  useEffect(() => {
+    if (showBillingModal && user && isPro) {
+      getUserSubscription(user.uid)
+        .then(setSubscriptionDetails)
+        .catch((err) => console.error("Failed to load subscription:", err))
+    }
+  }, [showBillingModal, user, isPro])
 
   const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "Guest"
   const email = user?.email || "Not signed in"
@@ -145,6 +171,8 @@ export function ProfileScreen() {
       setShowBillingModal(true)
     } else if (action === "newsletter") {
       setShowNewsletterModal(true)
+    } else if (action === "history") {
+      setShowActivityModal(true)
     }
     // Other actions can be implemented later
   }
@@ -186,7 +214,10 @@ export function ProfileScreen() {
       name: "Estew Pro",
       description: "Unlimited articles, AI summaries, priority alerts",
       handler: async function (response) {
-        if (response.razorpay_payment_id) {
+        if (response.razorpay_payment_id && user) {
+          // Create subscription record in database
+          await createSubscription(user.uid, response.razorpay_payment_id)
+          // Update local profile
           await saveProfile({ plan: "pro" })
           setShowBillingModal(false)
         }
@@ -489,12 +520,51 @@ export function ProfileScreen() {
               </div>
 
               <div className="max-h-[80vh] overflow-y-auto px-5 pb-8">
-                <h2 className="mb-1 font-serif text-2xl font-bold text-foreground">Plan & Billing</h2>
-                <p className="mb-6 font-sans text-[14px] text-muted-foreground">
-                  {isPro ? "You're currently on the Pro plan" : "Choose the plan that's right for you"}
-                </p>
+  <h2 className="mb-1 font-serif text-2xl font-bold text-foreground">Plan & Billing</h2>
+  <p className="mb-6 font-sans text-[14px] text-muted-foreground">
+> {isPro ? "You're currently on the Pro plan" : "Choose the plan that's right for you"}
+  </p>
 
-                {/* Free Plan */}
+  {/* Pro Subscription Details */}
+  {isPro && subscriptionDetails && (
+    <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+      <h3 className="mb-3 font-sans text-[14px] font-semibold text-foreground">Subscription Details</h3>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="font-sans text-[13px] text-muted-foreground">Status</span>
+          <span className={`rounded-full px-2 py-0.5 font-sans text-[11px] font-medium ${
+            subscriptionDetails.subscriptionStatus === "active" 
+              ? "bg-green-500/10 text-green-500" 
+              : "bg-amber-500/10 text-amber-500"
+          }`}>
+            {subscriptionDetails.subscriptionStatus || "Active"}
+          </span>
+        </div>
+        {subscriptionDetails.renewalDate && (
+          <div className="flex items-center justify-between">
+            <span className="font-sans text-[13px] text-muted-foreground">Next Renewal</span>
+            <span className="font-sans text-[13px] text-foreground">
+              {new Date(subscriptionDetails.renewalDate).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+        )}
+        {subscriptionDetails.daysRemaining !== undefined && (
+          <div className="flex items-center justify-between">
+            <span className="font-sans text-[13px] text-muted-foreground">Days Remaining</span>
+            <span className="font-sans text-[13px] font-medium text-primary">
+              {subscriptionDetails.daysRemaining} days
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+  
+  {/* Free Plan */}
                 <div className={`mb-4 rounded-xl border p-5 ${!isPro ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
                   <div className="mb-3 flex items-center justify-between">
                     <div>
@@ -665,6 +735,118 @@ export function ProfileScreen() {
                 <button
                   onClick={() => setShowNewsletterModal(false)}
                   className="mt-3 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Activity History Modal */}
+      <AnimatePresence>
+        {showActivityModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowActivityModal(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-[428px] rounded-t-3xl bg-background"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+              </div>
+
+              <div className="px-5 pb-8">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mx-auto">
+                  <Clock size={24} className="text-primary" />
+                </div>
+                <h2 className="text-center font-serif text-2xl font-bold text-foreground mb-2">
+                  Activity History
+                </h2>
+                <p className="text-center font-sans text-[14px] text-muted-foreground mb-6">
+                  {isPro 
+                    ? "Your complete reading history" 
+                    : `Showing your last ${usage.articlesLimit} articles (daily limit)`
+                  }
+                </p>
+
+                {/* Activity List */}
+                <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-border bg-card">
+                  {loadingActivities ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    </div>
+                  ) : activities.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <BookOpen size={32} className="mx-auto mb-3 text-muted-foreground/50" />
+                      <p className="font-sans text-[14px] text-muted-foreground">
+                        No reading history yet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {activities.map((activity) => (
+                        <div key={activity.id} className="px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                              <BookOpen size={14} className="text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-sans text-[13px] font-medium text-foreground line-clamp-2">
+                                {activity.articleTitle || "Unknown article"}
+                              </p>
+                              <div className="mt-1 flex items-center gap-2">
+                                <span className="font-sans text-[11px] text-muted-foreground">
+                                  {activity.articleSource}
+                                </span>
+                                {activity.articleCategory && (
+                                  <>
+                                    <span className="text-[11px] text-muted-foreground/50">•</span>
+                                    <span className="font-sans text-[11px] text-primary">
+                                      {activity.articleCategory}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <p className="mt-1 font-sans text-[10px] text-muted-foreground/70">
+                                {new Date(activity.timestamp).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Free user upgrade prompt */}
+                {!isPro && activities.length >= usage.articlesLimit && (
+                  <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                    <p className="font-sans text-[13px] text-amber-500">
+                      You've reached your daily limit. Upgrade to Pro for unlimited reading history.
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setShowActivityModal(false)}
+                  className="mt-6 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
                 >
                   Close
                 </button>
