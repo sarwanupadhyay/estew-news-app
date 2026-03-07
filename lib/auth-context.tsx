@@ -95,12 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load profile when user changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("[v0] Auth state changed:", firebaseUser?.email || "logged out")
       setUser(firebaseUser)
       if (firebaseUser) {
         try {
           const data = await getUserProfile(firebaseUser.uid)
-          console.log("[v0] User profile loaded:", data?.plan, "onboarded:", data?.hasOnboarded)
           if (data) {
             const plan = data.plan || "free"
             setProfile({

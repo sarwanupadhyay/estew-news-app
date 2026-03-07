@@ -3,7 +3,7 @@
 import { useAppStore } from "@/lib/store"
 import { useMemo, useState } from "react"
 
-// Helper to get favicon from Google's service
+// Helper to get favicon using DuckDuckGo (better CORS support)
 function getFaviconUrl(sourceName: string, sourceUrl?: string): string {
   // Try to extract domain from source URL or name
   let domain = sourceUrl || ""
@@ -20,8 +20,8 @@ function getFaviconUrl(sourceName: string, sourceUrl?: string): string {
       domain = `${sourceName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
     }
   }
-  // Use Google's favicon service (more reliable)
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`
+  // Use DuckDuckGo favicon service - better CORS support
+  return `https://icons.duckduckgo.com/ip3/${domain}.ico`
 }
 
 // Known sources with reliable logos
@@ -92,8 +92,6 @@ function SourceItem({ source }: { source: { name: string; logoUrl: string; domai
               src={source.logoUrl}
               alt={source.name}
               className="h-8 w-8 rounded object-contain"
-              crossOrigin="anonymous"
-              referrerPolicy="no-referrer"
               onError={() => setImgError(true)}
             />
           )}

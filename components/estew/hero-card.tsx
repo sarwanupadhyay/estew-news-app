@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth-context"
 import { timeAgo } from "@/lib/time"
 import { motion } from "framer-motion"
 
-// Get favicon for source
+// Get favicon for source using DuckDuckGo (better CORS support)
 function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
   let domain = sourceUrl || ""
   if (!domain.includes(".")) {
@@ -22,7 +22,7 @@ function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
       domain = `${sourceName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
     }
   }
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+  return `https://icons.duckduckgo.com/ip3/${domain}.ico`
 }
 
 export function HeroCard({ article }: { article: Article }) {
@@ -84,8 +84,6 @@ export function HeroCard({ article }: { article: Article }) {
                 src={article.imageUrl}
                 alt=""
                 className={`h-full w-full object-cover transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
                 onLoad={() => setImgLoaded(true)}
                 onError={() => setImgError(true)}
               />
@@ -116,8 +114,6 @@ export function HeroCard({ article }: { article: Article }) {
                     src={faviconUrl}
                     alt=""
                     className="h-4 w-4 rounded-sm bg-white/90 object-contain"
-                    crossOrigin="anonymous"
-                    referrerPolicy="no-referrer"
                     onError={() => setLogoError(true)}
                   />
                 )}

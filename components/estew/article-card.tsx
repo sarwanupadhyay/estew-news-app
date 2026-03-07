@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth-context"
 import { timeAgo } from "@/lib/time"
 import { motion } from "framer-motion"
 
-// Get favicon for source
+// Get favicon for source using DuckDuckGo (better CORS support)
 function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
   let domain = sourceUrl || ""
   if (!domain.includes(".")) {
@@ -22,7 +22,8 @@ function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
       domain = `${sourceName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
     }
   }
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+  // Use DuckDuckGo favicon service - better CORS support
+  return `https://icons.duckduckgo.com/ip3/${domain}.ico`
 }
 
 export function ArticleCard({ article, index }: { article: Article; index: number }) {
@@ -41,10 +42,8 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
   }
 
   const handleClick = async () => {
-    console.log("[v0] Article clicked:", article.id, article.title)
     // Check rate limit before opening
     const result = await checkArticleAccess()
-    console.log("[v0] Rate limit check:", result)
     if (!result.allowed) {
       setLimitReached(true)
       setLimitMessage(result.message || "Daily limit reached")
@@ -84,8 +83,6 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
                   src={faviconUrl}
                   alt=""
                   className="h-4 w-4 shrink-0 rounded-sm object-contain"
-                  crossOrigin="anonymous"
-                  referrerPolicy="no-referrer"
                   onError={() => setLogoError(true)}
                 />
               )}
@@ -115,8 +112,6 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
                 src={article.imageUrl}
                 alt=""
                 className={`h-full w-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
                 onLoad={() => setImgLoaded(true)}
                 onError={() => setImgError(true)}
               />

@@ -82,7 +82,7 @@ async function fetchFeedData(category: string) {
           summary: item.description || "",
           originalUrl,
           sourceName: item.source?.name || "Unknown",
-          sourceLogoUrl: `https://www.google.com/s2/favicons?domain=${new URL(originalUrl).hostname}&sz=64`,
+          sourceLogoUrl: `https://icons.duckduckgo.com/ip3/${new URL(originalUrl).hostname}.ico`,
           sourceAgencyId: "",
           publishedAt: item.publishedAt || new Date().toISOString(),
           fetchedAt: new Date().toISOString(),

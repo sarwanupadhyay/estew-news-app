@@ -24,7 +24,6 @@ export function ArticleDetail() {
   // Record article read activity when article is opened
   useEffect(() => {
     if (article && user && !hasRecordedActivity.current) {
-      console.log("[v0] Article detail opened:", article.id, article.title)
       hasRecordedActivity.current = true
       recordActivity(user.uid, {
         type: "article_read",
@@ -32,8 +31,7 @@ export function ArticleDetail() {
         articleTitle: article.title,
         articleSource: article.sourceName,
         articleCategory: article.category,
-      }).then(() => console.log("[v0] Activity recorded for:", article.id))
-        .catch((err) => console.error("[v0] Failed to record activity:", err))
+      }).catch((err) => console.error("Failed to record activity:", err))
     }
     
     // Reset when article changes
