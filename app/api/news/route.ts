@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import type { Article, Category } from "@/lib/types"
 import { mockArticles } from "@/lib/mock-data"
+import { persistArticle } from "@/lib/article-storage"
+import { getCachedFeed } from "@/lib/redis-cache"
 
 const CATEGORY_QUERIES: Record<string, string> = {
   AI: "artificial intelligence OR GPT OR LLM OR machine learning",
@@ -14,6 +16,16 @@ const CATEGORY_QUERIES: Record<string, string> = {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const category = searchParams.get("category") || "All"
+
+  // Use Redis cache for feed queries to reduce Firestore reads
+  const cachedResult = await getCachedFeed(category, async () => {
+    return fetchFeedData(category)
+  })
+
+  return NextResponse.json(cachedResult)
+}
+
+async function fetchFeedData(category: string) {
   const apiKey = process.env.NEWS_API_KEY
 
   // If no API key, return mock data
@@ -22,7 +34,7 @@ export async function GET(request: Request) {
     if (category !== "All") {
       articles = articles.filter((a) => a.category === category)
     }
-    return NextResponse.json({ articles, source: "mock" })
+    return { articles, source: "mock" }
   }
 
   try {
@@ -44,7 +56,6 @@ export async function GET(request: Request) {
     }
 
     const data = await res.json()
-
     const categoryList: Category[] = ["AI", "Market", "Launches", "Apps", "Startups", "Products"]
 
     const articles: Article[] = (data.articles || []).map(
@@ -77,7 +88,16 @@ export async function GET(request: Request) {
       })
     )
 
-    return NextResponse.json({ articles, source: "live" })
+    // Persist articles to Firestore (prevent duplicates by originalUrl)
+    const persistedIds = await Promise.all(articles.map((article) => persistArticle(article)))
+
+    // Attach Firestore IDs to articles for later reference
+    const articlesWithIds = articles.map((article, i) => ({
+      ...article,
+      id: persistedIds[i],
+    }))
+
+    return { articles: articlesWithIds, source: "live" }
   } catch (error) {
     console.error("NewsAPI error:", error)
     // Fallback to mock data
@@ -85,6 +105,6 @@ export async function GET(request: Request) {
     if (category !== "All") {
       articles = articles.filter((a) => a.category === category)
     }
-    return NextResponse.json({ articles, source: "mock-fallback" })
+    return { articles, source: "mock-fallback" }
   }
 }

@@ -2,33 +2,62 @@
 
 import { useAppStore } from "@/lib/store"
 import { useAuth } from "@/lib/auth-context"
-import { useArticles } from "@/lib/use-articles"
+import { getUserSavedArticles, removeSavedArticle } from "@/lib/article-storage"
 import { CategoryBadge } from "./category-badge"
 import { Bookmark, BookmarkCheck } from "lucide-react"
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
+import type { Article } from "@/lib/types"
 
 export function SavedScreen() {
-  const { setSelectedArticleId, articles: storeArticles } = useAppStore()
-  const { profile, toggleSaveArticle } = useAuth()
-  const { articles: fetchedArticles } = useArticles("All")
-  const allArticles = storeArticles.length > 0 ? storeArticles : fetchedArticles
+  const { setSelectedArticleId } = useAppStore()
+  const { user, profile } = useAuth()
+  const [saved, setSaved] = useState<Article[]>([])
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("All")
-  
-  // Use profile's saved articles from Firestore
-  const savedArticleIds = profile?.savedArticles || []
-  const saved = allArticles.filter((a) => savedArticleIds.includes(a.id))
+
+  // Load saved articles from Firestore on component mount or when user changes
+  useEffect(() => {
+    if (!user) {
+      setSaved([])
+      setLoading(false)
+      return
+    }
+
+    const loadSavedArticles = async () => {
+      try {
+        setLoading(true)
+        const articles = await getUserSavedArticles(user.uid)
+        setSaved(articles)
+      } catch (error) {
+        console.error("Error loading saved articles:", error)
+        setSaved([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSavedArticles()
+  }, [user])
+
   const filtered = filter === "All" ? saved : saved.filter((a) => a.category === filter)
   const filterCats = ["All", "AI", "Launches", "Market"]
 
   const handleUnsave = async (articleId: string) => {
-    await toggleSaveArticle(articleId)
+    if (!user) return
+    try {
+      await removeSavedArticle(user.uid, articleId)
+      setSaved((prev) => prev.filter((a) => a.id !== articleId))
+    } catch (error) {
+      console.error("Error removing saved article:", error)
+    }
   }
 
   return (
     <div className="flex flex-col pb-20">
-      <div className="flex items-center gap-2.5 border-b border-border px-5 pb-3 pt-4"
+      <div
+        className="flex items-center gap-2.5 border-b border-border px-5 pb-3 pt-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
       >
         <div className="relative h-6 w-6">
@@ -62,7 +91,12 @@ export function SavedScreen() {
         })}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center px-5 py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+          <p className="mt-4 font-sans text-[14px] text-muted-foreground">Loading saved articles...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-5 py-20">
           <Bookmark size={36} strokeWidth={1} className="text-muted-foreground/40" />
           <p className="mt-4 font-sans text-[15px] font-medium text-muted-foreground">
@@ -96,7 +130,10 @@ export function SavedScreen() {
                       e.currentTarget.src = "https://via.placeholder.com/200x150/1a1b2e/666?text=News"
                     }}
                   />
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)" }} />
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)" }}
+                  />
                   <div className="absolute bottom-2 left-2 right-2">
                     <h3 className="line-clamp-2 font-sans text-[12px] font-semibold leading-snug text-white">
                       {article.title}
@@ -115,10 +152,10 @@ export function SavedScreen() {
               </button>
               <div className="flex items-center gap-1.5 px-2.5 py-2">
                 {article.sourceLogoUrl ? (
-                  <img 
-                    src={article.sourceLogoUrl} 
-                    alt={article.sourceName} 
-                    className="h-3.5 w-3.5 rounded-full object-contain" 
+                  <img
+                    src={article.sourceLogoUrl}
+                    alt={article.sourceName}
+                    className="h-3.5 w-3.5 rounded-full object-contain"
                     crossOrigin="anonymous"
                     onError={(e) => {
                       e.currentTarget.style.display = "none"
@@ -129,7 +166,9 @@ export function SavedScreen() {
                     {article.sourceName.charAt(0)}
                   </div>
                 )}
-                <span className="truncate font-sans text-[10px] text-muted-foreground">{article.sourceName}</span>
+                <span className="truncate font-sans text-[10px] text-muted-foreground">
+                  {article.sourceName}
+                </span>
               </div>
             </motion.div>
           ))}

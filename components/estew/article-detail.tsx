@@ -5,18 +5,34 @@ import { useAuth } from "@/lib/auth-context"
 import { useAiSummary } from "@/lib/use-articles"
 import { timeAgo } from "@/lib/time"
 import { CategoryBadge } from "./category-badge"
+import { saveArticleForUser, removeSavedArticle } from "@/lib/article-storage"
 import { ExternalLink, X, Bookmark, BookmarkCheck, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useState } from "react"
 
 export function ArticleDetail() {
   const { selectedArticleId, setSelectedArticleId, articles } = useAppStore()
-  const { profile, toggleSaveArticle } = useAuth()
+  const { profile, user } = useAuth()
+  const [isSavingArticle, setIsSavingArticle] = useState(false)
   const article = articles.find((a) => a.id === selectedArticleId)
   const isSaved = profile?.savedArticles?.includes(article?.id || "") || false
 
   const handleSave = async () => {
-    if (article) {
-      await toggleSaveArticle(article.id)
+    if (!article || !user) return
+
+    setIsSavingArticle(true)
+    try {
+      if (isSaved) {
+        await removeSavedArticle(user.uid, article.id)
+      } else {
+        await saveArticleForUser(user.uid, article.id)
+      }
+      // Update local state via auth context
+      window.location.reload() // Reload to refresh profile data
+    } catch (error) {
+      console.error("Error saving article:", error)
+    } finally {
+      setIsSavingArticle(false)
     }
   }
 
@@ -132,7 +148,8 @@ export function ArticleDetail() {
                 </a>
                 <button
                   onClick={handleSave}
-                  className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card transition-transform active:scale-[0.97]"
+                  disabled={isSavingArticle}
+                  className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card transition-transform active:scale-[0.97] disabled:opacity-50"
                 >
                   {isSaved ? (
                     <BookmarkCheck size={18} strokeWidth={1.5} className="text-primary" />
