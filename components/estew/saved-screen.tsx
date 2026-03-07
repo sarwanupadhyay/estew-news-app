@@ -31,7 +31,9 @@ export function SavedScreen() {
       <div className="flex items-center gap-2.5 border-b border-border px-5 pb-3 pt-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
       >
-        <Image src="/images/logo.png" alt="Estew" width={24} height={24} className="dark:invert" style={{ width: 24, height: 'auto' }} />
+        <div className="relative h-6 w-6">
+          <Image src="/images/logo.png" alt="Estew" fill className="object-contain dark:invert" />
+        </div>
         <div>
           <h1 className="font-serif text-xl font-bold tracking-tight text-foreground">Saved</h1>
           <p className="font-sans text-[12px] text-muted-foreground">

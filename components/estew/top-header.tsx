@@ -22,14 +22,14 @@ export function TopHeader() {
       style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)", paddingBottom: 12 }}
     >
       <div className="flex items-center gap-2.5">
-        <Image
-          src="/images/logo.png"
-          alt="Estew logo"
-          width={28}
-          height={28}
-          className="dark:invert"
-          style={{ width: 28, height: 'auto' }}
-        />
+        <div className="relative h-7 w-7">
+          <Image
+            src="/images/logo.png"
+            alt="Estew logo"
+            fill
+            className="object-contain dark:invert"
+          />
+        </div>
         <span className="font-serif text-xl font-bold tracking-tight text-foreground">
           estew
         </span>

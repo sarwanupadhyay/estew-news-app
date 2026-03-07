@@ -72,15 +72,13 @@ export function LandingScreen() {
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="mb-5"
+          className="relative mb-5 h-20 w-20"
         >
           <Image
             src="/images/logo.png"
             alt="Estew logo"
-            width={72}
-            height={72}
-            className="dark:invert"
-            style={{ width: 72, height: 'auto' }}
+            fill
+            className="object-contain dark:invert"
             priority
           />
         </motion.div>
