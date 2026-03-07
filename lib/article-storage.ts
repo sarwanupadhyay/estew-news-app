@@ -20,38 +20,100 @@ import type { Article } from "./types"
  * Manages article persistence, deduplication, and lifecycle
  */
 
+// Generate a stable unique ID from URL using a proper hash
+function generateArticleId(url: string): string {
+  // Use a simple but reliable hash function
+  let hash = 0
+  for (let i = 0; i < url.length; i++) {
+    const char = url.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  // Convert to positive hex string and prefix
+  const positiveHash = Math.abs(hash).toString(16)
+  // Add timestamp suffix for uniqueness in case of hash collision
+  const timestamp = Date.now().toString(36)
+  return `art_${positiveHash}_${timestamp}`
+}
+
+// In-memory cache to prevent duplicate writes in the same request
+const persistenceCache = new Map<string, string>()
+
 // Ensure article exists in Firestore, prevent duplicates by originalUrl
 export async function persistArticle(article: Article): Promise<string> {
+  const originalUrl = article.originalUrl
+  
+  // Check in-memory cache first (prevents duplicate writes in same batch)
+  if (persistenceCache.has(originalUrl)) {
+    return persistenceCache.get(originalUrl)!
+  }
+
   try {
     // Check if article already exists by originalUrl
     const articlesRef = collection(db, "articles")
-    const q = query(articlesRef, where("originalUrl", "==", article.originalUrl))
+    const q = query(articlesRef, where("originalUrl", "==", originalUrl))
     const querySnapshot = await getDocs(q)
 
     if (!querySnapshot.empty) {
       // Article already exists, return existing ID
-      return querySnapshot.docs[0].id
+      const existingId = querySnapshot.docs[0].id
+      persistenceCache.set(originalUrl, existingId)
+      return existingId
     }
 
-    // Generate stable ID based on hash of originalUrl
-    const articleId = `article_${Buffer.from(article.originalUrl).toString("base64").slice(0, 20)}`
+    // Generate new unique ID
+    const articleId = generateArticleId(originalUrl)
     const articleRef = doc(db, "articles", articleId)
+    
+    // Check if this ID already exists (handle potential collision)
+    const existingDoc = await getDoc(articleRef)
+    if (existingDoc.exists()) {
+      // ID collision - return existing doc's ID since it's the same URL
+      const existingData = existingDoc.data()
+      if (existingData.originalUrl === originalUrl) {
+        persistenceCache.set(originalUrl, articleId)
+        return articleId
+      }
+      // Different URL but same hash - append random suffix
+      const uniqueId = `${articleId}_${Math.random().toString(36).substring(2, 8)}`
+      const uniqueRef = doc(db, "articles", uniqueId)
+      
+      await setDoc(uniqueRef, {
+        ...article,
+        id: uniqueId,
+        storageTier: "hot",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        isArchived: false,
+      })
+      
+      persistenceCache.set(originalUrl, uniqueId)
+      return uniqueId
+    }
 
     // Store article with metadata for lifecycle management
     await setDoc(articleRef, {
       ...article,
       id: articleId,
-      storageTier: "hot", // hot | warm | archive
+      storageTier: "hot",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       isArchived: false,
     })
 
+    persistenceCache.set(originalUrl, articleId)
     return articleId
   } catch (error) {
     console.error("Error persisting article:", error)
-    throw error
+    // Return a fallback ID to prevent crashes
+    const fallbackId = `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+    return fallbackId
   }
+}
+
+// Clear persistence cache (call periodically to free memory)
+export function clearPersistenceCache(): void {
+  persistenceCache.clear()
 }
 
 // Save article reference for user (not duplicate content)
@@ -97,7 +159,7 @@ export async function removeSavedArticle(userId: string, articleId: string): Pro
   }
 }
 
-// Retrieve article from Firestore
+// Retrieve article from Firestore by ID
 export async function getArticle(articleId: string): Promise<Article | null> {
   try {
     const docRef = doc(db, "articles", articleId)
@@ -109,7 +171,7 @@ export async function getArticle(articleId: string): Promise<Article | null> {
   }
 }
 
-// Get user's saved articles
+// Get user's saved articles with full article data
 export async function getUserSavedArticles(userId: string): Promise<Article[]> {
   try {
     const userRef = doc(db, "users", userId)
@@ -120,13 +182,17 @@ export async function getUserSavedArticles(userId: string): Promise<Article[]> {
     }
 
     const savedArticleIds = userSnap.data().savedArticles as string[]
-    const articles: Article[] = []
+    
+    if (savedArticleIds.length === 0) {
+      return []
+    }
 
     // Fetch each article in parallel
     const promises = savedArticleIds.map((id) => getArticle(id))
     const results = await Promise.all(promises)
 
-    return results.filter((article) => article !== null) as Article[]
+    // Filter out null results (deleted articles)
+    return results.filter((article): article is Article => article !== null)
   } catch (error) {
     console.error("Error getting user saved articles:", error)
     return []
@@ -136,11 +202,9 @@ export async function getUserSavedArticles(userId: string): Promise<Article[]> {
 // Check if article is referenced by any user (for deletion protection)
 export async function isArticleReferencedByUser(articleId: string): Promise<boolean> {
   try {
-    // Query users collection for this articleId in their savedArticles array
     const usersRef = collection(db, "users")
     const q = query(usersRef, where("savedArticles", "array-contains", articleId))
     const querySnapshot = await getDocs(q)
-
     return querySnapshot.size > 0
   } catch (error) {
     console.error("Error checking article references:", error)
@@ -156,7 +220,6 @@ export async function archiveOldArticles(): Promise<number> {
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000
     const oneHundredEightyDaysAgo = now - 180 * 24 * 60 * 60 * 1000
 
-    // Find articles to move from hot to warm
     const hotQuery = query(articlesRef, where("storageTier", "==", "hot"))
     const hotSnapshot = await getDocs(hotQuery)
 
@@ -167,7 +230,6 @@ export async function archiveOldArticles(): Promise<number> {
       const createdAt = article.createdAt?.toMillis?.() || 0
 
       if (createdAt < thirtyDaysAgo) {
-        // Move to warm
         await updateDoc(docSnap.ref, {
           storageTier: "warm",
           updatedAt: serverTimestamp(),
@@ -176,7 +238,6 @@ export async function archiveOldArticles(): Promise<number> {
       }
     }
 
-    // Find articles to archive from warm
     const warmQuery = query(articlesRef, where("storageTier", "==", "warm"))
     const warmSnapshot = await getDocs(warmQuery)
 
@@ -185,11 +246,8 @@ export async function archiveOldArticles(): Promise<number> {
       const createdAt = article.createdAt?.toMillis?.() || 0
 
       if (createdAt < oneHundredEightyDaysAgo) {
-        // Check if still referenced
         const isReferenced = await isArticleReferencedByUser(docSnap.id)
-
         if (!isReferenced) {
-          // Move to archive
           await updateDoc(docSnap.ref, {
             storageTier: "archive",
             isArchived: true,

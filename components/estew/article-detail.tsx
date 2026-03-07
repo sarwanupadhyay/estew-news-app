@@ -11,10 +11,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState } from "react"
 
 export function ArticleDetail() {
-  const { selectedArticleId, setSelectedArticleId, articles } = useAppStore()
+  const { selectedArticleId, setSelectedArticleId, getArticleById } = useAppStore()
   const { profile, user } = useAuth()
   const [isSavingArticle, setIsSavingArticle] = useState(false)
-  const article = articles.find((a) => a.id === selectedArticleId)
+  // Use the optimized lookup map instead of array.find
+  const article = selectedArticleId ? getArticleById(selectedArticleId) : undefined
   const isSaved = profile?.savedArticles?.includes(article?.id || "") || false
 
   const handleSave = async () => {
