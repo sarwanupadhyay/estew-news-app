@@ -1,5 +1,3 @@
-"use client"
-
 import { db } from "./firebase"
 import {
   collection,

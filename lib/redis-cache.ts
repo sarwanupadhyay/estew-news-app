@@ -33,17 +33,16 @@ export async function getCachedFeed(
     // Try to get from cache
     const cached = await redis.get(cacheKey)
     if (cached) {
-      console.log(`[Redis] Cache HIT for ${cacheKey}`)
-      return cached
+      // Parse if it's a string (in case Redis returns stringified JSON)
+      const parsedData = typeof cached === "string" ? JSON.parse(cached) : cached
+      return parsedData
     }
-
-    console.log(`[Redis] Cache MISS for ${cacheKey}, fetching fresh data`)
 
     // Fetch fresh data
     const data = await fetchFn()
 
-    // Store in cache
-    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data))
+    // Store in cache (Upstash Redis handles JSON serialization automatically)
+    await redis.setex(cacheKey, CACHE_TTL, data)
 
     return data
   } catch (error) {
