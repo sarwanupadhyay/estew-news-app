@@ -77,7 +77,7 @@ const PRO_FEATURES = [
 ]
 
 export function ProfileScreen() {
-  const { user, profile, signOut, updateDisplayName, updatePhotoURL, saveProfile } = useAuth()
+  const { user, profile, signOut, updateDisplayName, updatePhotoURL, saveProfile, usage } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState("")
   const [saving, setSaving] = useState(false)
@@ -310,7 +310,7 @@ export function ProfileScreen() {
         className="mx-5 mb-6 flex items-center justify-around rounded-xl border border-border bg-card py-4"
       >
         {[
-          { icon: BookOpen, value: 0, label: "Read" },
+          { icon: BookOpen, value: usage.isUnlimited ? "∞" : `${usage.articlesUsed}/${usage.articlesLimit}`, label: "Today" },
           { icon: Bookmark, value: profile?.savedArticles?.length || 0, label: "Saved" },
           { icon: Hash, value: profile?.topics?.length || 0, label: "Topics" },
         ].map((stat) => (
@@ -321,6 +321,34 @@ export function ProfileScreen() {
           </div>
         ))}
       </motion.div>
+
+      {/* Usage Progress - only for free users */}
+      {!isPro && !usage.isUnlimited && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.07 }}
+          className="mx-5 mb-6"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-sans text-[12px] font-medium text-foreground">Daily Article Limit</span>
+            <span className="font-sans text-[12px] text-muted-foreground">
+              {usage.articlesUsed} of {usage.articlesLimit} used
+            </span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div 
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{ width: `${Math.min((usage.articlesUsed / usage.articlesLimit) * 100, 100)}%` }}
+            />
+          </div>
+          {usage.articlesUsed >= usage.articlesLimit * 0.8 && (
+            <p className="mt-2 font-sans text-[11px] text-amber-500">
+              You are running low on daily reads. Upgrade for unlimited access.
+            </p>
+          )}
+        </motion.div>
+      )}
 
       {/* Upgrade CTA - only show for free users */}
       {!isPro && (

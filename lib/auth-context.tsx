@@ -21,6 +21,7 @@ import {
   updateProfile,
   type User,
 } from "./firebase"
+import { checkArticleLimit, getUsageStats } from "./rate-limiter"
 
 export interface UserProfile {
   plan: "free" | "pro"
@@ -32,10 +33,17 @@ export interface UserProfile {
   hasOnboarded: boolean
 }
 
+export interface UsageStats {
+  articlesUsed: number
+  articlesLimit: number
+  isUnlimited: boolean
+}
+
 interface AuthContextType {
   user: User | null
   profile: UserProfile | null
   loading: boolean
+  usage: UsageStats
   signInWithGoogle: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signUpWithEmail: (email: string, password: string) => Promise<void>
@@ -45,6 +53,8 @@ interface AuthContextType {
   completeOnboarding: (topics: string[], companies: string[], plan: "free" | "pro") => Promise<void>
   updateDisplayName: (name: string) => Promise<void>
   updatePhotoURL: (url: string) => Promise<void>
+  checkArticleAccess: () => Promise<{ allowed: boolean; message?: string; shouldUpgrade?: boolean }>
+  refreshUsage: () => Promise<void>
 }
 
 const defaultProfile: UserProfile = {
@@ -60,6 +70,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  usage: { articlesUsed: 0, articlesLimit: 20, isUnlimited: false },
   signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
@@ -69,12 +80,15 @@ const AuthContext = createContext<AuthContextType>({
   completeOnboarding: async () => {},
   updateDisplayName: async () => {},
   updatePhotoURL: async () => {},
+  checkArticleAccess: async () => ({ allowed: true }),
+  refreshUsage: async () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [usage, setUsage] = useState<UsageStats>({ articlesUsed: 0, articlesLimit: 20, isUnlimited: false })
 
   // Load profile when user changes
   useEffect(() => {
@@ -84,8 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const data = await getUserProfile(firebaseUser.uid)
           if (data) {
+            const plan = data.plan || "free"
             setProfile({
-              plan: data.plan || "free",
+              plan,
               topics: data.topics || [],
               companies: data.companies || [],
               savedArticles: data.savedArticles || [],
@@ -93,6 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               photoURL: data.photoURL || firebaseUser.photoURL || undefined,
               hasOnboarded: data.hasOnboarded ?? true,
             })
+            // Load usage stats
+            const stats = await getUsageStats(firebaseUser.uid, plan)
+            setUsage({ articlesUsed: stats.used, articlesLimit: stats.limit, isUnlimited: stats.isUnlimited })
           } else {
             // New user - will go through onboarding
             setProfile({ ...defaultProfile, displayName: firebaseUser.displayName || "", photoURL: firebaseUser.photoURL || undefined })
@@ -185,12 +203,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((prev) => prev ? { ...prev, photoURL: url } : null)
   }
 
+  const checkArticleAccess = async () => {
+    if (!user || !profile) return { allowed: true }
+    const result = await checkArticleLimit(user.uid, profile.plan)
+    if (result.allowed) {
+      // Update local usage count
+      setUsage((prev) => ({
+        ...prev,
+        articlesUsed: prev.articlesUsed + 1,
+      }))
+    }
+    return {
+      allowed: result.allowed,
+      message: result.message,
+      shouldUpgrade: result.shouldUpgrade,
+    }
+  }
+
+  const refreshUsage = async () => {
+    if (!user || !profile) return
+    const stats = await getUsageStats(user.uid, profile.plan)
+    setUsage({ articlesUsed: stats.used, articlesLimit: stats.limit, isUnlimited: stats.isUnlimited })
+  }
+
   return (
     <AuthContext.Provider
       value={{
         user,
         profile,
         loading,
+        usage,
         signInWithGoogle: signInWithGoogleFn,
         signInWithEmail: signInWithEmailFn,
         signUpWithEmail: signUpWithEmailFn,
@@ -200,6 +242,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completeOnboarding,
         updateDisplayName,
         updatePhotoURL,
+        checkArticleAccess,
+        refreshUsage,
       }}
     >
       {children}
