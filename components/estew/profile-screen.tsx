@@ -520,51 +520,51 @@ export function ProfileScreen() {
               </div>
 
               <div className="max-h-[80vh] overflow-y-auto px-5 pb-8">
-  <h2 className="mb-1 font-serif text-2xl font-bold text-foreground">Plan & Billing</h2>
-  <p className="mb-6 font-sans text-[14px] text-muted-foreground">
-> {isPro ? "You're currently on the Pro plan" : "Choose the plan that's right for you"}
-  </p>
+                <h2 className="mb-1 font-serif text-2xl font-bold text-foreground">Plan & Billing</h2>
+                <p className="mb-6 font-sans text-[14px] text-muted-foreground">
+                  {isPro ? "You're currently on the Pro plan" : "Choose the plan that's right for you"}
+                </p>
 
-  {/* Pro Subscription Details */}
-  {isPro && subscriptionDetails && (
-    <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
-      <h3 className="mb-3 font-sans text-[14px] font-semibold text-foreground">Subscription Details</h3>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="font-sans text-[13px] text-muted-foreground">Status</span>
-          <span className={`rounded-full px-2 py-0.5 font-sans text-[11px] font-medium ${
-            subscriptionDetails.subscriptionStatus === "active" 
-              ? "bg-green-500/10 text-green-500" 
-              : "bg-amber-500/10 text-amber-500"
-          }`}>
-            {subscriptionDetails.subscriptionStatus || "Active"}
-          </span>
-        </div>
-        {subscriptionDetails.renewalDate && (
-          <div className="flex items-center justify-between">
-            <span className="font-sans text-[13px] text-muted-foreground">Next Renewal</span>
-            <span className="font-sans text-[13px] text-foreground">
-              {new Date(subscriptionDetails.renewalDate).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </span>
-          </div>
-        )}
-        {subscriptionDetails.daysRemaining !== undefined && (
-          <div className="flex items-center justify-between">
-            <span className="font-sans text-[13px] text-muted-foreground">Days Remaining</span>
-            <span className="font-sans text-[13px] font-medium text-primary">
-              {subscriptionDetails.daysRemaining} days
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  )}
-  
-  {/* Free Plan */}
+                {/* Pro Subscription Details */}
+                {isPro && subscriptionDetails && (
+                  <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <h3 className="mb-3 font-sans text-[14px] font-semibold text-foreground">Subscription Details</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-sans text-[13px] text-muted-foreground">Status</span>
+                        <span className={`rounded-full px-2 py-0.5 font-sans text-[11px] font-medium ${
+                          subscriptionDetails.subscriptionStatus === "active" 
+                            ? "bg-green-500/10 text-green-500" 
+                            : "bg-amber-500/10 text-amber-500"
+                        }`}>
+                          {subscriptionDetails.subscriptionStatus || "Active"}
+                        </span>
+                      </div>
+                      {subscriptionDetails.renewalDate && (
+                        <div className="flex items-center justify-between">
+                          <span className="font-sans text-[13px] text-muted-foreground">Next Renewal</span>
+                          <span className="font-sans text-[13px] text-foreground">
+                            {new Date(subscriptionDetails.renewalDate).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {subscriptionDetails.daysRemaining !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="font-sans text-[13px] text-muted-foreground">Days Remaining</span>
+                          <span className="font-sans text-[13px] font-medium text-primary">
+                            {subscriptionDetails.daysRemaining} days
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Free Plan */}
                 <div className={`mb-4 rounded-xl border p-5 ${!isPro ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
                   <div className="mb-3 flex items-center justify-between">
                     <div>
