@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import {
   getAdminStats,
@@ -26,6 +26,9 @@ import {
   Clock,
   User,
   FileText,
+  Loader2,
+  Download,
+  AlertCircle,
 } from "lucide-react"
 
 export default function AdminDashboard() {
@@ -36,6 +39,10 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"newsletter" | "users" | "articles" | "subscribers">("newsletter")
   const [refreshing, setRefreshing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [generatingNewsletter, setGeneratingNewsletter] = useState(false)
+  const [generatedNewsletter, setGeneratedNewsletter] = useState<string | null>(null)
+  const [newsletterError, setNewsletterError] = useState<string | null>(null)
+  const newsletterRef = useRef<HTMLPreElement>(null)
 
   // Check authentication
   useEffect(() => {
@@ -75,6 +82,52 @@ export default function AdminDashboard() {
     navigator.clipboard.writeText(NEWSLETTER_SYSTEM_PROMPT)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleGenerateNewsletter = async () => {
+    setGeneratingNewsletter(true)
+    setNewsletterError(null)
+    setGeneratedNewsletter(null)
+    
+    try {
+      const response = await fetch("/api/admin/newsletter", {
+        method: "POST",
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate newsletter")
+      }
+      
+      setGeneratedNewsletter(data.newsletter)
+    } catch (error) {
+      setNewsletterError(error instanceof Error ? error.message : "Failed to generate newsletter")
+    } finally {
+      setGeneratingNewsletter(false)
+    }
+  }
+
+  const handleCopyNewsletter = () => {
+    if (generatedNewsletter) {
+      navigator.clipboard.writeText(generatedNewsletter)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleDownloadNewsletter = () => {
+    if (generatedNewsletter) {
+      const blob = new Blob([generatedNewsletter], { type: "text/plain" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `estew-newsletter-${new Date().toISOString().split("T")[0]}.txt`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    }
   }
 
   const formatDate = (date: Date) => {
@@ -240,6 +293,81 @@ export default function AdminDashboard() {
                 {/* Newsletter Tab */}
                 {activeTab === "newsletter" && (
                   <div className="space-y-6">
+                    {/* Generate Button */}
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={handleGenerateNewsletter}
+                        disabled={generatingNewsletter}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 font-medium text-white transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
+                      >
+                        {generatingNewsletter ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Generating Newsletter...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={18} />
+                            Generate Newsletter with AI
+                          </>
+                        )}
+                      </button>
+                      <p className="text-sm text-gray-500">
+                        Uses Gemini AI to create a daily tech briefing from recent articles
+                      </p>
+                    </div>
+
+                    {/* Error Message */}
+                    {newsletterError && (
+                      <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                        <AlertCircle size={20} className="shrink-0 text-red-400" />
+                        <div>
+                          <p className="font-medium text-red-400">Error generating newsletter</p>
+                          <p className="mt-1 text-sm text-red-300/70">{newsletterError}</p>
+                          {newsletterError.includes("GEMINI_API_KEY") && (
+                            <p className="mt-2 text-sm text-gray-400">
+                              Please add your GEMINI_API_KEY in the environment variables.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Generated Newsletter */}
+                    {generatedNewsletter && (
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                        <div className="flex items-center justify-between border-b border-emerald-500/20 px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <Check size={16} className="text-emerald-400" />
+                            <span className="font-medium text-emerald-400">Newsletter Generated</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleCopyNewsletter}
+                              className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/20"
+                            >
+                              {copied ? <Check size={14} /> : <Copy size={14} />}
+                              {copied ? "Copied!" : "Copy"}
+                            </button>
+                            <button
+                              onClick={handleDownloadNewsletter}
+                              className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/20"
+                            >
+                              <Download size={14} />
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                        <pre
+                          ref={newsletterRef}
+                          className="max-h-[500px] overflow-y-auto whitespace-pre-wrap p-5 font-mono text-sm text-gray-300"
+                        >
+                          {generatedNewsletter}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* System Prompt Reference */}
                     <div className="rounded-xl border border-white/10 bg-white/5 p-5">
                       <div className="mb-4 flex items-center justify-between">
                         <h3 className="font-medium text-white">AI Newsletter System Prompt</h3>
@@ -251,18 +379,20 @@ export default function AdminDashboard() {
                           {copied ? "Copied!" : "Copy Prompt"}
                         </button>
                       </div>
-                      <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-black/50 p-4 text-xs text-gray-400">
+                      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg bg-black/50 p-4 text-xs text-gray-400">
                         {NEWSLETTER_SYSTEM_PROMPT}
                       </pre>
                     </div>
+
+                    {/* Info */}
                     <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
                       <div className="flex gap-3">
                         <Mail size={20} className="shrink-0 text-amber-500" />
                         <div>
-                          <h4 className="font-medium text-white">How to Generate Newsletter</h4>
+                          <h4 className="font-medium text-white">Newsletter Generation</h4>
                           <p className="mt-1 text-sm text-gray-400">
-                            Copy the system prompt above and use it with your preferred AI model (GPT-4, Claude, etc.)
-                            along with the list of recent articles to generate a daily tech briefing newsletter.
+                            Click the button above to automatically generate a newsletter using AI.
+                            The newsletter will be created from the latest articles stored in your database.
                           </p>
                         </div>
                       </div>
