@@ -12,14 +12,21 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from "react"
 
 export function ArticleDetail() {
-  const { selectedArticleId, setSelectedArticleId, getArticleById } = useAppStore()
+  const { selectedArticleId, setSelectedArticleId, getArticleById, selectedArticle, setSelectedArticle } = useAppStore()
   const { profile, user } = useAuth()
   const [isSavingArticle, setIsSavingArticle] = useState(false)
   const hasRecordedActivity = useRef(false)
-  // Use the optimized lookup map instead of array.find
-  const article = selectedArticleId ? getArticleById(selectedArticleId) : undefined
+  
+  // Use selectedArticle if available (from saved screen), otherwise lookup from feed
+  const article = selectedArticle || (selectedArticleId ? getArticleById(selectedArticleId) : undefined)
   const isSaved = profile?.savedArticles?.includes(article?.id || "") || false
   const isPro = profile?.plan === "pro"
+
+  // Clear selectedArticle when closing
+  const handleClose = () => {
+    setSelectedArticleId(null)
+    setSelectedArticle(null)
+  }
 
   // Record article read activity when article is opened
   useEffect(() => {
@@ -87,7 +94,7 @@ export function ArticleDetail() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/50"
-            onClick={() => setSelectedArticleId(null)}
+            onClick={handleClose}
           />
 
           {/* Bottom Sheet */}
@@ -108,7 +115,7 @@ export function ArticleDetail() {
               {/* Close */}
               <div className="mb-3 flex justify-end">
                 <button
-                  onClick={() => setSelectedArticleId(null)}
+                  onClick={handleClose}
                   className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-muted"
                 >
                   <X size={16} strokeWidth={1.5} className="text-muted-foreground" />
@@ -121,7 +128,6 @@ export function ArticleDetail() {
                   src={article.imageUrl}
                   alt={article.title}
                   className="aspect-video w-full object-cover"
-                  crossOrigin="anonymous"
                   onError={(e) => {
                     e.currentTarget.src = "https://via.placeholder.com/640x360/1a1b2e/666?text=Tech+News"
                   }}
@@ -135,7 +141,6 @@ export function ArticleDetail() {
                     src={article.sourceLogoUrl}
                     alt={article.sourceName}
                     className="h-5 w-5 rounded-full object-contain"
-                    crossOrigin="anonymous"
                     onError={(e) => {
                       e.currentTarget.style.display = "none"
                     }}

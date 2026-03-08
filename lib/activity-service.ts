@@ -11,6 +11,9 @@ import {
   Timestamp,
   where,
   deleteDoc,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore"
 
 // Activity types
@@ -24,6 +27,12 @@ export interface Activity {
   searchQuery?: string
   category?: string
   timestamp: Date
+}
+
+export interface ActivityPage {
+  activities: Activity[]
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null
+  hasMore: boolean
 }
 
 // Record user activity
@@ -41,7 +50,108 @@ export async function recordActivity(
   return activityRef.id
 }
 
-// Get user activity history
+// Get user activities for a specific date with pagination
+export async function getActivitiesByDate(
+  userId: string,
+  date: Date,
+  pageSize: number = 10,
+  lastDocument?: QueryDocumentSnapshot<DocumentData> | null
+): Promise<ActivityPage> {
+  const activitiesRef = collection(db, "users", userId, "activities")
+  
+  // Create date range for the selected day
+  const startOfDay = new Date(date)
+  startOfDay.setHours(0, 0, 0, 0)
+  
+  const endOfDay = new Date(date)
+  endOfDay.setHours(23, 59, 59, 999)
+  
+  // Build query
+  let q = query(
+    activitiesRef,
+    where("type", "==", "article_read"),
+    where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
+    where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
+    orderBy("timestamp", "desc"),
+    limit(pageSize + 1) // Fetch one extra to check if there are more
+  )
+  
+  // If we have a last document, start after it for pagination
+  if (lastDocument) {
+    q = query(
+      activitiesRef,
+      where("type", "==", "article_read"),
+      where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
+      where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
+      orderBy("timestamp", "desc"),
+      startAfter(lastDocument),
+      limit(pageSize + 1)
+    )
+  }
+  
+  const snapshot = await getDocs(q)
+  const docs = snapshot.docs
+  
+  // Check if there are more results
+  const hasMore = docs.length > pageSize
+  const activitiesToReturn = hasMore ? docs.slice(0, pageSize) : docs
+  
+  const activities = activitiesToReturn.map((doc) => {
+    const data = doc.data()
+    return {
+      id: doc.id,
+      type: data.type,
+      articleId: data.articleId,
+      articleTitle: data.articleTitle,
+      articleSource: data.articleSource,
+      articleCategory: data.articleCategory,
+      searchQuery: data.searchQuery,
+      category: data.category,
+      timestamp: data.timestamp instanceof Timestamp 
+        ? data.timestamp.toDate() 
+        : new Date(data.timestamp),
+    }
+  })
+  
+  return {
+    activities,
+    lastDoc: activitiesToReturn.length > 0 ? activitiesToReturn[activitiesToReturn.length - 1] : null,
+    hasMore,
+  }
+}
+
+// Get all dates that have activities (for calendar highlighting)
+export async function getActivityDates(userId: string): Promise<Set<string>> {
+  const activitiesRef = collection(db, "users", userId, "activities")
+  
+  // Get activities from the last 90 days
+  const ninetyDaysAgo = new Date()
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+  
+  const q = query(
+    activitiesRef,
+    where("type", "==", "article_read"),
+    where("timestamp", ">=", Timestamp.fromDate(ninetyDaysAgo)),
+    orderBy("timestamp", "desc")
+  )
+  
+  const snapshot = await getDocs(q)
+  const dates = new Set<string>()
+  
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data()
+    const timestamp = data.timestamp instanceof Timestamp 
+      ? data.timestamp.toDate() 
+      : new Date(data.timestamp)
+    // Format as YYYY-MM-DD for easy comparison
+    const dateStr = timestamp.toISOString().split("T")[0]
+    dates.add(dateStr)
+  })
+  
+  return dates
+}
+
+// Get user activity history (legacy - for backwards compatibility)
 export async function getUserActivities(
   userId: string,
   limitCount: number = 50,
@@ -84,7 +194,7 @@ export async function getUserActivities(
   })
 }
 
-// Get reading history specifically
+// Get reading history specifically (legacy)
 export async function getReadingHistory(
   userId: string,
   userPlan: "free" | "pro",
@@ -92,8 +202,6 @@ export async function getReadingHistory(
 ): Promise<Activity[]> {
   const activitiesRef = collection(db, "users", userId, "activities")
   
-  // For free users, only show activities within their daily limit
-  // For pro users, show all activities
   const limitCount = userPlan === "pro" ? 100 : dailyLimit
   
   const q = query(
@@ -177,23 +285,5 @@ export function formatActivityLabel(activity: Activity): string {
       return `Browsed: ${activity.category} category`
     default:
       return "Unknown activity"
-  }
-}
-
-// Get activity icon based on type
-export function getActivityIcon(type: Activity["type"]): string {
-  switch (type) {
-    case "article_read":
-      return "BookOpen"
-    case "article_saved":
-      return "Bookmark"
-    case "article_unsaved":
-      return "BookmarkMinus"
-    case "search":
-      return "Search"
-    case "category_view":
-      return "Folder"
-    default:
-      return "Activity"
   }
 }

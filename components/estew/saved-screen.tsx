@@ -11,7 +11,7 @@ import Image from "next/image"
 import type { Article } from "@/lib/types"
 
 export function SavedScreen() {
-  const { setSelectedArticleId } = useAppStore()
+  const { setSelectedArticle } = useAppStore()
   const { user, profile } = useAuth()
   const [saved, setSaved] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,7 +117,7 @@ export function SavedScreen() {
               className="group relative overflow-hidden rounded-xl border border-border bg-card"
             >
               <button
-                onClick={() => setSelectedArticleId(article.id)}
+                onClick={() => setSelectedArticle(article)}
                 className="block w-full text-left"
               >
                 <div className="relative aspect-[4/3] w-full overflow-hidden">
@@ -125,7 +125,6 @@ export function SavedScreen() {
                     src={article.imageUrl}
                     alt={article.title}
                     className="h-full w-full object-cover"
-                    crossOrigin="anonymous"
                     onError={(e) => {
                       e.currentTarget.src = "https://via.placeholder.com/200x150/1a1b2e/666?text=News"
                     }}
@@ -156,7 +155,6 @@ export function SavedScreen() {
                     src={article.sourceLogoUrl}
                     alt={article.sourceName}
                     className="h-3.5 w-3.5 rounded-full object-contain"
-                    crossOrigin="anonymous"
                     onError={(e) => {
                       e.currentTarget.style.display = "none"
                     }}

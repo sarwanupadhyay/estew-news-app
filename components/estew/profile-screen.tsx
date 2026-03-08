@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { getReadingHistory, type Activity } from "@/lib/activity-service"
+import { getActivitiesByDate, getActivityDates, type Activity, type ActivityPage } from "@/lib/activity-service"
 import { createSubscription, getUserSubscription, type UserSubscription } from "@/lib/subscription-service"
+import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore"
 import {
   User,
   Heart,
@@ -24,6 +25,8 @@ import {
   Shield,
   Search,
   Newspaper,
+  Calendar,
+  ChevronLeft,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
@@ -90,6 +93,11 @@ export function ProfileScreen() {
   const [showActivityModal, setShowActivityModal] = useState(false)
   const [activities, setActivities] = useState<Activity[]>([])
   const [loadingActivities, setLoadingActivities] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [activityDates, setActivityDates] = useState<Set<string>>(new Set())
+  const [lastActivityDoc, setLastActivityDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null)
+  const [hasMoreActivities, setHasMoreActivities] = useState(false)
   const [subscriptionDetails, setSubscriptionDetails] = useState<UserSubscription | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -100,16 +108,49 @@ export function ProfileScreen() {
   const photoURL = profile?.photoURL || user?.photoURL
   const isPro = profile?.plan === "pro"
 
-  // Load activities when modal opens
+  // Load activity dates when modal opens
   useEffect(() => {
-    if (showActivityModal && user && profile) {
+    if (showActivityModal && user) {
+      getActivityDates(user.uid)
+        .then(setActivityDates)
+        .catch((err) => console.error("Failed to load activity dates:", err))
+    }
+  }, [showActivityModal, user])
+
+  // Load activities for selected date
+  useEffect(() => {
+    if (showActivityModal && user && selectedDate) {
       setLoadingActivities(true)
-      getReadingHistory(user.uid, profile.plan, usage.articlesLimit)
-        .then(setActivities)
+      setActivities([])
+      setLastActivityDoc(null)
+      
+      getActivitiesByDate(user.uid, selectedDate, 10)
+        .then((result: ActivityPage) => {
+          setActivities(result.activities)
+          setLastActivityDoc(result.lastDoc)
+          setHasMoreActivities(result.hasMore)
+        })
         .catch((err) => console.error("Failed to load activities:", err))
         .finally(() => setLoadingActivities(false))
     }
-  }, [showActivityModal, user, profile, usage.articlesLimit])
+  }, [showActivityModal, user, selectedDate])
+
+  // Load more activities
+  const loadMoreActivities = async () => {
+    if (!user || !lastActivityDoc || loadingMore) return
+    
+    setLoadingMore(true)
+    try {
+      const result = await getActivitiesByDate(user.uid, selectedDate, 10, lastActivityDoc)
+      setActivities((prev) => [...prev, ...result.activities])
+      setLastActivityDoc(result.lastDoc)
+      setHasMoreActivities(result.hasMore)
+    } catch (err) {
+      console.error("Failed to load more activities:", err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // Load subscription details when billing modal opens
   useEffect(() => {
@@ -216,8 +257,14 @@ export function ProfileScreen() {
       description: "Unlimited articles, AI summaries, priority alerts",
       handler: async function (response) {
         if (response.razorpay_payment_id && user) {
-          // Create subscription record in database
-          await createSubscription(user.uid, response.razorpay_payment_id)
+          // Create subscription record in database (with user info for subscribed_users table)
+          await createSubscription(
+            user.uid,
+            response.razorpay_payment_id,
+            undefined,
+            user.email || undefined,
+            displayName
+          )
           // Update local profile
           await saveProfile({ plan: "pro" })
           setShowBillingModal(false)
@@ -745,7 +792,7 @@ export function ProfileScreen() {
         )}
       </AnimatePresence>
 
-      {/* Activity History Modal */}
+      {/* Activity History Modal with Calendar */}
       <AnimatePresence>
         {showActivityModal && (
           <motion.div
@@ -761,6 +808,7 @@ export function ProfileScreen() {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="w-full max-w-[428px] rounded-t-3xl bg-background"
+              style={{ maxHeight: "90vh" }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Handle */}
@@ -768,22 +816,121 @@ export function ProfileScreen() {
                 <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
               </div>
 
-              <div className="px-5 pb-8">
+              <div className="px-5 pb-8 overflow-y-auto" style={{ maxHeight: "calc(90vh - 40px)" }}>
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mx-auto">
-                  <Clock size={24} className="text-primary" />
+                  <Calendar size={24} className="text-primary" />
                 </div>
                 <h2 className="text-center font-serif text-2xl font-bold text-foreground mb-2">
                   Activity History
                 </h2>
-                <p className="text-center font-sans text-[14px] text-muted-foreground mb-6">
-                  {isPro 
-                    ? "Your complete reading history" 
-                    : `Showing your last ${usage.articlesLimit} articles (daily limit)`
-                  }
+                <p className="text-center font-sans text-[14px] text-muted-foreground mb-4">
+                  Select a date to view your reading history
+                </p>
+
+                {/* Calendar Date Picker */}
+                <div className="mb-4 rounded-xl border border-border bg-card p-4">
+                  {/* Month Navigation */}
+                  <div className="flex items-center justify-between mb-3">
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(selectedDate)
+                        newDate.setMonth(newDate.getMonth() - 1)
+                        setSelectedDate(newDate)
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted transition-colors"
+                    >
+                      <ChevronLeft size={16} className="text-muted-foreground" />
+                    </button>
+                    <span className="font-sans text-[14px] font-semibold text-foreground">
+                      {selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(selectedDate)
+                        newDate.setMonth(newDate.getMonth() + 1)
+                        if (newDate <= new Date()) {
+                          setSelectedDate(newDate)
+                        }
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted transition-colors"
+                    >
+                      <ChevronRight size={16} className="text-muted-foreground" />
+                    </button>
+                  </div>
+
+                  {/* Day Labels */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+                      <div key={i} className="text-center font-sans text-[11px] text-muted-foreground">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {(() => {
+                      const year = selectedDate.getFullYear()
+                      const month = selectedDate.getMonth()
+                      const firstDay = new Date(year, month, 1).getDay()
+                      const daysInMonth = new Date(year, month + 1, 0).getDate()
+                      const today = new Date()
+                      const days = []
+
+                      // Empty cells for days before first day
+                      for (let i = 0; i < firstDay; i++) {
+                        days.push(<div key={`empty-${i}`} className="h-8" />)
+                      }
+
+                      // Days of the month
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const date = new Date(year, month, day)
+                        const dateStr = date.toISOString().split("T")[0]
+                        const hasActivity = activityDates.has(dateStr)
+                        const isSelected = selectedDate.toDateString() === date.toDateString()
+                        const isToday = today.toDateString() === date.toDateString()
+                        const isFuture = date > today
+
+                        days.push(
+                          <button
+                            key={day}
+                            onClick={() => !isFuture && setSelectedDate(date)}
+                            disabled={isFuture}
+                            className={`h-8 w-8 rounded-full font-sans text-[12px] transition-colors relative ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : isToday
+                                ? "bg-primary/20 text-primary"
+                                : isFuture
+                                ? "text-muted-foreground/30 cursor-not-allowed"
+                                : "text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            {day}
+                            {hasActivity && !isSelected && (
+                              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />
+                            )}
+                          </button>
+                        )
+                      }
+
+                      return days
+                    })()}
+                  </div>
+                </div>
+
+                {/* Selected Date Label */}
+                <p className="mb-3 font-sans text-[13px] font-medium text-foreground">
+                  {selectedDate.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
                 </p>
 
                 {/* Activity List */}
-                <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-border bg-card">
+                <div className="max-h-[35vh] overflow-y-auto rounded-xl border border-border bg-card">
                   {loadingActivities ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -792,7 +939,7 @@ export function ProfileScreen() {
                     <div className="py-12 text-center">
                       <BookOpen size={32} className="mx-auto mb-3 text-muted-foreground/50" />
                       <p className="font-sans text-[14px] text-muted-foreground">
-                        No reading history yet
+                        No articles read on this day
                       </p>
                     </div>
                   ) : (
@@ -821,9 +968,7 @@ export function ProfileScreen() {
                                 )}
                               </div>
                               <p className="mt-1 font-sans text-[10px] text-muted-foreground/70">
-                                {new Date(activity.timestamp).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
+                                {new Date(activity.timestamp).toLocaleTimeString("en-US", {
                                   hour: "numeric",
                                   minute: "2-digit",
                                 })}
@@ -836,18 +981,20 @@ export function ProfileScreen() {
                   )}
                 </div>
 
-                {/* Free user upgrade prompt */}
-                {!isPro && activities.length >= usage.articlesLimit && (
-                  <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                    <p className="font-sans text-[13px] text-amber-500">
-                      You've reached your daily limit. Upgrade to Pro for unlimited reading history.
-                    </p>
-                  </div>
+                {/* Show More Button */}
+                {hasMoreActivities && activities.length > 0 && (
+                  <button
+                    onClick={loadMoreActivities}
+                    disabled={loadingMore}
+                    className="mt-3 w-full rounded-xl bg-primary/10 py-2.5 font-sans text-[13px] font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+                  >
+                    {loadingMore ? "Loading..." : "Show More"}
+                  </button>
                 )}
 
                 <button
                   onClick={() => setShowActivityModal(false)}
-                  className="mt-6 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
+                  className="mt-4 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
                 >
                   Close
                 </button>

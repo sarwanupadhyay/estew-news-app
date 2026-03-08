@@ -5,22 +5,51 @@ import {
   setDoc,
   getDoc,
   updateDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
   serverTimestamp,
   Timestamp,
   arrayUnion,
 } from "firebase/firestore"
 
-// Subscription structure as per system prompt
-export interface Subscription {
-  userId: string
-  plan: "pro"
-  status: "active" | "cancelled" | "expired"
-  startDate: Date
+// Subscribed user structure - comprehensive subscription info
+export interface SubscribedUser {
+  // User Info
+  id: string
+  email: string
+  displayName: string
+  
+  // Subscription Details
+  subscriptionType: "pro"
+  subscriptionPlan: "monthly" | "yearly"
+  subscriptionStatus: "active" | "cancelled" | "expired" | "paused"
+  
+  // Dates
+  subscribedAt: Date
   renewalDate: Date
-  razorpaySubscriptionId: string
-  billingHistory: BillingEntry[]
+  lastPaymentDate: Date
+  cancelledAt?: Date
+  
+  // Payment Gateway Info
+  paymentGateway: "razorpay" | "stripe" | "paypal"
+  paymentGatewayCustomerId?: string
+  paymentGatewaySubscriptionId: string
+  lastPaymentId: string
+  
+  // Billing
+  amountPaid: number
+  currency: string
+  billingCycle: number // in months
+  totalPayments: number
+  
+  // Metadata
+  createdAt: Date
+  updatedAt: Date
 }
 
+// Billing entry for payment history
 export interface BillingEntry {
   date: Date
   amount: number
@@ -30,6 +59,7 @@ export interface BillingEntry {
   description: string
 }
 
+// User subscription view (for profile display)
 export interface UserSubscription {
   plan: "free" | "pro"
   subscriptionStatus?: "active" | "cancelled" | "expired"
@@ -43,32 +73,76 @@ export interface UserSubscription {
 export async function createSubscription(
   userId: string,
   razorpayPaymentId: string,
-  razorpaySubscriptionId?: string
+  razorpaySubscriptionId?: string,
+  userEmail?: string,
+  userName?: string
 ): Promise<void> {
   const startDate = new Date()
   const renewalDate = new Date()
   renewalDate.setMonth(renewalDate.getMonth() + 1) // Monthly subscription
+  
+  const subscriptionId = razorpaySubscriptionId || razorpayPaymentId
 
   // Update user document
   const userRef = doc(db, "users", userId)
+  const userSnap = await getDoc(userRef)
+  const userData = userSnap.data()
+  
   await updateDoc(userRef, {
     plan: "pro",
     subscriptionStatus: "active",
     subscriptionStartDate: Timestamp.fromDate(startDate),
     renewalDate: Timestamp.fromDate(renewalDate),
-    razorpaySubscriptionId: razorpaySubscriptionId || razorpayPaymentId,
+    razorpaySubscriptionId: subscriptionId,
     updatedAt: serverTimestamp(),
   })
 
-  // Create subscription record
-  const subscriptionRef = doc(db, "subscriptions", razorpaySubscriptionId || razorpayPaymentId)
+  // Create entry in subscribed_users collection (comprehensive subscription info)
+  const subscribedUserRef = doc(db, "subscribed_users", userId)
+  const subscribedUserData: Omit<SubscribedUser, "id" | "createdAt" | "updatedAt" | "subscribedAt" | "renewalDate" | "lastPaymentDate"> & {
+    id: string
+    createdAt: ReturnType<typeof serverTimestamp>
+    updatedAt: ReturnType<typeof serverTimestamp>
+    subscribedAt: Timestamp
+    renewalDate: Timestamp
+    lastPaymentDate: Timestamp
+  } = {
+    id: userId,
+    email: userEmail || userData?.email || "",
+    displayName: userName || userData?.displayName || "",
+    
+    subscriptionType: "pro",
+    subscriptionPlan: "monthly",
+    subscriptionStatus: "active",
+    
+    subscribedAt: Timestamp.fromDate(startDate),
+    renewalDate: Timestamp.fromDate(renewalDate),
+    lastPaymentDate: Timestamp.fromDate(startDate),
+    
+    paymentGateway: "razorpay",
+    paymentGatewaySubscriptionId: subscriptionId,
+    lastPaymentId: razorpayPaymentId,
+    
+    amountPaid: 599,
+    currency: "INR",
+    billingCycle: 1,
+    totalPayments: 1,
+    
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }
+  
+  await setDoc(subscribedUserRef, subscribedUserData, { merge: true })
+
+  // Also create subscription record with billing history
+  const subscriptionRef = doc(db, "subscriptions", subscriptionId)
   await setDoc(subscriptionRef, {
     userId,
     plan: "pro",
     status: "active",
     startDate: Timestamp.fromDate(startDate),
     renewalDate: Timestamp.fromDate(renewalDate),
-    razorpaySubscriptionId: razorpaySubscriptionId || razorpayPaymentId,
+    razorpaySubscriptionId: subscriptionId,
     billingHistory: [{
       date: Timestamp.fromDate(startDate),
       amount: 599,
@@ -118,6 +192,82 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
   }
 }
 
+// Get full subscribed user details (admin view)
+export async function getSubscribedUserDetails(userId: string): Promise<SubscribedUser | null> {
+  const subscribedUserRef = doc(db, "subscribed_users", userId)
+  const snap = await getDoc(subscribedUserRef)
+  
+  if (!snap.exists()) {
+    return null
+  }
+  
+  const data = snap.data()
+  
+  return {
+    id: data.id,
+    email: data.email,
+    displayName: data.displayName,
+    subscriptionType: data.subscriptionType,
+    subscriptionPlan: data.subscriptionPlan,
+    subscriptionStatus: data.subscriptionStatus,
+    subscribedAt: data.subscribedAt instanceof Timestamp ? data.subscribedAt.toDate() : new Date(data.subscribedAt),
+    renewalDate: data.renewalDate instanceof Timestamp ? data.renewalDate.toDate() : new Date(data.renewalDate),
+    lastPaymentDate: data.lastPaymentDate instanceof Timestamp ? data.lastPaymentDate.toDate() : new Date(data.lastPaymentDate),
+    cancelledAt: data.cancelledAt instanceof Timestamp ? data.cancelledAt.toDate() : data.cancelledAt ? new Date(data.cancelledAt) : undefined,
+    paymentGateway: data.paymentGateway,
+    paymentGatewayCustomerId: data.paymentGatewayCustomerId,
+    paymentGatewaySubscriptionId: data.paymentGatewaySubscriptionId,
+    lastPaymentId: data.lastPaymentId,
+    amountPaid: data.amountPaid,
+    currency: data.currency,
+    billingCycle: data.billingCycle,
+    totalPayments: data.totalPayments,
+    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt),
+  }
+}
+
+// Get all subscribed users (admin function)
+export async function getAllSubscribedUsers(): Promise<SubscribedUser[]> {
+  const subscribedUsersRef = collection(db, "subscribed_users")
+  const q = query(subscribedUsersRef, orderBy("subscribedAt", "desc"))
+  const snapshot = await getDocs(q)
+  
+  return snapshot.docs.map((doc) => {
+    const data = doc.data()
+    return {
+      id: data.id,
+      email: data.email,
+      displayName: data.displayName,
+      subscriptionType: data.subscriptionType,
+      subscriptionPlan: data.subscriptionPlan,
+      subscriptionStatus: data.subscriptionStatus,
+      subscribedAt: data.subscribedAt instanceof Timestamp ? data.subscribedAt.toDate() : new Date(data.subscribedAt),
+      renewalDate: data.renewalDate instanceof Timestamp ? data.renewalDate.toDate() : new Date(data.renewalDate),
+      lastPaymentDate: data.lastPaymentDate instanceof Timestamp ? data.lastPaymentDate.toDate() : new Date(data.lastPaymentDate),
+      cancelledAt: data.cancelledAt instanceof Timestamp ? data.cancelledAt.toDate() : data.cancelledAt ? new Date(data.cancelledAt) : undefined,
+      paymentGateway: data.paymentGateway,
+      paymentGatewayCustomerId: data.paymentGatewayCustomerId,
+      paymentGatewaySubscriptionId: data.paymentGatewaySubscriptionId,
+      lastPaymentId: data.lastPaymentId,
+      amountPaid: data.amountPaid,
+      currency: data.currency,
+      billingCycle: data.billingCycle,
+      totalPayments: data.totalPayments,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+      updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt),
+    }
+  })
+}
+
+// Get active subscribers count
+export async function getActiveSubscribersCount(): Promise<number> {
+  const subscribedUsersRef = collection(db, "subscribed_users")
+  const q = query(subscribedUsersRef, where("subscriptionStatus", "==", "active"))
+  const snapshot = await getDocs(q)
+  return snapshot.size
+}
+
 // Get billing history from subscription record
 export async function getBillingHistory(subscriptionId: string): Promise<BillingEntry[]> {
   const subscriptionRef = doc(db, "subscriptions", subscriptionId)
@@ -147,10 +297,20 @@ export async function getBillingHistory(subscriptionId: string): Promise<Billing
 
 // Cancel subscription
 export async function cancelSubscription(userId: string, subscriptionId: string): Promise<void> {
+  const now = new Date()
+  
   // Update user document
   const userRef = doc(db, "users", userId)
   await updateDoc(userRef, {
     subscriptionStatus: "cancelled",
+    updatedAt: serverTimestamp(),
+  })
+
+  // Update subscribed_users collection
+  const subscribedUserRef = doc(db, "subscribed_users", userId)
+  await updateDoc(subscribedUserRef, {
+    subscriptionStatus: "cancelled",
+    cancelledAt: Timestamp.fromDate(now),
     updatedAt: serverTimestamp(),
   })
 
@@ -163,20 +323,51 @@ export async function cancelSubscription(userId: string, subscriptionId: string)
   })
 }
 
-// Add billing entry
-export async function addBillingEntry(
+// Renew subscription (after successful payment)
+export async function renewSubscription(
+  userId: string,
   subscriptionId: string,
-  entry: Omit<BillingEntry, "date"> & { date?: Date }
+  paymentId: string,
+  amount: number = 599
 ): Promise<void> {
+  const now = new Date()
+  const renewalDate = new Date()
+  renewalDate.setMonth(renewalDate.getMonth() + 1)
+  
+  // Update user document
+  const userRef = doc(db, "users", userId)
+  await updateDoc(userRef, {
+    subscriptionStatus: "active",
+    renewalDate: Timestamp.fromDate(renewalDate),
+    updatedAt: serverTimestamp(),
+  })
+  
+  // Update subscribed_users
+  const subscribedUserRef = doc(db, "subscribed_users", userId)
+  const subscribedUserSnap = await getDoc(subscribedUserRef)
+  const currentTotalPayments = subscribedUserSnap.data()?.totalPayments || 0
+  
+  await updateDoc(subscribedUserRef, {
+    subscriptionStatus: "active",
+    renewalDate: Timestamp.fromDate(renewalDate),
+    lastPaymentDate: Timestamp.fromDate(now),
+    lastPaymentId: paymentId,
+    totalPayments: currentTotalPayments + 1,
+    updatedAt: serverTimestamp(),
+  })
+
+  // Add billing entry
   const subscriptionRef = doc(db, "subscriptions", subscriptionId)
   await updateDoc(subscriptionRef, {
+    status: "active",
+    renewalDate: Timestamp.fromDate(renewalDate),
     billingHistory: arrayUnion({
-      date: Timestamp.fromDate(entry.date || new Date()),
-      amount: entry.amount,
-      currency: entry.currency,
-      paymentId: entry.paymentId,
-      status: entry.status,
-      description: entry.description,
+      date: Timestamp.fromDate(now),
+      amount,
+      currency: "INR",
+      paymentId,
+      status: "success",
+      description: "Estew Pro - Monthly Renewal",
     }),
     updatedAt: serverTimestamp(),
   })
