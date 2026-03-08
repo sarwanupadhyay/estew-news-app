@@ -92,8 +92,6 @@ export async function createSubscription(
   const finalEmail = userEmail || userData?.email || ""
   const finalDisplayName = userName || userData?.displayName || userData?.name || ""
   
-  console.log("[v0] Creating subscription for user:", userId, "email:", finalEmail, "name:", finalDisplayName)
-  
   await updateDoc(userRef, {
     plan: "pro",
     subscriptionStatus: "active",
@@ -136,14 +134,27 @@ export async function createSubscription(
   await setDoc(subscribedUserRef, subscribedUserData, { merge: true })
 
   // Also create subscription record with billing history
-  const subscriptionRef = doc(db, "subscriptions", subscriptionId)
+  // Use displayName as document ID for easy identification in Firebase console
+  // If displayName is empty, fallback to email prefix or userId
+  const subscriptionDocId = finalDisplayName || finalEmail.split("@")[0] || userId
+  const subscriptionRef = doc(db, "subscriptions", subscriptionDocId)
   await setDoc(subscriptionRef, {
-    userId,
+    // User Info - prominently at the top for easy viewing
+    displayName: finalDisplayName,
+    email: finalEmail,
+    userId: userId,
+    
+    // Subscription Details
     plan: "pro",
     status: "active",
     startDate: Timestamp.fromDate(startDate),
     renewalDate: Timestamp.fromDate(renewalDate),
+    
+    // Payment Info
     razorpaySubscriptionId: subscriptionId,
+    razorpayPaymentId: razorpayPaymentId,
+    
+    // Billing History
     billingHistory: [{
       date: Timestamp.fromDate(startDate),
       amount: 599,
@@ -152,6 +163,7 @@ export async function createSubscription(
       status: "success",
       description: "Estew Pro - Monthly Subscription",
     }],
+    
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })

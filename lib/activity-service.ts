@@ -66,8 +66,6 @@ export async function getActivitiesByDate(
   const endOfDay = new Date(date)
   endOfDay.setHours(23, 59, 59, 999)
   
-  console.log("[v0] Fetching activities for date:", date.toISOString(), "userId:", userId)
-  
   try {
     // Simplified query - just filter by timestamp range, then filter type in code
     // This avoids needing a composite index
@@ -92,11 +90,9 @@ export async function getActivitiesByDate(
     }
     
     const snapshot = await getDocs(q)
-    console.log("[v0] Raw activities fetched:", snapshot.docs.length)
     
     // Filter by type in code to avoid composite index requirement
     const filteredDocs = snapshot.docs.filter(doc => doc.data().type === "article_read")
-    console.log("[v0] Filtered article_read activities:", filteredDocs.length)
     
     const docs = filteredDocs.slice(0, pageSize + 1)
   
@@ -121,15 +117,13 @@ export async function getActivitiesByDate(
       }
     })
     
-    console.log("[v0] Returning activities:", activities.length)
-    
     return {
       activities,
       lastDoc: activitiesToReturn.length > 0 ? activitiesToReturn[activitiesToReturn.length - 1] : null,
       hasMore,
     }
   } catch (error) {
-    console.error("[v0] Error fetching activities:", error)
+    console.error("Error fetching activities:", error)
     return {
       activities: [],
       lastDoc: null,
@@ -170,10 +164,9 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
       dates.add(dateStr)
     })
     
-    console.log("[v0] Activity dates found:", dates.size)
     return dates
   } catch (error) {
-    console.error("[v0] Error fetching activity dates:", error)
+    console.error("Error fetching activity dates:", error)
     return new Set()
   }
 }
