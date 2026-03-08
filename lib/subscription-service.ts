@@ -83,10 +83,16 @@ export async function createSubscription(
   
   const subscriptionId = razorpaySubscriptionId || razorpayPaymentId
 
-  // Update user document
+  // Get user document to fetch email and displayName
   const userRef = doc(db, "users", userId)
   const userSnap = await getDoc(userRef)
   const userData = userSnap.data()
+  
+  // Get the actual email and name from user document or params
+  const finalEmail = userEmail || userData?.email || ""
+  const finalDisplayName = userName || userData?.displayName || userData?.name || ""
+  
+  console.log("[v0] Creating subscription for user:", userId, "email:", finalEmail, "name:", finalDisplayName)
   
   await updateDoc(userRef, {
     plan: "pro",
@@ -98,18 +104,13 @@ export async function createSubscription(
   })
 
   // Create entry in subscribed_users collection (comprehensive subscription info)
+  // Document ID is the userId, but displayName is prominently stored for easy viewing
   const subscribedUserRef = doc(db, "subscribed_users", userId)
-  const subscribedUserData: Omit<SubscribedUser, "id" | "createdAt" | "updatedAt" | "subscribedAt" | "renewalDate" | "lastPaymentDate"> & {
-    id: string
-    createdAt: ReturnType<typeof serverTimestamp>
-    updatedAt: ReturnType<typeof serverTimestamp>
-    subscribedAt: Timestamp
-    renewalDate: Timestamp
-    lastPaymentDate: Timestamp
-  } = {
-    id: userId,
-    email: userEmail || userData?.email || "",
-    displayName: userName || userData?.displayName || "",
+  const subscribedUserData = {
+    // User identification - displayName first for visibility in Firebase console
+    displayName: finalDisplayName,
+    email: finalEmail,
+    userId: userId,
     
     subscriptionType: "pro",
     subscriptionPlan: "monthly",

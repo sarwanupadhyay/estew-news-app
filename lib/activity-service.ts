@@ -66,57 +66,75 @@ export async function getActivitiesByDate(
   const endOfDay = new Date(date)
   endOfDay.setHours(23, 59, 59, 999)
   
-  // Build query
-  let q = query(
-    activitiesRef,
-    where("type", "==", "article_read"),
-    where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
-    where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
-    orderBy("timestamp", "desc"),
-    limit(pageSize + 1) // Fetch one extra to check if there are more
-  )
+  console.log("[v0] Fetching activities for date:", date.toISOString(), "userId:", userId)
   
-  // If we have a last document, start after it for pagination
-  if (lastDocument) {
-    q = query(
+  try {
+    // Simplified query - just filter by timestamp range, then filter type in code
+    // This avoids needing a composite index
+    let q = query(
       activitiesRef,
-      where("type", "==", "article_read"),
       where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
       where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
       orderBy("timestamp", "desc"),
-      startAfter(lastDocument),
-      limit(pageSize + 1)
+      limit(50) // Fetch more to filter by type
     )
-  }
-  
-  const snapshot = await getDocs(q)
-  const docs = snapshot.docs
-  
-  // Check if there are more results
-  const hasMore = docs.length > pageSize
-  const activitiesToReturn = hasMore ? docs.slice(0, pageSize) : docs
-  
-  const activities = activitiesToReturn.map((doc) => {
-    const data = doc.data()
-    return {
-      id: doc.id,
-      type: data.type,
-      articleId: data.articleId,
-      articleTitle: data.articleTitle,
-      articleSource: data.articleSource,
-      articleCategory: data.articleCategory,
-      searchQuery: data.searchQuery,
-      category: data.category,
-      timestamp: data.timestamp instanceof Timestamp 
-        ? data.timestamp.toDate() 
-        : new Date(data.timestamp),
+    
+    // If we have a last document, start after it for pagination
+    if (lastDocument) {
+      q = query(
+        activitiesRef,
+        where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
+        where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
+        orderBy("timestamp", "desc"),
+        startAfter(lastDocument),
+        limit(50)
+      )
     }
-  })
+    
+    const snapshot = await getDocs(q)
+    console.log("[v0] Raw activities fetched:", snapshot.docs.length)
+    
+    // Filter by type in code to avoid composite index requirement
+    const filteredDocs = snapshot.docs.filter(doc => doc.data().type === "article_read")
+    console.log("[v0] Filtered article_read activities:", filteredDocs.length)
+    
+    const docs = filteredDocs.slice(0, pageSize + 1)
   
-  return {
-    activities,
-    lastDoc: activitiesToReturn.length > 0 ? activitiesToReturn[activitiesToReturn.length - 1] : null,
-    hasMore,
+    // Check if there are more results
+    const hasMore = docs.length > pageSize
+    const activitiesToReturn = hasMore ? docs.slice(0, pageSize) : docs
+    
+    const activities = activitiesToReturn.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        type: data.type,
+        articleId: data.articleId,
+        articleTitle: data.articleTitle,
+        articleSource: data.articleSource,
+        articleCategory: data.articleCategory,
+        searchQuery: data.searchQuery,
+        category: data.category,
+        timestamp: data.timestamp instanceof Timestamp 
+          ? data.timestamp.toDate() 
+          : new Date(data.timestamp),
+      }
+    })
+    
+    console.log("[v0] Returning activities:", activities.length)
+    
+    return {
+      activities,
+      lastDoc: activitiesToReturn.length > 0 ? activitiesToReturn[activitiesToReturn.length - 1] : null,
+      hasMore,
+    }
+  } catch (error) {
+    console.error("[v0] Error fetching activities:", error)
+    return {
+      activities: [],
+      lastDoc: null,
+      hasMore: false,
+    }
   }
 }
 
@@ -128,27 +146,36 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
   const ninetyDaysAgo = new Date()
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   
-  const q = query(
-    activitiesRef,
-    where("type", "==", "article_read"),
-    where("timestamp", ">=", Timestamp.fromDate(ninetyDaysAgo)),
-    orderBy("timestamp", "desc")
-  )
-  
-  const snapshot = await getDocs(q)
-  const dates = new Set<string>()
-  
-  snapshot.docs.forEach((doc) => {
-    const data = doc.data()
-    const timestamp = data.timestamp instanceof Timestamp 
-      ? data.timestamp.toDate() 
-      : new Date(data.timestamp)
-    // Format as YYYY-MM-DD for easy comparison
-    const dateStr = timestamp.toISOString().split("T")[0]
-    dates.add(dateStr)
-  })
-  
-  return dates
+  try {
+    // Simplified query - filter by type in code to avoid composite index
+    const q = query(
+      activitiesRef,
+      where("timestamp", ">=", Timestamp.fromDate(ninetyDaysAgo)),
+      orderBy("timestamp", "desc")
+    )
+    
+    const snapshot = await getDocs(q)
+    const dates = new Set<string>()
+    
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data()
+      // Filter for article_read type
+      if (data.type !== "article_read") return
+      
+      const timestamp = data.timestamp instanceof Timestamp 
+        ? data.timestamp.toDate() 
+        : new Date(data.timestamp)
+      // Format as YYYY-MM-DD for easy comparison
+      const dateStr = timestamp.toISOString().split("T")[0]
+      dates.add(dateStr)
+    })
+    
+    console.log("[v0] Activity dates found:", dates.size)
+    return dates
+  } catch (error) {
+    console.error("[v0] Error fetching activity dates:", error)
+    return new Set()
+  }
 }
 
 // Get user activity history (legacy - for backwards compatibility)
