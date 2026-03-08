@@ -81,24 +81,15 @@ MARKET UPDATES
 --------------
 {article list}`
 
-// Get articles from the last 24 hours for newsletter
+// Get articles for newsletter - tries last 24 hours first, then falls back to recent articles
 async function getArticlesForNewsletter() {
-  try {
-    const articlesRef = collection(db, "articles")
-    
-    // Get articles from last 24 hours
-    const twentyFourHoursAgo = new Date()
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
-    
-    const q = query(
-      articlesRef, 
-      where("publishedAt", ">=", Timestamp.fromDate(twentyFourHoursAgo)),
-      orderBy("publishedAt", "desc"), 
-      limit(50)
-    )
-    const snapshot = await getDocs(q)
-    
-    return snapshot.docs.map((docSnap) => {
+  const articlesRef = collection(db, "articles")
+  const twentyFourHoursAgo = new Date()
+  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+  
+  // Helper to map docs to articles
+  const mapDocsToArticles = (docs: any[]) => {
+    return docs.map((docSnap) => {
       const data = docSnap.data()
       return {
         id: docSnap.id,
@@ -112,10 +103,73 @@ async function getArticlesForNewsletter() {
           : data.publishedAt || new Date().toISOString(),
       }
     })
-  } catch (error) {
-    console.error("Error fetching articles for newsletter:", error)
-    return []
   }
+
+  // Try multiple strategies to get articles
+  
+  // Strategy 1: Try ordering by publishedAt
+  try {
+    console.log("[v0] Strategy 1: Trying orderBy publishedAt...")
+    const recentQuery = query(
+      articlesRef, 
+      orderBy("publishedAt", "desc"), 
+      limit(50)
+    )
+    const snapshot = await getDocs(recentQuery)
+    
+    if (!snapshot.empty) {
+      const allArticles = mapDocsToArticles(snapshot.docs)
+      const recentArticles = allArticles.filter((article) => {
+        const publishedDate = new Date(article.publishedAt)
+        return publishedDate >= twentyFourHoursAgo
+      })
+      
+      if (recentArticles.length >= 5) {
+        console.log(`[v0] Found ${recentArticles.length} articles from last 24 hours`)
+        return recentArticles
+      }
+      
+      console.log(`[v0] Using ${allArticles.length} recent articles`)
+      return allArticles.slice(0, 30)
+    }
+  } catch (error) {
+    console.log("[v0] Strategy 1 failed:", error)
+  }
+  
+  // Strategy 2: Try ordering by createdAt
+  try {
+    console.log("[v0] Strategy 2: Trying orderBy createdAt...")
+    const createdAtQuery = query(
+      articlesRef, 
+      orderBy("createdAt", "desc"), 
+      limit(30)
+    )
+    const snapshot = await getDocs(createdAtQuery)
+    
+    if (!snapshot.empty) {
+      console.log(`[v0] Strategy 2 found ${snapshot.docs.length} articles`)
+      return mapDocsToArticles(snapshot.docs)
+    }
+  } catch (error) {
+    console.log("[v0] Strategy 2 failed:", error)
+  }
+  
+  // Strategy 3: Simple query without ordering
+  try {
+    console.log("[v0] Strategy 3: Simple query without ordering...")
+    const simpleQuery = query(articlesRef, limit(30))
+    const snapshot = await getDocs(simpleQuery)
+    
+    if (!snapshot.empty) {
+      console.log(`[v0] Strategy 3 found ${snapshot.docs.length} articles`)
+      return mapDocsToArticles(snapshot.docs)
+    }
+  } catch (error) {
+    console.log("[v0] Strategy 3 failed:", error)
+  }
+  
+  console.log("[v0] All strategies failed, returning empty array")
+  return []
 }
 
 // Save newsletter to database
@@ -192,11 +246,13 @@ export async function POST(request: Request) {
     }
 
     // Get recent articles
+    console.log("[v0] Fetching articles for newsletter...")
     const articles = await getArticlesForNewsletter()
+    console.log(`[v0] Retrieved ${articles.length} articles`)
     
     if (articles.length === 0) {
       return NextResponse.json(
-        { error: "No articles found to generate newsletter" },
+        { error: "No articles found in database. Please ensure articles are being fetched and stored." },
         { status: 400 }
       )
     }
