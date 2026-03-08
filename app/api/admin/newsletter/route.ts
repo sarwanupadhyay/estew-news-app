@@ -81,7 +81,7 @@ MARKET UPDATES
 --------------
 {article list}`
 
-// Get articles for newsletter - tries last 24 hours first, then falls back to recent articles
+// Get articles for newsletter - uses createdAt (Firestore Timestamp) for reliable ordering
 async function getArticlesForNewsletter() {
   const articlesRef = collection(db, "articles")
   const twentyFourHoursAgo = new Date()
@@ -91,6 +91,11 @@ async function getArticlesForNewsletter() {
   const mapDocsToArticles = (docs: any[]) => {
     return docs.map((docSnap) => {
       const data = docSnap.data()
+      // Get createdAt as the reliable date (it's always a Firestore Timestamp)
+      const createdAt = data.createdAt instanceof Timestamp 
+        ? data.createdAt.toDate()
+        : new Date()
+      
       return {
         id: docSnap.id,
         title: data.title || "",
@@ -98,77 +103,52 @@ async function getArticlesForNewsletter() {
         sourceName: data.sourceName || "",
         category: data.category || "",
         url: data.url || data.originalUrl || "",
-        publishedAt: data.publishedAt instanceof Timestamp 
-          ? data.publishedAt.toDate().toISOString()
-          : data.publishedAt || new Date().toISOString(),
+        publishedAt: data.publishedAt || createdAt.toISOString(),
+        createdAt: createdAt,
       }
     })
   }
 
-  // Try multiple strategies to get articles
-  
-  // Strategy 1: Try ordering by publishedAt
+  // Primary strategy: Use createdAt (always available as Firestore Timestamp)
   try {
-    console.log("[v0] Strategy 1: Trying orderBy publishedAt...")
     const recentQuery = query(
       articlesRef, 
-      orderBy("publishedAt", "desc"), 
+      orderBy("createdAt", "desc"), 
       limit(50)
     )
     const snapshot = await getDocs(recentQuery)
     
     if (!snapshot.empty) {
       const allArticles = mapDocsToArticles(snapshot.docs)
+      
+      // Filter for last 24 hours based on createdAt
       const recentArticles = allArticles.filter((article) => {
-        const publishedDate = new Date(article.publishedAt)
-        return publishedDate >= twentyFourHoursAgo
+        return article.createdAt >= twentyFourHoursAgo
       })
       
       if (recentArticles.length >= 5) {
-        console.log(`[v0] Found ${recentArticles.length} articles from last 24 hours`)
         return recentArticles
       }
       
-      console.log(`[v0] Using ${allArticles.length} recent articles`)
+      // If not enough recent articles, use all available (up to 30)
       return allArticles.slice(0, 30)
     }
   } catch (error) {
-    console.log("[v0] Strategy 1 failed:", error)
+    console.error("Primary query failed:", error)
   }
   
-  // Strategy 2: Try ordering by createdAt
+  // Fallback: Simple query without ordering
   try {
-    console.log("[v0] Strategy 2: Trying orderBy createdAt...")
-    const createdAtQuery = query(
-      articlesRef, 
-      orderBy("createdAt", "desc"), 
-      limit(30)
-    )
-    const snapshot = await getDocs(createdAtQuery)
-    
-    if (!snapshot.empty) {
-      console.log(`[v0] Strategy 2 found ${snapshot.docs.length} articles`)
-      return mapDocsToArticles(snapshot.docs)
-    }
-  } catch (error) {
-    console.log("[v0] Strategy 2 failed:", error)
-  }
-  
-  // Strategy 3: Simple query without ordering
-  try {
-    console.log("[v0] Strategy 3: Simple query without ordering...")
     const simpleQuery = query(articlesRef, limit(30))
     const snapshot = await getDocs(simpleQuery)
     
     if (!snapshot.empty) {
-      console.log(`[v0] Strategy 3 found ${snapshot.docs.length} articles`)
       return mapDocsToArticles(snapshot.docs)
     }
   } catch (error) {
-    console.log("[v0] Strategy 3 failed:", error)
+    console.error("Fallback query failed:", error)
   }
   
-  console.log("[v0] All strategies failed, returning empty array")
   return []
 }
 
@@ -246,9 +226,7 @@ export async function POST(request: Request) {
     }
 
     // Get recent articles
-    console.log("[v0] Fetching articles for newsletter...")
     const articles = await getArticlesForNewsletter()
-    console.log(`[v0] Retrieved ${articles.length} articles`)
     
     if (articles.length === 0) {
       return NextResponse.json(
