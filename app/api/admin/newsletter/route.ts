@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/firebase"
-import { collection, getDocs, query, orderBy, limit, Timestamp } from "firebase/firestore"
+import { 
+  collection, 
+  getDocs, 
+  query, 
+  orderBy, 
+  limit, 
+  Timestamp, 
+  where,
+  doc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore"
 
 const NEWSLETTER_SYSTEM_PROMPT = `SYSTEM PROMPT — ESTEW ADMIN NEWSLETTER GENERATOR
 
@@ -70,17 +81,27 @@ MARKET UPDATES
 --------------
 {article list}`
 
-// Get recent articles for newsletter
+// Get articles from the last 24 hours for newsletter
 async function getArticlesForNewsletter() {
   try {
     const articlesRef = collection(db, "articles")
-    const q = query(articlesRef, orderBy("publishedAt", "desc"), limit(30))
+    
+    // Get articles from last 24 hours
+    const twentyFourHoursAgo = new Date()
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+    
+    const q = query(
+      articlesRef, 
+      where("publishedAt", ">=", Timestamp.fromDate(twentyFourHoursAgo)),
+      orderBy("publishedAt", "desc"), 
+      limit(50)
+    )
     const snapshot = await getDocs(q)
     
-    return snapshot.docs.map((doc) => {
-      const data = doc.data()
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data()
       return {
-        id: doc.id,
+        id: docSnap.id,
         title: data.title || "",
         description: data.description || "",
         sourceName: data.sourceName || "",
@@ -94,6 +115,68 @@ async function getArticlesForNewsletter() {
   } catch (error) {
     console.error("Error fetching articles for newsletter:", error)
     return []
+  }
+}
+
+// Save newsletter to database
+async function saveNewsletter(content: string, articlesCount: number) {
+  try {
+    const today = new Date()
+    const dateStr = today.toISOString().split("T")[0] // YYYY-MM-DD format
+    
+    const newsletterRef = doc(db, "newsletters", dateStr)
+    await setDoc(newsletterRef, {
+      content,
+      articlesUsed: articlesCount,
+      generatedAt: serverTimestamp(),
+      date: dateStr,
+      status: "generated",
+    })
+    
+    return dateStr
+  } catch (error) {
+    console.error("Error saving newsletter:", error)
+    throw error
+  }
+}
+
+// Get all saved newsletters
+async function getSavedNewsletters() {
+  try {
+    const newslettersRef = collection(db, "newsletters")
+    const q = query(newslettersRef, orderBy("generatedAt", "desc"), limit(30))
+    const snapshot = await getDocs(q)
+    
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data()
+      return {
+        id: docSnap.id,
+        date: data.date || docSnap.id,
+        content: data.content || "",
+        articlesUsed: data.articlesUsed || 0,
+        generatedAt: data.generatedAt instanceof Timestamp 
+          ? data.generatedAt.toDate().toISOString()
+          : data.generatedAt || new Date().toISOString(),
+        status: data.status || "generated",
+      }
+    })
+  } catch (error) {
+    console.error("Error fetching newsletters:", error)
+    return []
+  }
+}
+
+// GET - Fetch saved newsletters
+export async function GET() {
+  try {
+    const newsletters = await getSavedNewsletters()
+    return NextResponse.json({ newsletters })
+  } catch (error) {
+    console.error("Error fetching newsletters:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch newsletters" },
+      { status: 500 }
+    )
   }
 }
 
@@ -188,11 +271,15 @@ Please generate a newsletter following the system instructions.`
       )
     }
 
+    // Save newsletter to database
+    const savedDate = await saveNewsletter(newsletterContent, articles.length)
+
     return NextResponse.json({
       success: true,
       newsletter: newsletterContent,
       articlesUsed: articles.length,
       generatedAt: new Date().toISOString(),
+      savedAs: savedDate,
     })
   } catch (error) {
     console.error("Newsletter generation error:", error)

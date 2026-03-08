@@ -42,6 +42,16 @@ export default function AdminDashboard() {
   const [generatingNewsletter, setGeneratingNewsletter] = useState(false)
   const [generatedNewsletter, setGeneratedNewsletter] = useState<string | null>(null)
   const [newsletterError, setNewsletterError] = useState<string | null>(null)
+  const [savedNewsletters, setSavedNewsletters] = useState<Array<{
+    id: string
+    date: string
+    content: string
+    articlesUsed: number
+    generatedAt: string
+    status: string
+  }>>([])
+  const [selectedSavedNewsletter, setSelectedSavedNewsletter] = useState<string | null>(null)
+  const [loadingNewsletters, setLoadingNewsletters] = useState(false)
   const newsletterRef = useRef<HTMLPreElement>(null)
 
   // Check authentication
@@ -65,6 +75,27 @@ export default function AdminDashboard() {
     }
     setLoading(false)
   }
+
+  const loadSavedNewsletters = async () => {
+    setLoadingNewsletters(true)
+    try {
+      const response = await fetch("/api/admin/newsletter")
+      const data = await response.json()
+      if (data.newsletters) {
+        setSavedNewsletters(data.newsletters)
+      }
+    } catch (error) {
+      console.error("Failed to load newsletters:", error)
+    }
+    setLoadingNewsletters(false)
+  }
+
+  // Load saved newsletters when newsletter tab is active
+  useEffect(() => {
+    if (activeTab === "newsletter" && savedNewsletters.length === 0) {
+      loadSavedNewsletters()
+    }
+  }, [activeTab])
 
   const handleRefresh = async () => {
     setRefreshing(true)
@@ -101,6 +132,8 @@ export default function AdminDashboard() {
       }
       
       setGeneratedNewsletter(data.newsletter)
+      // Reload saved newsletters to show the new one
+      loadSavedNewsletters()
     } catch (error) {
       setNewsletterError(error instanceof Error ? error.message : "Failed to generate newsletter")
     } finally {
@@ -384,6 +417,104 @@ export default function AdminDashboard() {
                       </pre>
                     </div>
 
+                    {/* Saved Newsletters */}
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h3 className="font-medium text-white">Saved Newsletters</h3>
+                        <button
+                          onClick={loadSavedNewsletters}
+                          disabled={loadingNewsletters}
+                          className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-400 transition-colors hover:bg-white/20"
+                        >
+                          <RefreshCw size={14} className={loadingNewsletters ? "animate-spin" : ""} />
+                          Refresh
+                        </button>
+                      </div>
+
+                      {loadingNewsletters ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 size={20} className="animate-spin text-gray-500" />
+                        </div>
+                      ) : savedNewsletters.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <Mail size={24} className="mx-auto mb-2 text-gray-600" />
+                          <p className="text-sm text-gray-500">No newsletters generated yet</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {savedNewsletters.map((newsletter) => (
+                            <div
+                              key={newsletter.id}
+                              className="rounded-lg border border-white/5 bg-white/5 transition-colors hover:bg-white/10"
+                            >
+                              <button
+                                onClick={() => setSelectedSavedNewsletter(
+                                  selectedSavedNewsletter === newsletter.id ? null : newsletter.id
+                                )}
+                                className="flex w-full items-center justify-between p-3 text-left"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
+                                    <FileText size={14} className="text-amber-500" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-white">{newsletter.date}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {newsletter.articlesUsed} articles used
+                                    </p>
+                                  </div>
+                                </div>
+                                <ChevronRight
+                                  size={16}
+                                  className={`text-gray-500 transition-transform ${
+                                    selectedSavedNewsletter === newsletter.id ? "rotate-90" : ""
+                                  }`}
+                                />
+                              </button>
+
+                              {selectedSavedNewsletter === newsletter.id && (
+                                <div className="border-t border-white/5 p-3">
+                                  <div className="mb-2 flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(newsletter.content)
+                                        setCopied(true)
+                                        setTimeout(() => setCopied(false), 2000)
+                                      }}
+                                      className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-white/20"
+                                    >
+                                      <Copy size={12} />
+                                      Copy
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const blob = new Blob([newsletter.content], { type: "text/plain" })
+                                        const url = URL.createObjectURL(blob)
+                                        const a = document.createElement("a")
+                                        a.href = url
+                                        a.download = `estew-newsletter-${newsletter.date}.txt`
+                                        document.body.appendChild(a)
+                                        a.click()
+                                        document.body.removeChild(a)
+                                        URL.revokeObjectURL(url)
+                                      }}
+                                      className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-white/20"
+                                    >
+                                      <Download size={12} />
+                                      Download
+                                    </button>
+                                  </div>
+                                  <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-black/50 p-3 font-mono text-xs text-gray-400">
+                                    {newsletter.content}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Info */}
                     <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
                       <div className="flex gap-3">
@@ -391,8 +522,8 @@ export default function AdminDashboard() {
                         <div>
                           <h4 className="font-medium text-white">Newsletter Generation</h4>
                           <p className="mt-1 text-sm text-gray-400">
-                            Click the button above to automatically generate a newsletter using AI.
-                            The newsletter will be created from the latest articles stored in your database.
+                            Newsletters are generated from articles published in the last 24 hours.
+                            Each newsletter is automatically saved to the database for future reference.
                           </p>
                         </div>
                       </div>
