@@ -260,9 +260,9 @@ ${articlesText}
 
 Please generate a newsletter following the system instructions.`
 
-    // Call Gemini API (using gemini-1.5-flash - best free model for this use case)
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+    // Call Gemini API (using v1 endpoint with gemini-1.5-flash)
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
       {
         method: "POST",
         headers: {
@@ -271,10 +271,8 @@ Please generate a newsletter following the system instructions.`
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
               parts: [
-                { text: NEWSLETTER_SYSTEM_PROMPT },
-                { text: userPrompt },
+                { text: `${NEWSLETTER_SYSTEM_PROMPT}\n\n${userPrompt}` },
               ],
             },
           ],
@@ -286,22 +284,22 @@ Please generate a newsletter following the system instructions.`
       }
     )
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error("Gemini API error:", errorData)
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text()
+      console.error("Gemini API error:", errorText)
       return NextResponse.json(
-        { error: "Failed to generate newsletter", details: errorData },
-        { status: 500 }
+        { error: "Newsletter generation failed. Please try again." },
+        { status: 400 }
       )
     }
 
-    const data = await response.json()
-    const newsletterContent = data.candidates?.[0]?.content?.parts?.[0]?.text || ""
+    const data = await geminiResponse.json()
+    const newsletterContent = data.candidates?.[0]?.content?.parts?.[0]?.text
 
     if (!newsletterContent) {
       return NextResponse.json(
-        { error: "No content generated" },
-        { status: 500 }
+        { error: "Newsletter generation failed. Please try again." },
+        { status: 400 }
       )
     }
 
