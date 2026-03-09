@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/firebase"
-import { 
-  collection, 
-  getDocs, 
-  query, 
-  orderBy, 
-  limit, 
-  Timestamp, 
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  Timestamp,
   where,
   doc,
   setDoc,
@@ -86,16 +86,16 @@ async function getArticlesForNewsletter() {
   const articlesRef = collection(db, "articles")
   const twentyFourHoursAgo = new Date()
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
-  
+
   // Helper to map docs to articles
   const mapDocsToArticles = (docs: any[]) => {
     return docs.map((docSnap) => {
       const data = docSnap.data()
       // Get createdAt as the reliable date (it's always a Firestore Timestamp)
-      const createdAt = data.createdAt instanceof Timestamp 
+      const createdAt = data.createdAt instanceof Timestamp
         ? data.createdAt.toDate()
         : new Date()
-      
+
       return {
         id: docSnap.id,
         title: data.title || "",
@@ -112,43 +112,43 @@ async function getArticlesForNewsletter() {
   // Primary strategy: Use createdAt (always available as Firestore Timestamp)
   try {
     const recentQuery = query(
-      articlesRef, 
-      orderBy("createdAt", "desc"), 
+      articlesRef,
+      orderBy("createdAt", "desc"),
       limit(50)
     )
     const snapshot = await getDocs(recentQuery)
-    
+
     if (!snapshot.empty) {
       const allArticles = mapDocsToArticles(snapshot.docs)
-      
+
       // Filter for last 24 hours based on createdAt
       const recentArticles = allArticles.filter((article) => {
         return article.createdAt >= twentyFourHoursAgo
       })
-      
+
       if (recentArticles.length >= 5) {
         return recentArticles
       }
-      
+
       // If not enough recent articles, use all available (up to 30)
       return allArticles.slice(0, 30)
     }
   } catch (error) {
     console.error("Primary query failed:", error)
   }
-  
+
   // Fallback: Simple query without ordering
   try {
     const simpleQuery = query(articlesRef, limit(30))
     const snapshot = await getDocs(simpleQuery)
-    
+
     if (!snapshot.empty) {
       return mapDocsToArticles(snapshot.docs)
     }
   } catch (error) {
     console.error("Fallback query failed:", error)
   }
-  
+
   return []
 }
 
@@ -157,7 +157,7 @@ async function saveNewsletter(content: string, articlesCount: number) {
   try {
     const today = new Date()
     const dateStr = today.toISOString().split("T")[0] // YYYY-MM-DD format
-    
+
     const newsletterRef = doc(db, "newsletters", dateStr)
     await setDoc(newsletterRef, {
       content,
@@ -166,7 +166,7 @@ async function saveNewsletter(content: string, articlesCount: number) {
       date: dateStr,
       status: "generated",
     })
-    
+
     return dateStr
   } catch (error) {
     console.error("Error saving newsletter:", error)
@@ -180,7 +180,7 @@ async function getSavedNewsletters() {
     const newslettersRef = collection(db, "newsletters")
     const q = query(newslettersRef, orderBy("generatedAt", "desc"), limit(30))
     const snapshot = await getDocs(q)
-    
+
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
       return {
@@ -188,7 +188,7 @@ async function getSavedNewsletters() {
         date: data.date || docSnap.id,
         content: data.content || "",
         articlesUsed: data.articlesUsed || 0,
-        generatedAt: data.generatedAt instanceof Timestamp 
+        generatedAt: data.generatedAt instanceof Timestamp
           ? data.generatedAt.toDate().toISOString()
           : data.generatedAt || new Date().toISOString(),
         status: data.status || "generated",
@@ -227,7 +227,7 @@ export async function POST(request: Request) {
 
     // Get recent articles
     const articles = await getArticlesForNewsletter()
-    
+
     if (articles.length === 0) {
       return NextResponse.json(
         { error: "No articles found in database. Please ensure articles are being fetched and stored." },
@@ -236,7 +236,7 @@ export async function POST(request: Request) {
     }
 
     // Format articles for the prompt
-    const articlesText = articles.map((article, index) => 
+    const articlesText = articles.map((article, index) =>
       `${index + 1}. ${article.title}
    Source: ${article.sourceName}
    Category: ${article.category}
@@ -260,9 +260,9 @@ ${articlesText}
 
 Please generate a newsletter following the system instructions.`
 
-    // Call Gemini API (using gemini-2.0-flash-lite model)
+    // Call Gemini API (using gemini-2.5-flash-lite model)
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
       {
         method: "POST",
         headers: {
