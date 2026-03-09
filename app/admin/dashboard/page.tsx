@@ -29,6 +29,9 @@ import {
   Loader2,
   Download,
   AlertCircle,
+  Send,
+  CheckCircle,
+  XCircle,
 } from "lucide-react"
 
 export default function AdminDashboard() {
@@ -44,14 +47,26 @@ export default function AdminDashboard() {
   const [newsletterError, setNewsletterError] = useState<string | null>(null)
   const [savedNewsletters, setSavedNewsletters] = useState<Array<{
     id: string
+    newsletterId?: string
+    newsletterNumber?: number
+    subject?: string
     date: string
     content: string
     articlesUsed: number
     generatedAt: string
     status: string
+    deliveryStats?: {
+      totalRecipients: number
+      delivered: number
+      failed: number
+      pending: number
+    }
+    sentAt?: string | null
   }>>([])
   const [selectedSavedNewsletter, setSelectedSavedNewsletter] = useState<string | null>(null)
   const [loadingNewsletters, setLoadingNewsletters] = useState(false)
+  const [sendingNewsletter, setSendingNewsletter] = useState<string | null>(null)
+  const [sendError, setSendError] = useState<string | null>(null)
   const newsletterRef = useRef<HTMLPreElement>(null)
 
   // Check authentication
@@ -154,6 +169,84 @@ export default function AdminDashboard() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+    }
+  }
+
+  const handleSendNewsletter = async (newsletterId: string) => {
+    if (!confirm("Are you sure you want to send this newsletter to all subscribers?")) {
+      return
+    }
+
+    setSendingNewsletter(newsletterId)
+    setSendError(null)
+
+    try {
+      const response = await fetch("/api/admin/newsletter/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newsletterId }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send newsletter")
+      }
+
+      // Reload newsletters to show updated status
+      loadSavedNewsletters()
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : "Failed to send newsletter")
+    } finally {
+      setSendingNewsletter(null)
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "sent":
+        return (
+          <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+            <CheckCircle size={10} />
+            SENT
+          </span>
+        )
+      case "sending":
+        return (
+          <span className="flex items-center gap-1 rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-400">
+            <Loader2 size={10} className="animate-spin" />
+            SENDING
+          </span>
+        )
+      case "failed":
+        return (
+          <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-medium text-red-400">
+            <XCircle size={10} />
+            FAILED
+          </span>
+        )
+      case "partially_sent":
+        return (
+          <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+            <AlertCircle size={10} />
+            PARTIAL
+          </span>
+        )
+      case "scheduled":
+        return (
+          <span className="flex items-center gap-1 rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-medium text-purple-400">
+            <Clock size={10} />
+            SCHEDULED
+          </span>
+        )
+      default:
+        return (
+          <span className="rounded-full bg-gray-500/20 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+            GENERATED
+          </span>
+        )
     }
   }
 
@@ -474,6 +567,12 @@ export default function AdminDashboard() {
                         </div>
                       ) : (
                         <div className="space-y-2">
+                          {sendError && (
+                            <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+                              <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-400" />
+                              <p className="text-sm text-red-300">{sendError}</p>
+                            </div>
+                          )}
                           {savedNewsletters.map((newsletter) => (
                             <div
                               key={newsletter.id}
@@ -490,23 +589,71 @@ export default function AdminDashboard() {
                                     <FileText size={14} className="text-amber-500" />
                                   </div>
                                   <div>
-                                    <p className="font-medium text-white">{newsletter.date}</p>
+                                    <p className="font-medium text-white">
+                                      {newsletter.newsletterId || newsletter.id}
+                                    </p>
                                     <p className="text-xs text-gray-500">
-                                      {newsletter.articlesUsed} articles used
+                                      {newsletter.date} - {newsletter.articlesUsed} articles
                                     </p>
                                   </div>
                                 </div>
-                                <ChevronRight
-                                  size={16}
-                                  className={`text-gray-500 transition-transform ${
-                                    selectedSavedNewsletter === newsletter.id ? "rotate-90" : ""
-                                  }`}
-                                />
+                                <div className="flex items-center gap-2">
+                                  {getStatusBadge(newsletter.status)}
+                                  <ChevronRight
+                                    size={16}
+                                    className={`text-gray-500 transition-transform ${
+                                      selectedSavedNewsletter === newsletter.id ? "rotate-90" : ""
+                                    }`}
+                                  />
+                                </div>
                               </button>
 
                               {selectedSavedNewsletter === newsletter.id && (
                                 <div className="border-t border-white/5 p-3">
-                                  <div className="mb-2 flex items-center justify-end gap-2">
+                                  {/* Delivery Stats */}
+                                  {newsletter.deliveryStats && newsletter.deliveryStats.totalRecipients > 0 && (
+                                    <div className="mb-3 grid grid-cols-4 gap-2 rounded-lg bg-black/30 p-2">
+                                      <div className="text-center">
+                                        <p className="text-lg font-bold text-white">{newsletter.deliveryStats.totalRecipients}</p>
+                                        <p className="text-[10px] text-gray-500">Total</p>
+                                      </div>
+                                      <div className="text-center">
+                                        <p className="text-lg font-bold text-emerald-400">{newsletter.deliveryStats.delivered}</p>
+                                        <p className="text-[10px] text-gray-500">Delivered</p>
+                                      </div>
+                                      <div className="text-center">
+                                        <p className="text-lg font-bold text-red-400">{newsletter.deliveryStats.failed}</p>
+                                        <p className="text-[10px] text-gray-500">Failed</p>
+                                      </div>
+                                      <div className="text-center">
+                                        <p className="text-lg font-bold text-blue-400">{newsletter.deliveryStats.pending}</p>
+                                        <p className="text-[10px] text-gray-500">Pending</p>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Action Buttons */}
+                                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                                    {/* Send Button - only show if not already sent */}
+                                    {newsletter.status !== "sent" && newsletter.status !== "sending" && (
+                                      <button
+                                        onClick={() => handleSendNewsletter(newsletter.id)}
+                                        disabled={sendingNewsletter === newsletter.id}
+                                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
+                                      >
+                                        {sendingNewsletter === newsletter.id ? (
+                                          <>
+                                            <Loader2 size={12} className="animate-spin" />
+                                            Sending...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Send size={12} />
+                                            Send to Subscribers
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => {
                                         navigator.clipboard.writeText(newsletter.content)
@@ -524,7 +671,7 @@ export default function AdminDashboard() {
                                         const url = URL.createObjectURL(blob)
                                         const a = document.createElement("a")
                                         a.href = url
-                                        a.download = `estew-newsletter-${newsletter.date}.txt`
+                                        a.download = `${newsletter.newsletterId || newsletter.id}.txt`
                                         document.body.appendChild(a)
                                         a.click()
                                         document.body.removeChild(a)
@@ -536,6 +683,14 @@ export default function AdminDashboard() {
                                       Download
                                     </button>
                                   </div>
+
+                                  {/* Sent timestamp */}
+                                  {newsletter.sentAt && (
+                                    <p className="mb-2 text-xs text-gray-500">
+                                      Sent on {new Date(newsletter.sentAt).toLocaleString()}
+                                    </p>
+                                  )}
+
                                   <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-black/50 p-3 font-mono text-xs text-gray-400">
                                     {newsletter.content}
                                   </pre>

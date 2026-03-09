@@ -7,10 +7,10 @@ import {
   orderBy,
   limit,
   Timestamp,
-  where,
   doc,
   setDoc,
   serverTimestamp,
+  getDoc,
 } from "firebase/firestore"
 
 const NEWSLETTER_SYSTEM_PROMPT = `SYSTEM PROMPT — ESTEW ADMIN NEWSLETTER GENERATOR
@@ -152,22 +152,79 @@ async function getArticlesForNewsletter() {
   return []
 }
 
-// Save newsletter to database
-async function saveNewsletter(content: string, articlesCount: number) {
+// Get next newsletter number
+async function getNextNewsletterNumber(): Promise<number> {
+  try {
+    const counterRef = doc(db, "system", "newsletter_counter")
+    const counterSnap = await getDoc(counterRef)
+    
+    if (counterSnap.exists()) {
+      const currentCount = counterSnap.data().count || 0
+      const newCount = currentCount + 1
+      await setDoc(counterRef, { count: newCount })
+      return newCount
+    } else {
+      // Initialize counter
+      await setDoc(counterRef, { count: 1 })
+      return 1
+    }
+  } catch (error) {
+    console.error("Error getting newsletter number:", error)
+    // Fallback to timestamp-based ID
+    return Date.now()
+  }
+}
+
+// Format newsletter ID (e.g., newsletter_00001)
+function formatNewsletterId(num: number): string {
+  return `newsletter_${num.toString().padStart(5, "0")}`
+}
+
+// Save newsletter to database with sequential ID
+async function saveNewsletter(content: string, articlesCount: number, subject?: string) {
   try {
     const today = new Date()
     const dateStr = today.toISOString().split("T")[0] // YYYY-MM-DD format
+    
+    // Get sequential newsletter number
+    const newsletterNum = await getNextNewsletterNumber()
+    const newsletterId = formatNewsletterId(newsletterNum)
 
-    const newsletterRef = doc(db, "newsletters", dateStr)
+    const newsletterRef = doc(db, "newsletters", newsletterId)
     await setDoc(newsletterRef, {
+      // Identification
+      newsletterId,
+      newsletterNumber: newsletterNum,
+      
+      // Content
+      subject: subject || `Estew Daily Tech Briefing - ${dateStr}`,
       content,
+      
+      // Metadata
       articlesUsed: articlesCount,
-      generatedAt: serverTimestamp(),
       date: dateStr,
-      status: "generated",
+      
+      // Status tracking
+      status: "generated", // generated | scheduled | sending | sent | failed
+      
+      // Delivery stats
+      deliveryStats: {
+        totalRecipients: 0,
+        delivered: 0,
+        failed: 0,
+        pending: 0,
+      },
+      
+      // Timestamps
+      generatedAt: serverTimestamp(),
+      scheduledTime: null,
+      sentAt: null,
+      
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     })
 
-    return dateStr
+    return newsletterId
   } catch (error) {
     console.error("Error saving newsletter:", error)
     throw error
@@ -178,13 +235,16 @@ async function saveNewsletter(content: string, articlesCount: number) {
 async function getSavedNewsletters() {
   try {
     const newslettersRef = collection(db, "newsletters")
-    const q = query(newslettersRef, orderBy("generatedAt", "desc"), limit(30))
+    const q = query(newslettersRef, orderBy("createdAt", "desc"), limit(30))
     const snapshot = await getDocs(q)
 
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
       return {
         id: docSnap.id,
+        newsletterId: data.newsletterId || docSnap.id,
+        newsletterNumber: data.newsletterNumber || 0,
+        subject: data.subject || `Newsletter - ${data.date || docSnap.id}`,
         date: data.date || docSnap.id,
         content: data.content || "",
         articlesUsed: data.articlesUsed || 0,
@@ -192,6 +252,15 @@ async function getSavedNewsletters() {
           ? data.generatedAt.toDate().toISOString()
           : data.generatedAt || new Date().toISOString(),
         status: data.status || "generated",
+        deliveryStats: data.deliveryStats || {
+          totalRecipients: 0,
+          delivered: 0,
+          failed: 0,
+          pending: 0,
+        },
+        sentAt: data.sentAt instanceof Timestamp
+          ? data.sentAt.toDate().toISOString()
+          : data.sentAt || null,
       }
     })
   } catch (error) {
