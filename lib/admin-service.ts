@@ -43,13 +43,22 @@ export interface AdminSubscriber {
   renewalDate: Date
 }
 
+export interface NewsletterSubscriber {
+  id: string
+  email: string
+  subscribedAt: Date
+  status: "active" | "unsubscribed"
+}
+
 export interface AdminStats {
   totalUsers: number
   totalArticles: number
   totalSubscribers: number
+  totalNewsletterSubscribers: number
   recentUsers: AdminUser[]
   recentArticles: AdminArticle[]
   subscribers: AdminSubscriber[]
+  newsletterSubscribers: NewsletterSubscriber[]
 }
 
 // Verify admin credentials
@@ -177,25 +186,65 @@ export async function getAllSubscribers(): Promise<AdminSubscriber[]> {
   }
 }
 
+// Get newsletter subscribers count
+export async function getNewsletterSubscribersCount(): Promise<number> {
+  try {
+    const subscribersRef = collection(db, "newsletter_subscribers")
+    const snapshot = await getCountFromServer(subscribersRef)
+    return snapshot.data().count
+  } catch (error) {
+    console.error("Error getting newsletter subscribers count:", error)
+    return 0
+  }
+}
+
+// Get all newsletter subscribers
+export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+  try {
+    const subscribersRef = collection(db, "newsletter_subscribers")
+    const q = query(subscribersRef, orderBy("subscribedAt", "desc"))
+    const snapshot = await getDocs(q)
+    
+    return snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        email: data.email || doc.id,
+        subscribedAt: data.subscribedAt instanceof Timestamp 
+          ? data.subscribedAt.toDate() 
+          : new Date(data.subscribedAt || Date.now()),
+        status: data.status || "active",
+      }
+    })
+  } catch (error) {
+    console.error("Error getting newsletter subscribers:", error)
+    return []
+  }
+}
+
 // Get all admin stats
 export async function getAdminStats(): Promise<AdminStats> {
-  const [totalUsers, totalArticles, totalSubscribers, recentUsers, recentArticles, subscribers] = 
+  const [totalUsers, totalArticles, totalSubscribers, totalNewsletterSubscribers, recentUsers, recentArticles, subscribers, newsletterSubscribers] = 
     await Promise.all([
       getTotalUsersCount(),
       getTotalArticlesCount(),
       getTotalSubscribersCount(),
+      getNewsletterSubscribersCount(),
       getRecentUsers(20),
       getRecentArticles(20),
       getAllSubscribers(),
+      getNewsletterSubscribers(),
     ])
 
   return {
     totalUsers,
     totalArticles,
     totalSubscribers,
+    totalNewsletterSubscribers,
     recentUsers,
     recentArticles,
     subscribers,
+    newsletterSubscribers,
   }
 }
 

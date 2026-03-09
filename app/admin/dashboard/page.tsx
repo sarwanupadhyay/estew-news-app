@@ -8,7 +8,7 @@ import {
   type AdminUser,
   type AdminArticle,
   type AdminSubscriber,
-  NEWSLETTER_SYSTEM_PROMPT,
+  type NewsletterSubscriber,
 } from "@/lib/admin-service"
 import {
   Users,
@@ -107,12 +107,6 @@ export default function AdminDashboard() {
     sessionStorage.removeItem("estew_admin_auth")
     sessionStorage.removeItem("estew_admin_email")
     router.push("/admin")
-  }
-
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(NEWSLETTER_SYSTEM_PROMPT)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
   }
 
   const handleGenerateNewsletter = async () => {
@@ -400,21 +394,56 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
-                    {/* System Prompt Reference */}
+                    {/* Newsletter Subscribers */}
                     <div className="rounded-xl border border-white/10 bg-white/5 p-5">
                       <div className="mb-4 flex items-center justify-between">
-                        <h3 className="font-medium text-white">AI Newsletter System Prompt</h3>
-                        <button
-                          onClick={handleCopyPrompt}
-                          className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1.5 text-sm text-primary transition-colors hover:bg-primary/20"
-                        >
-                          {copied ? <Check size={14} /> : <Copy size={14} />}
-                          {copied ? "Copied!" : "Copy Prompt"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-white">Newsletter Subscribers</h3>
+                          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                            {stats?.totalNewsletterSubscribers || 0}
+                          </span>
+                        </div>
                       </div>
-                      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg bg-black/50 p-4 text-xs text-gray-400">
-                        {NEWSLETTER_SYSTEM_PROMPT}
-                      </pre>
+
+                      {!stats?.newsletterSubscribers || stats.newsletterSubscribers.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <Mail size={24} className="mx-auto mb-2 text-gray-600" />
+                          <p className="text-sm text-gray-500">No newsletter subscribers yet</p>
+                          <p className="mt-1 text-xs text-gray-600">
+                            Users can subscribe to the newsletter from the app
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="max-h-64 space-y-2 overflow-y-auto">
+                          {stats.newsletterSubscribers.map((subscriber) => (
+                            <div
+                              key={subscriber.id}
+                              className="flex items-center justify-between rounded-lg border border-white/5 bg-white/5 p-3"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
+                                  <Mail size={14} className="text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-white">{subscriber.email}</p>
+                                  <p className="text-xs text-gray-500">
+                                    Subscribed {formatDate(subscriber.subscribedAt)}
+                                  </p>
+                                </div>
+                              </div>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                  subscriber.status === "active"
+                                    ? "bg-emerald-500/20 text-emerald-400"
+                                    : "bg-gray-500/20 text-gray-400"
+                                }`}
+                              >
+                                {subscriber.status.toUpperCase()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Saved Newsletters */}
@@ -515,19 +544,6 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
-                    {/* Info */}
-                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
-                      <div className="flex gap-3">
-                        <Mail size={20} className="shrink-0 text-amber-500" />
-                        <div>
-                          <h4 className="font-medium text-white">Newsletter Generation</h4>
-                          <p className="mt-1 text-sm text-gray-400">
-                            Newsletters are generated from articles published in the last 24 hours.
-                            Each newsletter is automatically saved to the database for future reference.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
 
