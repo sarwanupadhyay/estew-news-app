@@ -78,7 +78,8 @@ async function sendEmail(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || "Estew <newsletter@estew.com>",
+        // Using Resend test domain for free tier - replace with verified domain in production
+        from: process.env.RESEND_FROM_EMAIL || "Estew <onboarding@resend.dev>",
         to: [to],
         subject: subject,
         html: htmlContent,
