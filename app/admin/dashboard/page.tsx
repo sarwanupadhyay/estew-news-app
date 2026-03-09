@@ -425,8 +425,11 @@ export default function AdminDashboard() {
                                   <Mail size={14} className="text-primary" />
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-white">{subscriber.email}</p>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-sm font-medium text-white">
+                                    {subscriber.displayName || subscriber.email.split("@")[0]}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{subscriber.email}</p>
+                                  <p className="text-[10px] text-gray-600">
                                     Subscribed {formatDate(subscriber.subscribedAt)}
                                   </p>
                                 </div>

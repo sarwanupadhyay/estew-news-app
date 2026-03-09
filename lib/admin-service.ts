@@ -46,6 +46,7 @@ export interface AdminSubscriber {
 export interface NewsletterSubscriber {
   id: string
   email: string
+  displayName: string
   subscribedAt: Date
   status: "active" | "unsubscribed"
 }
@@ -186,34 +187,36 @@ export async function getAllSubscribers(): Promise<AdminSubscriber[]> {
   }
 }
 
-// Get newsletter subscribers count
+// Get newsletter subscribers count (from users table where newsletterSubscribed = true)
 export async function getNewsletterSubscribersCount(): Promise<number> {
   try {
-    const subscribersRef = collection(db, "newsletter_subscribers")
-    const snapshot = await getCountFromServer(subscribersRef)
-    return snapshot.data().count
+    const usersRef = collection(db, "users")
+    const q = query(usersRef, where("newsletterSubscribed", "==", true))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.length
   } catch (error) {
     console.error("Error getting newsletter subscribers count:", error)
     return 0
   }
 }
 
-// Get all newsletter subscribers
+// Get all newsletter subscribers (from users table where newsletterSubscribed = true)
 export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
   try {
-    const subscribersRef = collection(db, "newsletter_subscribers")
-    const q = query(subscribersRef, orderBy("subscribedAt", "desc"))
+    const usersRef = collection(db, "users")
+    const q = query(usersRef, where("newsletterSubscribed", "==", true))
     const snapshot = await getDocs(q)
     
     return snapshot.docs.map((doc) => {
       const data = doc.data()
       return {
         id: doc.id,
-        email: data.email || doc.id,
-        subscribedAt: data.subscribedAt instanceof Timestamp 
-          ? data.subscribedAt.toDate() 
-          : new Date(data.subscribedAt || Date.now()),
-        status: data.status || "active",
+        email: data.email || "",
+        displayName: data.displayName || data.name || data.email?.split("@")[0] || "",
+        subscribedAt: data.createdAt instanceof Timestamp 
+          ? data.createdAt.toDate() 
+          : new Date(data.createdAt || Date.now()),
+        status: "active",
       }
     })
   } catch (error) {
