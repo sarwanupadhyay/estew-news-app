@@ -79,7 +79,7 @@ async function sendEmail(
       },
       body: JSON.stringify({
         // Using Resend test domain for free tier - replace with verified domain in production
-        from: process.env.RESEND_FROM_EMAIL || "Estew <onboarding@resend.dev>",
+        from: process.env.RESEND_FROM_EMAIL || "Estew <newsletter@news.estew.xyz>",
         to: [to],
         subject: subject,
         html: htmlContent,
@@ -146,8 +146,8 @@ function convertToHtml(content: string, subject: string): string {
     }
 
     // Section headers
-    if (trimmedLine === "TOP STORY" || trimmedLine === "AI & MACHINE LEARNING" || 
-        trimmedLine === "PRODUCT LAUNCHES" || trimmedLine === "MARKET UPDATES") {
+    if (trimmedLine === "TOP STORY" || trimmedLine === "AI & MACHINE LEARNING" ||
+      trimmedLine === "PRODUCT LAUNCHES" || trimmedLine === "MARKET UPDATES") {
       if (inSection) {
         html += `</div>`
       }
