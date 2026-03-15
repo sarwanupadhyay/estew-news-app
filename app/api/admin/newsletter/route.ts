@@ -9,77 +9,196 @@ import {
   Timestamp,
   doc,
   setDoc,
-  serverTimestamp,
   getDoc,
+  serverTimestamp,
+  updateDoc,
 } from "firebase/firestore"
 
-const NEWSLETTER_SYSTEM_PROMPT = `SYSTEM PROMPT — ESTEW ADMIN NEWSLETTER GENERATOR
+// Newsletter section types
+export interface NewsletterSection {
+  id: string
+  title: string
+  type: "top_story" | "ai_breakthroughs" | "startup_radar" | "product_launches" | "market_pulse" | "ai_tool" | "quick_bytes" | "developer_insight"
+  content: string
+  articles: Array<{
+    title: string
+    summary: string
+    sourceUrl: string
+    sourceName: string
+    imageUrl?: string
+  }>
+  order: number
+}
 
-You are an AI editor for the Estew tech news platform responsible for generating a daily tech intelligence newsletter from articles stored in the Estew database.
+export interface Newsletter {
+  id: string
+  newsletterId: string
+  newsletterNumber: number
+  subject: string
+  sections: NewsletterSection[]
+  rawContent: string // Legacy plain text format
+  aiToolOfTheDay?: {
+    name: string
+    description: string
+    url: string
+    imageUrl?: string
+  }
+  articlesUsed: number
+  date: string
+  status: "draft" | "generated" | "scheduled" | "sending" | "sent" | "failed"
+  scheduledTime?: string | null
+  deliveryStats: {
+    totalRecipients: number
+    delivered: number
+    failed: number
+    pending: number
+  }
+  generatedAt: string
+  sentAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+const NEWSLETTER_SYSTEM_PROMPT = `SYSTEM PROMPT — ESTEW NEWSLETTER INTELLIGENCE GENERATOR
+
+You are an expert AI editor for the Estew tech news platform responsible for generating a premium daily tech intelligence newsletter from articles stored in the Estew database. Your newsletter targets tech executives, founders, and AI enthusiasts who need concise, actionable intelligence.
 
 Objective:
-Create a concise, high-value tech briefing highlighting the most important technology developments of the day.
+Create a structured, high-value tech briefing with exactly 8 sections, each providing unique insights.
+
+CRITICAL: You MUST return a valid JSON response with the exact structure specified below. Do not include any text outside the JSON.
 
 Instructions:
 
-1. Select Articles
-From the provided article list, choose the most relevant and impactful stories.
-Prioritize:
-- global technology impact
-- AI breakthroughs
-- major company announcements
-- important market shifts
+1. Analyze All Provided Articles
+Review every article and categorize them by relevance to each section.
+Prioritize: AI breakthroughs, startup funding, product launches, market shifts, developer tools.
 
-2. Organize the Newsletter Into Sections
-Structure the newsletter using the following sections:
+2. Generate 8 Newsletter Sections
+Each section MUST follow this exact JSON structure:
 
-TOP STORY
-The most significant tech development of the day.
+{
+  "sections": [
+    {
+      "id": "top_story",
+      "title": "TOP STORY",
+      "type": "top_story",
+      "content": "Brief 1-2 sentence intro to the section",
+      "articles": [
+        {
+          "title": "Headline",
+          "summary": "2-3 sentence summary with key insight",
+          "sourceUrl": "URL from provided article",
+          "sourceName": "Source name",
+          "imageUrl": "Image URL if available"
+        }
+      ],
+      "order": 1
+    },
+    {
+      "id": "ai_breakthroughs",
+      "title": "AI BREAKTHROUGHS",
+      "type": "ai_breakthroughs",
+      "content": "Latest advances in artificial intelligence",
+      "articles": [...],
+      "order": 2
+    },
+    {
+      "id": "startup_radar",
+      "title": "STARTUP RADAR",
+      "type": "startup_radar",
+      "content": "Funding rounds, acquisitions, and emerging players",
+      "articles": [...],
+      "order": 3
+    },
+    {
+      "id": "product_launches",
+      "title": "PRODUCT LAUNCHES",
+      "type": "product_launches",
+      "content": "New products and major updates",
+      "articles": [...],
+      "order": 4
+    },
+    {
+      "id": "market_pulse",
+      "title": "MARKET PULSE",
+      "type": "market_pulse",
+      "content": "Market trends and business insights",
+      "articles": [...],
+      "order": 5
+    },
+    {
+      "id": "ai_tool",
+      "title": "AI TOOL OF THE DAY",
+      "type": "ai_tool",
+      "content": "Featured AI tool recommendation",
+      "articles": [],
+      "order": 6
+    },
+    {
+      "id": "quick_bytes",
+      "title": "QUICK BYTES",
+      "type": "quick_bytes",
+      "content": "Rapid-fire news highlights",
+      "articles": [...],
+      "order": 7
+    },
+    {
+      "id": "developer_insight",
+      "title": "DEVELOPER INSIGHT",
+      "type": "developer_insight",
+      "content": "Technical deep-dive or trend analysis",
+      "articles": [...],
+      "order": 8
+    }
+  ],
+  "subject": "Estew Intelligence: [Main headline from top story] | [Date]"
+}
 
-AI & MACHINE LEARNING
-Breakthroughs, research, major AI releases, or policy developments.
+Section Guidelines:
 
-PRODUCT LAUNCHES
-New devices, platforms, software releases, or major updates.
+TOP STORY (1 article)
+- The single most significant tech development
+- Provide comprehensive 3-4 sentence summary
+- Include why it matters
 
-MARKET UPDATES
-Funding rounds, acquisitions, stock movements, industry trends.
+AI BREAKTHROUGHS (2-3 articles)
+- AI research papers, model releases, breakthrough applications
+- Focus on practical implications
 
-3. Article Format
-For each selected article include:
+STARTUP RADAR (2-3 articles)
+- Funding rounds, acquisitions, pivots
+- Include funding amounts when available
 
-Headline: Clear and engaging title.
-Summary: 1–2 concise sentences explaining the key insight or impact.
-Source Link: URL pointing to the original article.
+PRODUCT LAUNCHES (2-3 articles)
+- New devices, software, platforms, major updates
+- Highlight key features and availability
+
+MARKET PULSE (1-2 articles)
+- Industry trends, stock movements, analyst predictions
+- Data-driven insights
+
+AI TOOL OF THE DAY (leave empty - admin will fill)
+- This section is manually curated by admin
+- Leave articles array empty
+
+QUICK BYTES (3-5 articles)
+- One-sentence summaries of other notable news
+- Fast, scannable format
+
+DEVELOPER INSIGHT (1 article)
+- Technical analysis, tutorial highlights, or framework comparisons
+- Aimed at developers and technical leaders
 
 Writing Rules:
-- Never copy or reproduce full article text.
-- Summaries must be original, concise, and informative.
-- Maintain a professional tone suitable for tech executives and founders.
-- Avoid hype or speculation unless stated in the source article.
-- Keep summaries under 40 words when possible.
+- Summaries must be original, NOT copied from source
+- Keep summaries concise: 2-3 sentences for main sections, 1 sentence for Quick Bytes
+- Professional tone suitable for executives
+- Include source attribution
+- Use the exact URLs provided in the articles
+- If an article has an imageUrl, include it
 
-Output Format:
-The final newsletter must be email-friendly and structured like this:
-
-ESTEW DAILY TECH BRIEFING
-Date: {today}
-
-TOP STORY
----------
-{article}
-
-AI & MACHINE LEARNING
----------------------
-{article list}
-
-PRODUCT LAUNCHES
-----------------
-{article list}
-
-MARKET UPDATES
---------------
-{article list}`
+IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no explanatory text.`
 
 // Get articles for newsletter - uses createdAt (Firestore Timestamp) for reliable ordering
 async function getArticlesForNewsletter() {
@@ -91,7 +210,6 @@ async function getArticlesForNewsletter() {
   const mapDocsToArticles = (docs: any[]) => {
     return docs.map((docSnap) => {
       const data = docSnap.data()
-      // Get createdAt as the reliable date (it's always a Firestore Timestamp)
       const createdAt = data.createdAt instanceof Timestamp
         ? data.createdAt.toDate()
         : new Date()
@@ -103,13 +221,14 @@ async function getArticlesForNewsletter() {
         sourceName: data.sourceName || "",
         category: data.category || "",
         url: data.url || data.originalUrl || "",
+        imageUrl: data.imageUrl || data.urlToImage || "",
         publishedAt: data.publishedAt || createdAt.toISOString(),
         createdAt: createdAt,
       }
     })
   }
 
-  // Primary strategy: Use createdAt (always available as Firestore Timestamp)
+  // Primary strategy: Use createdAt
   try {
     const recentQuery = query(
       articlesRef,
@@ -120,8 +239,6 @@ async function getArticlesForNewsletter() {
 
     if (!snapshot.empty) {
       const allArticles = mapDocsToArticles(snapshot.docs)
-
-      // Filter for last 24 hours based on createdAt
       const recentArticles = allArticles.filter((article) => {
         return article.createdAt >= twentyFourHoursAgo
       })
@@ -129,19 +246,16 @@ async function getArticlesForNewsletter() {
       if (recentArticles.length >= 5) {
         return recentArticles
       }
-
-      // If not enough recent articles, use all available (up to 30)
       return allArticles.slice(0, 30)
     }
   } catch (error) {
     console.error("Primary query failed:", error)
   }
 
-  // Fallback: Simple query without ordering
+  // Fallback
   try {
     const simpleQuery = query(articlesRef, limit(30))
     const snapshot = await getDocs(simpleQuery)
-
     if (!snapshot.empty) {
       return mapDocsToArticles(snapshot.docs)
     }
@@ -164,62 +278,74 @@ async function getNextNewsletterNumber(): Promise<number> {
       await setDoc(counterRef, { count: newCount })
       return newCount
     } else {
-      // Initialize counter
       await setDoc(counterRef, { count: 1 })
       return 1
     }
   } catch (error) {
     console.error("Error getting newsletter number:", error)
-    // Fallback to timestamp-based ID
     return Date.now()
   }
 }
 
-// Format newsletter ID (e.g., newsletter_00001)
 function formatNewsletterId(num: number): string {
   return `newsletter_${num.toString().padStart(5, "0")}`
 }
 
-// Save newsletter to database with sequential ID
-async function saveNewsletter(content: string, articlesCount: number, subject?: string) {
+// Convert sections to plain text for backward compatibility
+function sectionsToPlainText(sections: NewsletterSection[], date: string): string {
+  let text = `ESTEW DAILY TECH BRIEFING\nDate: ${date}\n\n`
+  
+  for (const section of sections) {
+    text += `${section.title}\n${"─".repeat(section.title.length)}\n`
+    if (section.content) {
+      text += `${section.content}\n\n`
+    }
+    for (const article of section.articles) {
+      text += `**${article.title}**\n`
+      text += `${article.summary}\n`
+      text += `Source: ${article.sourceName} | ${article.sourceUrl}\n\n`
+    }
+    text += "\n"
+  }
+  
+  return text
+}
+
+// Save newsletter to database
+async function saveNewsletter(
+  sections: NewsletterSection[],
+  articlesCount: number,
+  subject: string,
+  aiToolOfTheDay?: Newsletter["aiToolOfTheDay"]
+) {
   try {
     const today = new Date()
-    const dateStr = today.toISOString().split("T")[0] // YYYY-MM-DD format
+    const dateStr = today.toISOString().split("T")[0]
     
-    // Get sequential newsletter number
     const newsletterNum = await getNextNewsletterNumber()
     const newsletterId = formatNewsletterId(newsletterNum)
+    const rawContent = sectionsToPlainText(sections, dateStr)
 
     const newsletterRef = doc(db, "newsletters", newsletterId)
     await setDoc(newsletterRef, {
-      // Identification
       newsletterId,
       newsletterNumber: newsletterNum,
-      
-      // Content
-      subject: subject || `Estew Daily Tech Briefing - ${dateStr}`,
-      content,
-      
-      // Metadata
+      subject,
+      sections,
+      rawContent,
+      aiToolOfTheDay: aiToolOfTheDay || null,
       articlesUsed: articlesCount,
       date: dateStr,
-      
-      // Status tracking
-      status: "generated", // generated | scheduled | sending | sent | failed
-      
-      // Delivery stats
+      status: "generated",
+      scheduledTime: null,
       deliveryStats: {
         totalRecipients: 0,
         delivered: 0,
         failed: 0,
         pending: 0,
       },
-      
-      // Timestamps
       generatedAt: serverTimestamp(),
-      scheduledTime: null,
       sentAt: null,
-      
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -246,12 +372,17 @@ async function getSavedNewsletters() {
         newsletterNumber: data.newsletterNumber || 0,
         subject: data.subject || `Newsletter - ${data.date || docSnap.id}`,
         date: data.date || docSnap.id,
-        content: data.content || "",
+        sections: data.sections || [],
+        rawContent: data.rawContent || data.content || "",
+        aiToolOfTheDay: data.aiToolOfTheDay || null,
         articlesUsed: data.articlesUsed || 0,
         generatedAt: data.generatedAt instanceof Timestamp
           ? data.generatedAt.toDate().toISOString()
           : data.generatedAt || new Date().toISOString(),
         status: data.status || "generated",
+        scheduledTime: data.scheduledTime instanceof Timestamp
+          ? data.scheduledTime.toDate().toISOString()
+          : data.scheduledTime || null,
         deliveryStats: data.deliveryStats || {
           totalRecipients: 0,
           delivered: 0,
@@ -283,9 +414,9 @@ export async function GET() {
   }
 }
 
+// POST - Generate new newsletter
 export async function POST(request: Request) {
   try {
-    // Check for Gemini API key
     const geminiApiKey = process.env.GEMINI_API_KEY
     if (!geminiApiKey) {
       return NextResponse.json(
@@ -294,7 +425,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get recent articles
+    // Check for optional AI tool selection from request body
+    let selectedAiTool = null
+    try {
+      const body = await request.json()
+      selectedAiTool = body.aiToolOfTheDay || null
+    } catch {
+      // No body or invalid JSON, continue without AI tool
+    }
+
     const articles = await getArticlesForNewsletter()
 
     if (articles.length === 0) {
@@ -304,13 +443,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Format articles for the prompt
     const articlesText = articles.map((article, index) =>
       `${index + 1}. ${article.title}
    Source: ${article.sourceName}
    Category: ${article.category}
    Description: ${article.description}
    URL: ${article.url}
+   Image URL: ${article.imageUrl || "N/A"}
    Published: ${article.publishedAt}`
     ).join("\n\n")
 
@@ -323,13 +462,17 @@ export async function POST(request: Request) {
 
     const userPrompt = `Today's date is ${today}.
 
-Here are the recent articles from Estew database:
+Here are the ${articles.length} recent articles from Estew database:
 
 ${articlesText}
 
-Please generate a newsletter following the system instructions.`
+Generate the newsletter JSON following the system instructions. Remember to:
+1. Return ONLY valid JSON
+2. Use the exact URLs from the articles provided
+3. Include imageUrl when available
+4. Leave ai_tool section articles empty (admin will fill)
+5. Make the subject line compelling and include today's date`
 
-    // Call Gemini API (using gemini-2.5-flash-lite model)
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
       {
@@ -347,7 +490,8 @@ Please generate a newsletter following the system instructions.`
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
           },
         }),
       }
@@ -363,29 +507,103 @@ Please generate a newsletter following the system instructions.`
     }
 
     const data = await geminiResponse.json()
-    const newsletterContent = data.candidates?.[0]?.content?.parts?.[0]?.text
+    let newsletterJson = data.candidates?.[0]?.content?.parts?.[0]?.text
 
-    if (!newsletterContent) {
+    if (!newsletterJson) {
       return NextResponse.json(
         { error: "Newsletter generation failed. Please try again." },
         { status: 400 }
       )
     }
 
-    // Save newsletter to database
-    const savedDate = await saveNewsletter(newsletterContent, articles.length)
+    // Parse the JSON response
+    let parsedNewsletter
+    try {
+      // Clean potential markdown code blocks
+      newsletterJson = newsletterJson.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+      parsedNewsletter = JSON.parse(newsletterJson)
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError)
+      return NextResponse.json(
+        { error: "Failed to parse newsletter structure. Please try again." },
+        { status: 400 }
+      )
+    }
+
+    const sections: NewsletterSection[] = parsedNewsletter.sections || []
+    const subject = parsedNewsletter.subject || `Estew Intelligence: Daily Briefing | ${today}`
+
+    // Add AI tool if provided
+    if (selectedAiTool) {
+      const aiToolSection = sections.find(s => s.type === "ai_tool")
+      if (aiToolSection) {
+        aiToolSection.articles = [{
+          title: selectedAiTool.name,
+          summary: selectedAiTool.description,
+          sourceUrl: selectedAiTool.url,
+          sourceName: "Featured Tool",
+          imageUrl: selectedAiTool.imageUrl,
+        }]
+      }
+    }
+
+    // Save newsletter
+    const savedId = await saveNewsletter(sections, articles.length, subject, selectedAiTool)
 
     return NextResponse.json({
       success: true,
-      newsletter: newsletterContent,
+      newsletterId: savedId,
+      subject,
+      sections,
       articlesUsed: articles.length,
       generatedAt: new Date().toISOString(),
-      savedAs: savedDate,
     })
   } catch (error) {
     console.error("Newsletter generation error:", error)
     return NextResponse.json(
       { error: "Failed to generate newsletter" },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH - Update newsletter (sections, schedule, AI tool, etc.)
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json()
+    const { newsletterId, sections, subject, aiToolOfTheDay, scheduledTime, status } = body
+
+    if (!newsletterId) {
+      return NextResponse.json(
+        { error: "Newsletter ID required" },
+        { status: 400 }
+      )
+    }
+
+    const newsletterRef = doc(db, "newsletters", newsletterId)
+    const updateData: Record<string, any> = {
+      updatedAt: serverTimestamp(),
+    }
+
+    if (sections) {
+      updateData.sections = sections
+      updateData.rawContent = sectionsToPlainText(sections, new Date().toISOString().split("T")[0])
+    }
+    if (subject) updateData.subject = subject
+    if (aiToolOfTheDay !== undefined) updateData.aiToolOfTheDay = aiToolOfTheDay
+    if (scheduledTime !== undefined) {
+      updateData.scheduledTime = scheduledTime ? new Date(scheduledTime) : null
+      if (scheduledTime) updateData.status = "scheduled"
+    }
+    if (status) updateData.status = status
+
+    await updateDoc(newsletterRef, updateData)
+
+    return NextResponse.json({ success: true, newsletterId })
+  } catch (error) {
+    console.error("Newsletter update error:", error)
+    return NextResponse.json(
+      { error: "Failed to update newsletter" },
       { status: 500 }
     )
   }
