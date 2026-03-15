@@ -473,36 +473,72 @@ Generate the newsletter JSON following the system instructions. Remember to:
 4. Leave ai_tool section articles empty (admin will fill)
 5. Make the subject line compelling and include today's date`
 
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: `${NEWSLETTER_SYSTEM_PROMPT}\n\n${userPrompt}` },
-              ],
+    // Retry logic for Gemini API with exponential backoff
+    const MAX_RETRIES = 3
+    const RETRY_DELAYS = [1000, 2000, 4000] // ms
+    
+    let geminiResponse: Response | null = null
+    let lastError: string = ""
+    
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json",
-          },
-        }),
-      }
-    )
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: `${NEWSLETTER_SYSTEM_PROMPT}\n\n${userPrompt}` },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 8192,
+                responseMimeType: "application/json",
+              },
+            }),
+          }
+        )
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text()
-      console.error("Gemini API error:", errorText)
+        if (geminiResponse.ok) {
+          break // Success, exit retry loop
+        }
+        
+        // Check for retryable errors (503, 429, 500)
+        if ([503, 429, 500].includes(geminiResponse.status)) {
+          lastError = await geminiResponse.text()
+          console.log(`Gemini API attempt ${attempt + 1} failed with ${geminiResponse.status}, retrying...`)
+          
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
+            continue
+          }
+        } else {
+          // Non-retryable error
+          lastError = await geminiResponse.text()
+          break
+        }
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError.message : "Network error"
+        console.error(`Gemini API fetch error on attempt ${attempt + 1}:`, lastError)
+        
+        if (attempt < MAX_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
+        }
+      }
+    }
+
+    if (!geminiResponse || !geminiResponse.ok) {
+      console.error("Gemini API error after retries:", lastError)
       return NextResponse.json(
-        { error: "Newsletter generation failed. Please try again." },
-        { status: 400 }
+        { error: "AI service is temporarily unavailable. Please try again in a few moments." },
+        { status: 503 }
       )
     }
 
