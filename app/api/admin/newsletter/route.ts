@@ -414,7 +414,7 @@ export async function GET() {
   }
 }
 
-// POST - Generate new newsletter using AI SDK with Vercel AI Gateway
+// POST - Generate new newsletter using Gemini API
 export async function POST(request: Request) {
   try {
     // Check for optional AI tool selection from request body
@@ -465,7 +465,6 @@ Generate the newsletter JSON following the system instructions. Remember to:
 4. Leave ai_tool section articles empty (admin will fill)
 5. Make the subject line compelling and include today's date`
 
-    // Define the newsletter schema for structured output
     // Use direct Gemini API with GEMINI_API_KEY
     const geminiApiKey = process.env.GEMINI_API_KEY
     if (!geminiApiKey) {
