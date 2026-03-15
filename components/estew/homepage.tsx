@@ -39,10 +39,10 @@ export function Homepage({ onGetStarted }: HomepageProps) {
         <div className="flex items-center gap-2">
           <div className="relative h-8 w-8">
             <Image
-              src="/images/logo.png"
+              src="/images/logo.svg"
               alt="Estew"
               fill
-              className="object-contain dark:invert"
+              className="object-contain"
               priority
             />
           </div>
@@ -284,7 +284,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
           <div className="flex items-center gap-2">
             <div className="relative h-5 w-5">
               <Image
-                src="/images/logo.png"
+                src="/images/logo.svg"
                 alt="Estew"
                 fill
                 className="object-contain dark:invert"

@@ -87,10 +87,10 @@ export function LandingScreen() {
         {/* Logo image */}
         <div className="relative mb-5 h-20 w-20 animate-slide-up">
           <Image
-            src="/images/logo.png"
+            src="/images/logo.svg"
             alt="Estew logo"
             fill
-            className="object-contain dark:invert"
+            className="object-contain"
             priority
           />
         </div>

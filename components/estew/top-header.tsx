@@ -24,10 +24,10 @@ export function TopHeader() {
       <div className="flex items-center gap-2.5">
         <div className="relative h-7 w-7">
           <Image
-            src="/images/logo.png"
+            src="/images/logo.svg"
             alt="Estew logo"
             fill
-            className="object-contain dark:invert"
+            className="object-contain"
           />
         </div>
         <span className="font-serif text-xl font-bold tracking-tight text-foreground">
