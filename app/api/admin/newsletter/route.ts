@@ -613,7 +613,7 @@ Generate the newsletter JSON following the system instructions. Remember to:
   }
 }
 
-// PATCH - Update newsletter (sections, schedule, AI tool, etc.)
+// PATCH - Update newsletter sections, schedule, AI tool selection, and status
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
