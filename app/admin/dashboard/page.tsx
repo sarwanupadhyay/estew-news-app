@@ -28,6 +28,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Sparkles,
 } from "lucide-react"
 
 type TabType = "home" | "users" | "articles" | "subscribers" | "newsletter"
