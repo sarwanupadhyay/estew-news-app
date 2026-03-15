@@ -38,7 +38,20 @@ export async function POST(request: Request) {
     })
 
     if (!res.ok) {
-      throw new Error(`OpenAI responded with ${res.status}`)
+      // Handle rate limiting gracefully - return original summary instead of failing
+      if (res.status === 429) {
+        console.warn("OpenAI rate limit reached, using original summary")
+        return NextResponse.json({
+          aiSummary: summary || "No summary available.",
+          source: "rate_limited",
+        })
+      }
+      // For other errors, log and fallback
+      console.error(`OpenAI API error: ${res.status}`)
+      return NextResponse.json({
+        aiSummary: summary || "No summary available.",
+        source: "api_error",
+      })
     }
 
     const data = await res.json()
