@@ -414,9 +414,17 @@ export async function GET() {
   }
 }
 
-// POST - Generate new newsletter using AI SDK with Vercel AI Gateway
+// POST - Generate new newsletter
 export async function POST(request: Request) {
   try {
+    const geminiApiKey = process.env.GEMINI_API_KEY
+    if (!geminiApiKey) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY not configured" },
+        { status: 500 }
+      )
+    }
+
     // Check for optional AI tool selection from request body
     let selectedAiTool = null
     try {
@@ -465,19 +473,9 @@ Generate the newsletter JSON following the system instructions. Remember to:
 4. Leave ai_tool section articles empty (admin will fill)
 5. Make the subject line compelling and include today's date`
 
-    // Define the newsletter schema for structured output
-    // Use direct Gemini API with GEMINI_API_KEY
-    const geminiApiKey = process.env.GEMINI_API_KEY
-    if (!geminiApiKey) {
-      return NextResponse.json(
-        { error: "Gemini API key not configured" },
-        { status: 500 }
-      )
-    }
-
     // Retry logic for Gemini API with exponential backoff
     const MAX_RETRIES = 3
-    const RETRY_DELAYS = [2000, 4000, 8000] // ms
+    const RETRY_DELAYS = [1000, 2000, 4000] // ms
     
     let geminiResponse: Response | null = null
     let lastError: string = ""
@@ -485,7 +483,7 @@ Generate the newsletter JSON following the system instructions. Remember to:
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
         geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
             headers: {
@@ -544,11 +542,10 @@ Generate the newsletter JSON following the system instructions. Remember to:
       )
     }
 
-    const geminiData = await geminiResponse.json()
-    const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
+    const data = await geminiResponse.json()
+    let newsletterJson = data.candidates?.[0]?.content?.parts?.[0]?.text
 
-    if (!generatedText) {
-      console.error("No text in Gemini response:", geminiData)
+    if (!newsletterJson) {
       return NextResponse.json(
         { error: "Newsletter generation failed. Please try again." },
         { status: 400 }
@@ -558,31 +555,14 @@ Generate the newsletter JSON following the system instructions. Remember to:
     // Parse the JSON response
     let parsedNewsletter
     try {
-      // Clean the response - remove markdown code blocks if present
-      let cleanedText = generatedText.trim()
-      if (cleanedText.startsWith("```json")) {
-        cleanedText = cleanedText.slice(7)
-      } else if (cleanedText.startsWith("```")) {
-        cleanedText = cleanedText.slice(3)
-      }
-      if (cleanedText.endsWith("```")) {
-        cleanedText = cleanedText.slice(0, -3)
-      }
-      parsedNewsletter = JSON.parse(cleanedText.trim())
+      // Clean potential markdown code blocks
+      newsletterJson = newsletterJson.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+      parsedNewsletter = JSON.parse(newsletterJson)
     } catch (parseError) {
-      console.error("Failed to parse newsletter JSON:", parseError, generatedText)
+      console.error("JSON parse error:", parseError)
       return NextResponse.json(
-        { error: "Failed to parse newsletter content. Please try again." },
+        { error: "Failed to parse newsletter structure. Please try again." },
         { status: 400 }
-      )
-    }
-
-      parsedNewsletter = output
-    } catch (aiError) {
-      console.error("AI SDK error:", aiError)
-      return NextResponse.json(
-        { error: "AI service error. Please try again in a few moments." },
-        { status: 503 }
       )
     }
 
