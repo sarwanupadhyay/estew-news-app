@@ -414,7 +414,7 @@ export async function GET() {
   }
 }
 
-// POST - Generate new newsletter using Gemini API
+// POST - Generate new newsletter using Gemini API (gemini-2.5-flash-lite)
 export async function POST(request: Request) {
   try {
     // Check for optional AI tool selection from request body
