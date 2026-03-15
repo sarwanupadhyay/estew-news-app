@@ -2,13 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import {
   getAdminStats,
   type AdminStats,
-  type AdminUser,
-  type AdminArticle,
-  type AdminSubscriber,
-  type NewsletterSubscriber,
 } from "@/lib/admin-service"
 import {
   Users,
@@ -19,7 +16,6 @@ import {
   RefreshCw,
   ChevronRight,
   Calendar,
-  Shield,
   Sparkles,
   Copy,
   Check,
@@ -32,16 +28,27 @@ import {
   Send,
   CheckCircle,
   XCircle,
+  Home,
+  TrendingUp,
+  Eye,
+  BarChart3,
+  Menu,
+  X,
 } from "lucide-react"
+
+type TabType = "home" | "users" | "articles" | "subscribers" | "newsletter"
 
 export default function AdminDashboard() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<AdminStats | null>(null)
-  const [activeTab, setActiveTab] = useState<"newsletter" | "users" | "articles" | "subscribers">("newsletter")
+  const [activeTab, setActiveTab] = useState<TabType>("home")
   const [refreshing, setRefreshing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  // Newsletter states
   const [generatingNewsletter, setGeneratingNewsletter] = useState(false)
   const [generatedNewsletter, setGeneratedNewsletter] = useState<string | null>(null)
   const [newsletterError, setNewsletterError] = useState<string | null>(null)
@@ -105,7 +112,6 @@ export default function AdminDashboard() {
     setLoadingNewsletters(false)
   }
 
-  // Load saved newsletters when newsletter tab is active
   useEffect(() => {
     if (activeTab === "newsletter" && savedNewsletters.length === 0) {
       loadSavedNewsletters()
@@ -115,6 +121,9 @@ export default function AdminDashboard() {
   const handleRefresh = async () => {
     setRefreshing(true)
     await loadStats()
+    if (activeTab === "newsletter") {
+      await loadSavedNewsletters()
+    }
     setRefreshing(false)
   }
 
@@ -141,7 +150,6 @@ export default function AdminDashboard() {
       }
       
       setGeneratedNewsletter(data.newsletter)
-      // Reload saved newsletters to show the new one
       loadSavedNewsletters()
     } catch (error) {
       setNewsletterError(error instanceof Error ? error.message : "Failed to generate newsletter")
@@ -183,9 +191,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch("/api/admin/newsletter/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newsletterId }),
       })
 
@@ -195,7 +201,6 @@ export default function AdminDashboard() {
         throw new Error(data.error || "Failed to send newsletter")
       }
 
-      // Reload newsletters to show updated status
       loadSavedNewsletters()
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Failed to send newsletter")
@@ -205,68 +210,33 @@ export default function AdminDashboard() {
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "sent":
-        return (
-          <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-            <CheckCircle size={10} />
-            SENT
-          </span>
-        )
-      case "sending":
-        return (
-          <span className="flex items-center gap-1 rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-400">
-            <Loader2 size={10} className="animate-spin" />
-            SENDING
-          </span>
-        )
-      case "failed":
-        return (
-          <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-medium text-red-400">
-            <XCircle size={10} />
-            FAILED
-          </span>
-        )
-      case "partially_sent":
-        return (
-          <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-400">
-            <AlertCircle size={10} />
-            PARTIAL
-          </span>
-        )
-      case "scheduled":
-        return (
-          <span className="flex items-center gap-1 rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-medium text-purple-400">
-            <Clock size={10} />
-            SCHEDULED
-          </span>
-        )
-      default:
-        return (
-          <span className="rounded-full bg-gray-500/20 px-2 py-0.5 text-[10px] font-medium text-gray-400">
-            GENERATED
-          </span>
-        )
+    const badges: Record<string, { icon: React.ReactNode; text: string; className: string }> = {
+      sent: { icon: <CheckCircle size={10} />, text: "SENT", className: "bg-emerald-500/20 text-emerald-400" },
+      sending: { icon: <Loader2 size={10} className="animate-spin" />, text: "SENDING", className: "bg-blue-500/20 text-blue-400" },
+      failed: { icon: <XCircle size={10} />, text: "FAILED", className: "bg-red-500/20 text-red-400" },
+      partially_sent: { icon: <AlertCircle size={10} />, text: "PARTIAL", className: "bg-amber-500/20 text-amber-400" },
+      scheduled: { icon: <Clock size={10} />, text: "SCHEDULED", className: "bg-purple-500/20 text-purple-400" },
     }
+    const badge = badges[status] || { icon: null, text: "GENERATED", className: "bg-gray-500/20 text-gray-400" }
+    return (
+      <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.className}`}>
+        {badge.icon}
+        {badge.text}
+      </span>
+    )
   }
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
-  const formatDateTime = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    })
-  }
+  const navItems = [
+    { id: "home" as TabType, label: "Home", icon: Home, description: "Overview & insights" },
+    { id: "users" as TabType, label: "Users", icon: Users, description: "Onboarded users" },
+    { id: "articles" as TabType, label: "Articles", icon: Newspaper, description: "Stored articles" },
+    { id: "subscribers" as TabType, label: "Pro Subscribers", icon: CreditCard, description: "Premium members" },
+    { id: "newsletter" as TabType, label: "Newsletter", icon: Mail, description: "AI briefings" },
+  ]
 
   if (!isAuthenticated) {
     return (
@@ -277,573 +247,605 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f]">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0b0f]/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Shield size={20} className="text-primary" />
+    <div className="flex min-h-screen bg-[#0a0b0f]">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-white/10 bg-[#0a0b0f] transition-transform duration-200 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex h-full flex-col">
+          {/* Logo */}
+          <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
+            <div className="flex items-center gap-3">
+              <div className="relative h-8 w-8">
+                <Image
+                  src="/images/logo.svg"
+                  alt="Estew"
+                  fill
+                  className="object-contain dark:invert"
+                />
+              </div>
+              <div>
+                <h1 className="font-serif text-lg font-bold text-white">Estew</h1>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500">Admin Panel</p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-serif text-lg font-bold text-white">Estew Admin</h1>
-              <p className="text-xs text-gray-500">Dashboard</p>
-            </div>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 lg:hidden"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-3">
+            <div className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = activeTab === item.id
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveTab(item.id)
+                      setSidebarOpen(false)
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <Icon size={18} />
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${isActive ? "text-primary" : ""}`}>{item.label}</p>
+                      <p className="text-[10px] text-gray-500">{item.description}</p>
+                    </div>
+                    {isActive && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
+
+          {/* User section */}
+          <div className="border-t border-white/10 p-3">
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
+            >
+              <LogOut size={18} />
+              <span className="text-sm font-medium">Logout</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 lg:ml-0">
+        {/* Top bar */}
+        <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0a0b0f]/95 backdrop-blur-sm">
+          <div className="flex h-16 items-center justify-between px-4 lg:px-6">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="rounded-lg p-2 text-gray-400 hover:bg-white/10 lg:hidden"
+              >
+                <Menu size={20} />
+              </button>
+              <div>
+                <h2 className="font-semibold text-white">
+                  {navItems.find(n => n.id === activeTab)?.label}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  {navItems.find(n => n.id === activeTab)?.description}
+                </p>
+              </div>
+            </div>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+              className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-gray-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
             >
-              <RefreshCw size={18} className={refreshing ? "animate-spin" : ""} />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <LogOut size={16} />
-              Logout
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {/* Stats Overview */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Newsletter Card */}
-          <button
-            onClick={() => setActiveTab("newsletter")}
-            className={`group rounded-2xl border p-5 text-left transition-all ${
-              activeTab === "newsletter"
-                ? "border-primary/30 bg-primary/10"
-                : "border-white/10 bg-[#12131a] hover:border-white/20"
-            }`}
-          >
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5">
-              <Sparkles size={22} className="text-amber-500" />
+        <main className="p-4 lg:p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
-            <h3 className="font-semibold text-white">Newsletter</h3>
-            <p className="mt-1 text-sm text-gray-500">Generate AI briefings</p>
-          </button>
+          ) : (
+            <>
+              {/* Home Tab - Insights Overview */}
+              {activeTab === "home" && (
+                <div className="space-y-6">
+                  {/* Stats Grid */}
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
+                        <Users size={20} className="text-blue-500" />
+                      </div>
+                      <p className="text-sm text-gray-500">Total Users</p>
+                      <p className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+                        <Newspaper size={20} className="text-emerald-500" />
+                      </div>
+                      <p className="text-sm text-gray-500">Total Articles</p>
+                      <p className="text-2xl font-bold text-white">{stats?.totalArticles || 0}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
+                        <CreditCard size={20} className="text-purple-500" />
+                      </div>
+                      <p className="text-sm text-gray-500">Pro Subscribers</p>
+                      <p className="text-2xl font-bold text-white">{stats?.totalSubscribers || 0}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
+                        <Mail size={20} className="text-amber-500" />
+                      </div>
+                      <p className="text-sm text-gray-500">Newsletter Subs</p>
+                      <p className="text-2xl font-bold text-white">{stats?.totalNewsletterSubscribers || 0}</p>
+                    </div>
+                  </div>
 
-          {/* Users Card */}
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`group rounded-2xl border p-5 text-left transition-all ${
-              activeTab === "users"
-                ? "border-primary/30 bg-primary/10"
-                : "border-white/10 bg-[#12131a] hover:border-white/20"
-            }`}
-          >
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-              <Users size={22} className="text-blue-500" />
-            </div>
-            <h3 className="font-semibold text-white">Onboarded Users</h3>
-            <p className="mt-1 text-2xl font-bold text-white">
-              {loading ? "..." : stats?.totalUsers || 0}
-            </p>
-          </button>
-
-          {/* Articles Card */}
-          <button
-            onClick={() => setActiveTab("articles")}
-            className={`group rounded-2xl border p-5 text-left transition-all ${
-              activeTab === "articles"
-                ? "border-primary/30 bg-primary/10"
-                : "border-white/10 bg-[#12131a] hover:border-white/20"
-            }`}
-          >
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
-              <Newspaper size={22} className="text-emerald-500" />
-            </div>
-            <h3 className="font-semibold text-white">Articles</h3>
-            <p className="mt-1 text-2xl font-bold text-white">
-              {loading ? "..." : stats?.totalArticles || 0}
-            </p>
-          </button>
-
-          {/* Subscribers Card */}
-          <button
-            onClick={() => setActiveTab("subscribers")}
-            className={`group rounded-2xl border p-5 text-left transition-all ${
-              activeTab === "subscribers"
-                ? "border-primary/30 bg-primary/10"
-                : "border-white/10 bg-[#12131a] hover:border-white/20"
-            }`}
-          >
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-              <CreditCard size={22} className="text-purple-500" />
-            </div>
-            <h3 className="font-semibold text-white">Pro Subscribers</h3>
-            <p className="mt-1 text-2xl font-bold text-white">
-              {loading ? "..." : stats?.totalSubscribers || 0}
-            </p>
-          </button>
-        </div>
-
-        {/* Content Panel */}
-        <div className="rounded-2xl border border-white/10 bg-[#12131a]">
-          {/* Panel Header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-            <h2 className="font-semibold text-white">
-              {activeTab === "newsletter" && "Newsletter Generator"}
-              {activeTab === "users" && "Onboarded Users"}
-              {activeTab === "articles" && "Stored Articles"}
-              {activeTab === "subscribers" && "Pro Subscribers"}
-            </h2>
-            {activeTab !== "newsletter" && (
-              <span className="text-sm text-gray-500">
-                {activeTab === "users" && `${stats?.recentUsers.length || 0} recent`}
-                {activeTab === "articles" && `${stats?.recentArticles.length || 0} recent`}
-                {activeTab === "subscribers" && `${stats?.subscribers.length || 0} total`}
-              </span>
-            )}
-          </div>
-
-          {/* Panel Content */}
-          <div className="p-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : (
-              <>
-                {/* Newsletter Tab */}
-                {activeTab === "newsletter" && (
-                  <div className="space-y-6">
-                    {/* Generate Button */}
-                    <div className="flex items-center gap-4">
+                  {/* Quick Actions */}
+                  <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                    <h3 className="mb-4 font-semibold text-white">Quick Actions</h3>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       <button
-                        onClick={handleGenerateNewsletter}
-                        disabled={generatingNewsletter}
-                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 font-medium text-white transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
+                        onClick={() => setActiveTab("newsletter")}
+                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
                       >
-                        {generatingNewsletter ? (
-                          <>
-                            <Loader2 size={18} className="animate-spin" />
-                            Generating Newsletter...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles size={18} />
-                            Generate Newsletter with AI
-                          </>
-                        )}
-                      </button>
-                      <p className="text-sm text-gray-500">
-                        Uses Gemini AI to create a daily tech briefing from recent articles
-                      </p>
-                    </div>
-
-                    {/* Error Message */}
-                    {newsletterError && (
-                      <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-                        <AlertCircle size={20} className="shrink-0 text-red-400" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+                          <Sparkles size={18} className="text-amber-500" />
+                        </div>
                         <div>
-                          <p className="font-medium text-red-400">Error generating newsletter</p>
-                          <p className="mt-1 text-sm text-red-300/70">{newsletterError}</p>
-                          {newsletterError.includes("GEMINI_API_KEY") && (
-                            <p className="mt-2 text-sm text-gray-400">
-                              Please add your GEMINI_API_KEY in the environment variables.
-                            </p>
-                          )}
+                          <p className="text-sm font-medium text-white">Generate Newsletter</p>
+                          <p className="text-xs text-gray-500">AI-powered briefing</p>
                         </div>
-                      </div>
-                    )}
-
-                    {/* Generated Newsletter */}
-                    {generatedNewsletter && (
-                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-                        <div className="flex items-center justify-between border-b border-emerald-500/20 px-5 py-3">
-                          <div className="flex items-center gap-2">
-                            <Check size={16} className="text-emerald-400" />
-                            <span className="font-medium text-emerald-400">Newsletter Generated</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={handleCopyNewsletter}
-                              className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/20"
-                            >
-                              {copied ? <Check size={14} /> : <Copy size={14} />}
-                              {copied ? "Copied!" : "Copy"}
-                            </button>
-                            <button
-                              onClick={handleDownloadNewsletter}
-                              className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/20"
-                            >
-                              <Download size={14} />
-                              Download
-                            </button>
-                          </div>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("users")}
+                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                          <Eye size={18} className="text-blue-500" />
                         </div>
-                        <pre
-                          ref={newsletterRef}
-                          className="max-h-[500px] overflow-y-auto whitespace-pre-wrap p-5 font-mono text-sm text-gray-300"
-                        >
-                          {generatedNewsletter}
-                        </pre>
-                      </div>
-                    )}
-
-                    {/* Newsletter Subscribers */}
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-white">Newsletter Subscribers</h3>
-                          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
-                            {stats?.totalNewsletterSubscribers || 0}
-                          </span>
+                        <div>
+                          <p className="text-sm font-medium text-white">View Users</p>
+                          <p className="text-xs text-gray-500">{stats?.totalUsers || 0} onboarded</p>
                         </div>
-                      </div>
-
-                      {!stats?.newsletterSubscribers || stats.newsletterSubscribers.length === 0 ? (
-                        <div className="py-8 text-center">
-                          <Mail size={24} className="mx-auto mb-2 text-gray-600" />
-                          <p className="text-sm text-gray-500">No newsletter subscribers yet</p>
-                          <p className="mt-1 text-xs text-gray-600">
-                            Users can subscribe to the newsletter from the app
-                          </p>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("articles")}
+                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+                          <BarChart3 size={18} className="text-emerald-500" />
                         </div>
-                      ) : (
-                        <div className="max-h-64 space-y-2 overflow-y-auto">
-                          {stats.newsletterSubscribers.map((subscriber) => (
-                            <div
-                              key={subscriber.id}
-                              className="flex items-center justify-between rounded-lg border border-white/5 bg-white/5 p-3"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
-                                  <Mail size={14} className="text-primary" />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-white">
-                                    {subscriber.displayName || subscriber.email.split("@")[0]}
-                                  </p>
-                                  <p className="text-xs text-gray-500">{subscriber.email}</p>
-                                  <p className="text-[10px] text-gray-600">
-                                    Subscribed {formatDate(subscriber.subscribedAt)}
-                                  </p>
-                                </div>
-                              </div>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                  subscriber.status === "active"
-                                    ? "bg-emerald-500/20 text-emerald-400"
-                                    : "bg-gray-500/20 text-gray-400"
-                                }`}
-                              >
-                                {subscriber.status.toUpperCase()}
-                              </span>
-                            </div>
-                          ))}
+                        <div>
+                          <p className="text-sm font-medium text-white">Browse Articles</p>
+                          <p className="text-xs text-gray-500">{stats?.totalArticles || 0} stored</p>
                         </div>
-                      )}
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("subscribers")}
+                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10">
+                          <TrendingUp size={18} className="text-purple-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">Pro Members</p>
+                          <p className="text-xs text-gray-500">{stats?.totalSubscribers || 0} active</p>
+                        </div>
+                      </button>
                     </div>
+                  </div>
 
-                    {/* Saved Newsletters */}
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+                  {/* Recent Activity */}
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Recent Users */}
+                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
                       <div className="mb-4 flex items-center justify-between">
-                        <h3 className="font-medium text-white">Saved Newsletters</h3>
+                        <h3 className="font-semibold text-white">Recent Users</h3>
                         <button
-                          onClick={loadSavedNewsletters}
-                          disabled={loadingNewsletters}
-                          className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-400 transition-colors hover:bg-white/20"
+                          onClick={() => setActiveTab("users")}
+                          className="text-xs text-primary hover:underline"
                         >
-                          <RefreshCw size={14} className={loadingNewsletters ? "animate-spin" : ""} />
-                          Refresh
+                          View all
                         </button>
                       </div>
-
-                      {loadingNewsletters ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 size={20} className="animate-spin text-gray-500" />
-                        </div>
-                      ) : savedNewsletters.length === 0 ? (
-                        <div className="py-8 text-center">
-                          <Mail size={24} className="mx-auto mb-2 text-gray-600" />
-                          <p className="text-sm text-gray-500">No newsletters generated yet</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {sendError && (
-                            <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
-                              <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-400" />
-                              <p className="text-sm text-red-300">{sendError}</p>
+                      <div className="space-y-3">
+                        {stats?.recentUsers.slice(0, 5).map((user) => (
+                          <div key={user.id} className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-sm font-medium text-blue-500">
+                              {user.displayName?.charAt(0).toUpperCase() || "U"}
                             </div>
-                          )}
-                          {savedNewsletters.map((newsletter) => (
-                            <div
-                              key={newsletter.id}
-                              className="rounded-lg border border-white/5 bg-white/5 transition-colors hover:bg-white/10"
-                            >
-                              <button
-                                onClick={() => setSelectedSavedNewsletter(
-                                  selectedSavedNewsletter === newsletter.id ? null : newsletter.id
-                                )}
-                                className="flex w-full items-center justify-between p-3 text-left"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
-                                    <FileText size={14} className="text-amber-500" />
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-white">
-                                      {newsletter.newsletterId || newsletter.id}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {newsletter.date} - {newsletter.articlesUsed} articles
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {getStatusBadge(newsletter.status)}
-                                  <ChevronRight
-                                    size={16}
-                                    className={`text-gray-500 transition-transform ${
-                                      selectedSavedNewsletter === newsletter.id ? "rotate-90" : ""
-                                    }`}
-                                  />
-                                </div>
-                              </button>
-
-                              {selectedSavedNewsletter === newsletter.id && (
-                                <div className="border-t border-white/5 p-3">
-                                  {/* Delivery Stats */}
-                                  {newsletter.deliveryStats && newsletter.deliveryStats.totalRecipients > 0 && (
-                                    <div className="mb-3 grid grid-cols-4 gap-2 rounded-lg bg-black/30 p-2">
-                                      <div className="text-center">
-                                        <p className="text-lg font-bold text-white">{newsletter.deliveryStats.totalRecipients}</p>
-                                        <p className="text-[10px] text-gray-500">Total</p>
-                                      </div>
-                                      <div className="text-center">
-                                        <p className="text-lg font-bold text-emerald-400">{newsletter.deliveryStats.delivered}</p>
-                                        <p className="text-[10px] text-gray-500">Delivered</p>
-                                      </div>
-                                      <div className="text-center">
-                                        <p className="text-lg font-bold text-red-400">{newsletter.deliveryStats.failed}</p>
-                                        <p className="text-[10px] text-gray-500">Failed</p>
-                                      </div>
-                                      <div className="text-center">
-                                        <p className="text-lg font-bold text-blue-400">{newsletter.deliveryStats.pending}</p>
-                                        <p className="text-[10px] text-gray-500">Pending</p>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Action Buttons */}
-                                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                                    {/* Send Button - only show if not already sent */}
-                                    {newsletter.status !== "sent" && newsletter.status !== "sending" && (
-                                      <button
-                                        onClick={() => handleSendNewsletter(newsletter.id)}
-                                        disabled={sendingNewsletter === newsletter.id}
-                                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
-                                      >
-                                        {sendingNewsletter === newsletter.id ? (
-                                          <>
-                                            <Loader2 size={12} className="animate-spin" />
-                                            Sending...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Send size={12} />
-                                            Send to Subscribers
-                                          </>
-                                        )}
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(newsletter.content)
-                                        setCopied(true)
-                                        setTimeout(() => setCopied(false), 2000)
-                                      }}
-                                      className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-white/20"
-                                    >
-                                      <Copy size={12} />
-                                      Copy
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const blob = new Blob([newsletter.content], { type: "text/plain" })
-                                        const url = URL.createObjectURL(blob)
-                                        const a = document.createElement("a")
-                                        a.href = url
-                                        a.download = `${newsletter.newsletterId || newsletter.id}.txt`
-                                        document.body.appendChild(a)
-                                        a.click()
-                                        document.body.removeChild(a)
-                                        URL.revokeObjectURL(url)
-                                      }}
-                                      className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-white/20"
-                                    >
-                                      <Download size={12} />
-                                      Download
-                                    </button>
-                                  </div>
-
-                                  {/* Sent timestamp */}
-                                  {newsletter.sentAt && (
-                                    <p className="mb-2 text-xs text-gray-500">
-                                      Sent on {new Date(newsletter.sentAt).toLocaleString()}
-                                    </p>
-                                  )}
-
-                                  <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-black/50 p-3 font-mono text-xs text-gray-400">
-                                    {newsletter.content}
-                                  </pre>
-                                </div>
-                              )}
+                            <div className="flex-1 truncate">
+                              <p className="truncate text-sm font-medium text-white">{user.displayName || "Unknown"}</p>
+                              <p className="truncate text-xs text-gray-500">{user.email}</p>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${user.plan === "pro" ? "bg-purple-500/20 text-purple-400" : "bg-gray-500/20 text-gray-400"}`}>
+                              {user.plan.toUpperCase()}
+                            </span>
+                          </div>
+                        ))}
+                        {(!stats?.recentUsers || stats.recentUsers.length === 0) && (
+                          <p className="py-4 text-center text-sm text-gray-500">No users yet</p>
+                        )}
+                      </div>
                     </div>
 
+                    {/* Recent Articles */}
+                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h3 className="font-semibold text-white">Recent Articles</h3>
+                        <button
+                          onClick={() => setActiveTab("articles")}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          View all
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {stats?.recentArticles.slice(0, 5).map((article) => (
+                          <div key={article.id} className="flex items-start gap-3">
+                            {article.imageUrl && (
+                              <img
+                                src={article.imageUrl}
+                                alt=""
+                                className="h-10 w-14 shrink-0 rounded-lg object-cover"
+                                onError={(e) => { e.currentTarget.style.display = "none" }}
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="line-clamp-1 text-sm font-medium text-white">{article.title}</p>
+                              <p className="text-xs text-gray-500">{article.sourceName}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {(!stats?.recentArticles || stats.recentArticles.length === 0) && (
+                          <p className="py-4 text-center text-sm text-gray-500">No articles yet</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Users Tab */}
-                {activeTab === "users" && (
-                  <div className="space-y-3">
+              {/* Users Tab */}
+              {activeTab === "users" && (
+                <div className="rounded-2xl border border-white/10 bg-[#12131a]">
+                  <div className="border-b border-white/10 px-5 py-4">
+                    <h3 className="font-semibold text-white">Onboarded Users</h3>
+                    <p className="text-sm text-gray-500">{stats?.totalUsers || 0} total users</p>
+                  </div>
+                  <div className="p-5">
                     {stats?.recentUsers.length === 0 ? (
                       <div className="py-12 text-center">
                         <User size={32} className="mx-auto mb-3 text-gray-600" />
                         <p className="text-gray-500">No users found</p>
                       </div>
                     ) : (
-                      stats?.recentUsers.map((user) => (
-                        <div
-                          key={user.id}
-                          className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10"
-                        >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 font-semibold text-blue-500">
-                            {user.displayName.charAt(0).toUpperCase() || "U"}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-white truncate">
-                                {user.displayName || "Unknown"}
-                              </p>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                  user.plan === "pro"
-                                    ? "bg-purple-500/20 text-purple-400"
-                                    : "bg-gray-500/20 text-gray-400"
-                                }`}
-                              >
-                                {user.plan.toUpperCase()}
-                              </span>
+                      <div className="space-y-3">
+                        {stats?.recentUsers.map((user) => (
+                          <div key={user.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 font-semibold text-blue-500">
+                              {user.displayName?.charAt(0).toUpperCase() || "U"}
                             </div>
-                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="truncate font-medium text-white">{user.displayName || "Unknown"}</p>
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${user.plan === "pro" ? "bg-purple-500/20 text-purple-400" : "bg-gray-500/20 text-gray-400"}`}>
+                                  {user.plan.toUpperCase()}
+                                </span>
+                              </div>
+                              <p className="truncate text-sm text-gray-500">{user.email}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">Joined</p>
+                              <p className="text-sm text-gray-400">{formatDate(user.createdAt)}</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500">Joined</p>
-                            <p className="text-sm text-gray-400">{formatDate(user.createdAt)}</p>
-                          </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Articles Tab */}
-                {activeTab === "articles" && (
-                  <div className="space-y-3">
+              {/* Articles Tab */}
+              {activeTab === "articles" && (
+                <div className="rounded-2xl border border-white/10 bg-[#12131a]">
+                  <div className="border-b border-white/10 px-5 py-4">
+                    <h3 className="font-semibold text-white">Stored Articles</h3>
+                    <p className="text-sm text-gray-500">{stats?.totalArticles || 0} total articles</p>
+                  </div>
+                  <div className="p-5">
                     {stats?.recentArticles.length === 0 ? (
                       <div className="py-12 text-center">
                         <FileText size={32} className="mx-auto mb-3 text-gray-600" />
                         <p className="text-gray-500">No articles found</p>
                       </div>
                     ) : (
-                      stats?.recentArticles.map((article) => (
-                        <div
-                          key={article.id}
-                          className="flex items-start gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10"
-                        >
-                          {article.imageUrl && (
-                            <img
-                              src={article.imageUrl}
-                              alt=""
-                              className="h-16 w-24 shrink-0 rounded-lg object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none"
-                              }}
-                            />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-white line-clamp-2">{article.title}</p>
-                            <div className="mt-1 flex items-center gap-2">
-                              <span className="text-sm text-gray-500">{article.sourceName}</span>
-                              <span className="text-gray-600">•</span>
-                              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
-                                {article.category}
-                              </span>
+                      <div className="space-y-3">
+                        {stats?.recentArticles.map((article) => (
+                          <div key={article.id} className="flex items-start gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
+                            {article.imageUrl && (
+                              <img src={article.imageUrl} alt="" className="h-16 w-24 shrink-0 rounded-lg object-cover" onError={(e) => { e.currentTarget.style.display = "none" }} />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="line-clamp-2 font-medium text-white">{article.title}</p>
+                              <div className="mt-1 flex items-center gap-2">
+                                <span className="text-sm text-gray-500">{article.sourceName}</span>
+                                <span className="text-gray-600">·</span>
+                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">{article.category}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">Published</p>
+                              <p className="text-sm text-gray-400">{formatDate(article.publishedAt)}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500">Published</p>
-                            <p className="text-sm text-gray-400">{formatDate(article.publishedAt)}</p>
-                          </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Subscribers Tab */}
-                {activeTab === "subscribers" && (
-                  <div className="space-y-3">
+              {/* Subscribers Tab */}
+              {activeTab === "subscribers" && (
+                <div className="rounded-2xl border border-white/10 bg-[#12131a]">
+                  <div className="border-b border-white/10 px-5 py-4">
+                    <h3 className="font-semibold text-white">Pro Subscribers</h3>
+                    <p className="text-sm text-gray-500">{stats?.totalSubscribers || 0} active subscriptions</p>
+                  </div>
+                  <div className="p-5">
                     {stats?.subscribers.length === 0 ? (
                       <div className="py-12 text-center">
                         <CreditCard size={32} className="mx-auto mb-3 text-gray-600" />
                         <p className="text-gray-500">No subscribers yet</p>
                       </div>
                     ) : (
-                      stats?.subscribers.map((subscriber) => (
-                        <div
-                          key={subscriber.id}
-                          className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10"
-                        >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20 font-semibold text-purple-500">
-                            {subscriber.displayName.charAt(0).toUpperCase() || "S"}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-white truncate">
-                                {subscriber.displayName || subscriber.id}
-                              </p>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                  subscriber.status === "active"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : "bg-amber-500/20 text-amber-400"
-                                }`}
-                              >
-                                {subscriber.status.toUpperCase()}
-                              </span>
+                      <div className="space-y-3">
+                        {stats?.subscribers.map((subscriber) => (
+                          <div key={subscriber.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20 font-semibold text-purple-500">
+                              {subscriber.displayName?.charAt(0).toUpperCase() || "S"}
                             </div>
-                            <p className="text-sm text-gray-500 truncate">{subscriber.email}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <Calendar size={12} />
-                              Renewal
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="truncate font-medium text-white">{subscriber.displayName || subscriber.id}</p>
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${subscriber.status === "active" ? "bg-green-500/20 text-green-400" : "bg-amber-500/20 text-amber-400"}`}>
+                                  {subscriber.status.toUpperCase()}
+                                </span>
+                              </div>
+                              <p className="truncate text-sm text-gray-500">{subscriber.email}</p>
                             </div>
-                            <p className="text-sm text-gray-400">{formatDate(subscriber.renewalDate)}</p>
+                            <div className="text-right">
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <Calendar size={12} />
+                                Renewal
+                              </div>
+                              <p className="text-sm text-gray-400">{formatDate(subscriber.renewalDate)}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </main>
+                </div>
+              )}
+
+              {/* Newsletter Tab */}
+              {activeTab === "newsletter" && (
+                <div className="space-y-6">
+                  {/* Generate Button */}
+                  <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold text-white">Generate Newsletter</h3>
+                        <p className="text-sm text-gray-500">Uses Gemini AI to create a daily tech briefing</p>
+                      </div>
+                      <button
+                        onClick={handleGenerateNewsletter}
+                        disabled={generatingNewsletter}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 font-medium text-white transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
+                      >
+                        {generatingNewsletter ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={18} />
+                            Generate with AI
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {newsletterError && (
+                      <div className="mt-4 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                        <AlertCircle size={20} className="shrink-0 text-red-400" />
+                        <div>
+                          <p className="font-medium text-red-400">Error generating newsletter</p>
+                          <p className="mt-1 text-sm text-red-300/70">{newsletterError}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {generatedNewsletter && (
+                      <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                        <div className="flex items-center justify-between border-b border-emerald-500/20 px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <Check size={16} className="text-emerald-400" />
+                            <span className="font-medium text-emerald-400">Newsletter Generated</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={handleCopyNewsletter} className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/20">
+                              {copied ? <Check size={14} /> : <Copy size={14} />}
+                              {copied ? "Copied!" : "Copy"}
+                            </button>
+                            <button onClick={handleDownloadNewsletter} className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/20">
+                              <Download size={14} />
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                        <pre ref={newsletterRef} className="max-h-[400px] overflow-y-auto whitespace-pre-wrap p-5 font-mono text-sm text-gray-300">
+                          {generatedNewsletter}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Newsletter Subscribers */}
+                  <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-white">Newsletter Subscribers</h3>
+                        <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                          {stats?.totalNewsletterSubscribers || 0}
+                        </span>
+                      </div>
+                    </div>
+                    {!stats?.newsletterSubscribers || stats.newsletterSubscribers.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <Mail size={24} className="mx-auto mb-2 text-gray-600" />
+                        <p className="text-sm text-gray-500">No newsletter subscribers yet</p>
+                      </div>
+                    ) : (
+                      <div className="max-h-64 space-y-2 overflow-y-auto">
+                        {stats.newsletterSubscribers.map((subscriber) => (
+                          <div key={subscriber.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/5 p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
+                                <Mail size={14} className="text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-white">{subscriber.displayName || subscriber.email.split("@")[0]}</p>
+                                <p className="text-xs text-gray-500">{subscriber.email}</p>
+                              </div>
+                            </div>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${subscriber.status === "active" ? "bg-emerald-500/20 text-emerald-400" : "bg-gray-500/20 text-gray-400"}`}>
+                              {subscriber.status.toUpperCase()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Saved Newsletters */}
+                  <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="font-semibold text-white">Saved Newsletters</h3>
+                      <button onClick={loadSavedNewsletters} disabled={loadingNewsletters} className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-gray-400 transition-colors hover:bg-white/20">
+                        <RefreshCw size={14} className={loadingNewsletters ? "animate-spin" : ""} />
+                        Refresh
+                      </button>
+                    </div>
+                    {loadingNewsletters ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 size={20} className="animate-spin text-gray-500" />
+                      </div>
+                    ) : savedNewsletters.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <Mail size={24} className="mx-auto mb-2 text-gray-600" />
+                        <p className="text-sm text-gray-500">No newsletters generated yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {sendError && (
+                          <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+                            <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-400" />
+                            <p className="text-sm text-red-300">{sendError}</p>
+                          </div>
+                        )}
+                        {savedNewsletters.map((newsletter) => (
+                          <div key={newsletter.id} className="rounded-lg border border-white/5 bg-white/5 transition-colors hover:bg-white/10">
+                            <button onClick={() => setSelectedSavedNewsletter(selectedSavedNewsletter === newsletter.id ? null : newsletter.id)} className="flex w-full items-center justify-between p-3 text-left">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
+                                  <FileText size={14} className="text-amber-500" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-white">{newsletter.newsletterId || newsletter.id}</p>
+                                  <p className="text-xs text-gray-500">{newsletter.date} - {newsletter.articlesUsed} articles</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(newsletter.status)}
+                                <ChevronRight size={16} className={`text-gray-500 transition-transform ${selectedSavedNewsletter === newsletter.id ? "rotate-90" : ""}`} />
+                              </div>
+                            </button>
+                            {selectedSavedNewsletter === newsletter.id && (
+                              <div className="border-t border-white/5 p-3">
+                                {newsletter.deliveryStats && newsletter.deliveryStats.totalRecipients > 0 && (
+                                  <div className="mb-3 grid grid-cols-4 gap-2 rounded-lg bg-black/30 p-2">
+                                    <div className="text-center">
+                                      <p className="text-lg font-bold text-white">{newsletter.deliveryStats.totalRecipients}</p>
+                                      <p className="text-[10px] text-gray-500">Total</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-lg font-bold text-emerald-400">{newsletter.deliveryStats.delivered}</p>
+                                      <p className="text-[10px] text-gray-500">Delivered</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-lg font-bold text-red-400">{newsletter.deliveryStats.failed}</p>
+                                      <p className="text-[10px] text-gray-500">Failed</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-lg font-bold text-blue-400">{newsletter.deliveryStats.pending}</p>
+                                      <p className="text-[10px] text-gray-500">Pending</p>
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="mb-3 flex flex-wrap items-center gap-2">
+                                  {newsletter.status !== "sent" && newsletter.status !== "sending" && (
+                                    <button onClick={() => handleSendNewsletter(newsletter.id)} disabled={sendingNewsletter === newsletter.id} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50">
+                                      {sendingNewsletter === newsletter.id ? (<><Loader2 size={12} className="animate-spin" />Sending...</>) : (<><Send size={12} />Send to Subscribers</>)}
+                                    </button>
+                                  )}
+                                  <button onClick={() => { navigator.clipboard.writeText(newsletter.content); setCopied(true); setTimeout(() => setCopied(false), 2000) }} className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-white/20">
+                                    <Copy size={12} />Copy
+                                  </button>
+                                  <button onClick={() => { const blob = new Blob([newsletter.content], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${newsletter.newsletterId || newsletter.id}.txt`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url) }} className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-white/20">
+                                    <Download size={12} />Download
+                                  </button>
+                                </div>
+                                {newsletter.sentAt && <p className="mb-2 text-xs text-gray-500">Sent on {new Date(newsletter.sentAt).toLocaleString()}</p>}
+                                <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-black/50 p-3 font-mono text-xs text-gray-400">{newsletter.content}</pre>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
     </div>
   )
 }
