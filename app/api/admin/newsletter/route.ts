@@ -14,6 +14,7 @@ import {
   updateDoc,
 } from "firebase/firestore"
 
+// Newsletter section types
 export interface NewsletterSection {
   id: string
   title: string
@@ -35,7 +36,7 @@ export interface Newsletter {
   newsletterNumber: number
   subject: string
   sections: NewsletterSection[]
-  rawContent: string
+  rawContent: string // Legacy plain text format
   aiToolOfTheDay?: {
     name: string
     description: string
@@ -99,7 +100,7 @@ Each section MUST follow this exact JSON structure:
       "title": "AI BREAKTHROUGHS",
       "type": "ai_breakthroughs",
       "content": "Latest advances in artificial intelligence",
-      "articles": [],
+      "articles": [...],
       "order": 2
     },
     {
@@ -107,7 +108,7 @@ Each section MUST follow this exact JSON structure:
       "title": "STARTUP RADAR",
       "type": "startup_radar",
       "content": "Funding rounds, acquisitions, and emerging players",
-      "articles": [],
+      "articles": [...],
       "order": 3
     },
     {
@@ -115,7 +116,7 @@ Each section MUST follow this exact JSON structure:
       "title": "PRODUCT LAUNCHES",
       "type": "product_launches",
       "content": "New products and major updates",
-      "articles": [],
+      "articles": [...],
       "order": 4
     },
     {
@@ -123,7 +124,7 @@ Each section MUST follow this exact JSON structure:
       "title": "MARKET PULSE",
       "type": "market_pulse",
       "content": "Market trends and business insights",
-      "articles": [],
+      "articles": [...],
       "order": 5
     },
     {
@@ -139,7 +140,7 @@ Each section MUST follow this exact JSON structure:
       "title": "QUICK BYTES",
       "type": "quick_bytes",
       "content": "Rapid-fire news highlights",
-      "articles": [],
+      "articles": [...],
       "order": 7
     },
     {
@@ -147,7 +148,7 @@ Each section MUST follow this exact JSON structure:
       "title": "DEVELOPER INSIGHT",
       "type": "developer_insight",
       "content": "Technical deep-dive or trend analysis",
-      "articles": [],
+      "articles": [...],
       "order": 8
     }
   ],
@@ -199,17 +200,20 @@ Writing Rules:
 
 IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no explanatory text.`
 
+// Get articles for newsletter - uses createdAt (Firestore Timestamp) for reliable ordering
 async function getArticlesForNewsletter() {
   const articlesRef = collection(db, "articles")
   const twentyFourHoursAgo = new Date()
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
 
+  // Helper to map docs to articles
   const mapDocsToArticles = (docs: any[]) => {
     return docs.map((docSnap) => {
       const data = docSnap.data()
       const createdAt = data.createdAt instanceof Timestamp
         ? data.createdAt.toDate()
         : new Date()
+
       return {
         id: docSnap.id,
         title: data.title || "",
@@ -224,23 +228,37 @@ async function getArticlesForNewsletter() {
     })
   }
 
+  // Primary strategy: Use createdAt
   try {
-    const recentQuery = query(articlesRef, orderBy("createdAt", "desc"), limit(50))
+    const recentQuery = query(
+      articlesRef,
+      orderBy("createdAt", "desc"),
+      limit(50)
+    )
     const snapshot = await getDocs(recentQuery)
+
     if (!snapshot.empty) {
       const allArticles = mapDocsToArticles(snapshot.docs)
-      const recentArticles = allArticles.filter((article) => article.createdAt >= twentyFourHoursAgo)
-      if (recentArticles.length >= 5) return recentArticles
+      const recentArticles = allArticles.filter((article) => {
+        return article.createdAt >= twentyFourHoursAgo
+      })
+
+      if (recentArticles.length >= 5) {
+        return recentArticles
+      }
       return allArticles.slice(0, 30)
     }
   } catch (error) {
     console.error("Primary query failed:", error)
   }
 
+  // Fallback
   try {
     const simpleQuery = query(articlesRef, limit(30))
     const snapshot = await getDocs(simpleQuery)
-    if (!snapshot.empty) return mapDocsToArticles(snapshot.docs)
+    if (!snapshot.empty) {
+      return mapDocsToArticles(snapshot.docs)
+    }
   } catch (error) {
     console.error("Fallback query failed:", error)
   }
@@ -248,10 +266,12 @@ async function getArticlesForNewsletter() {
   return []
 }
 
+// Get next newsletter number
 async function getNextNewsletterNumber(): Promise<number> {
   try {
     const counterRef = doc(db, "system", "newsletter_counter")
     const counterSnap = await getDoc(counterRef)
+    
     if (counterSnap.exists()) {
       const currentCount = counterSnap.data().count || 0
       const newCount = currentCount + 1
@@ -271,11 +291,15 @@ function formatNewsletterId(num: number): string {
   return `newsletter_${num.toString().padStart(5, "0")}`
 }
 
+// Convert sections to plain text for backward compatibility
 function sectionsToPlainText(sections: NewsletterSection[], date: string): string {
   let text = `ESTEW DAILY TECH BRIEFING\nDate: ${date}\n\n`
+  
   for (const section of sections) {
-    text += `${section.title}\n${"=".repeat(section.title.length)}\n`
-    if (section.content) text += `${section.content}\n\n`
+    text += `${section.title}\n${"─".repeat(section.title.length)}\n`
+    if (section.content) {
+      text += `${section.content}\n\n`
+    }
     for (const article of section.articles) {
       text += `**${article.title}**\n`
       text += `${article.summary}\n`
@@ -283,48 +307,63 @@ function sectionsToPlainText(sections: NewsletterSection[], date: string): strin
     }
     text += "\n"
   }
+  
   return text
 }
 
+// Save newsletter to database
 async function saveNewsletter(
   sections: NewsletterSection[],
   articlesCount: number,
   subject: string,
   aiToolOfTheDay?: Newsletter["aiToolOfTheDay"]
-): Promise<string> {
-  const today = new Date()
-  const dateStr = today.toISOString().split("T")[0]
-  const newsletterNum = await getNextNewsletterNumber()
-  const newsletterId = formatNewsletterId(newsletterNum)
-  const rawContent = sectionsToPlainText(sections, dateStr)
+) {
+  try {
+    const today = new Date()
+    const dateStr = today.toISOString().split("T")[0]
+    
+    const newsletterNum = await getNextNewsletterNumber()
+    const newsletterId = formatNewsletterId(newsletterNum)
+    const rawContent = sectionsToPlainText(sections, dateStr)
 
-  const newsletterRef = doc(db, "newsletters", newsletterId)
-  await setDoc(newsletterRef, {
-    newsletterId,
-    newsletterNumber: newsletterNum,
-    subject,
-    sections,
-    rawContent,
-    aiToolOfTheDay: aiToolOfTheDay || null,
-    articlesUsed: articlesCount,
-    date: dateStr,
-    status: "generated",
-    scheduledTime: null,
-    deliveryStats: { totalRecipients: 0, delivered: 0, failed: 0, pending: 0 },
-    generatedAt: serverTimestamp(),
-    sentAt: null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
+    const newsletterRef = doc(db, "newsletters", newsletterId)
+    await setDoc(newsletterRef, {
+      newsletterId,
+      newsletterNumber: newsletterNum,
+      subject,
+      sections,
+      rawContent,
+      aiToolOfTheDay: aiToolOfTheDay || null,
+      articlesUsed: articlesCount,
+      date: dateStr,
+      status: "generated",
+      scheduledTime: null,
+      deliveryStats: {
+        totalRecipients: 0,
+        delivered: 0,
+        failed: 0,
+        pending: 0,
+      },
+      generatedAt: serverTimestamp(),
+      sentAt: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
 
-  return newsletterId
+    return newsletterId
+  } catch (error) {
+    console.error("Error saving newsletter:", error)
+    throw error
+  }
 }
 
+// Get all saved newsletters
 async function getSavedNewsletters() {
   try {
     const newslettersRef = collection(db, "newsletters")
     const q = query(newslettersRef, orderBy("createdAt", "desc"), limit(30))
     const snapshot = await getDocs(q)
+
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
       return {
@@ -344,7 +383,12 @@ async function getSavedNewsletters() {
         scheduledTime: data.scheduledTime instanceof Timestamp
           ? data.scheduledTime.toDate().toISOString()
           : data.scheduledTime || null,
-        deliveryStats: data.deliveryStats || { totalRecipients: 0, delivered: 0, failed: 0, pending: 0 },
+        deliveryStats: data.deliveryStats || {
+          totalRecipients: 0,
+          delivered: 0,
+          failed: 0,
+          pending: 0,
+        },
         sentAt: data.sentAt instanceof Timestamp
           ? data.sentAt.toDate().toISOString()
           : data.sentAt || null,
@@ -356,46 +400,59 @@ async function getSavedNewsletters() {
   }
 }
 
+// GET - Fetch saved newsletters
 export async function GET() {
-  const newsletters = await getSavedNewsletters()
-  return NextResponse.json({ newsletters })
-}
-
-export async function POST(request: Request) {
-  let selectedAiTool = null
   try {
-    const body = await request.json()
-    selectedAiTool = body.aiToolOfTheDay || null
-  } catch {
-    // No body provided
-  }
-
-  const articles = await getArticlesForNewsletter()
-  if (articles.length === 0) {
+    const newsletters = await getSavedNewsletters()
+    return NextResponse.json({ newsletters })
+  } catch (error) {
+    console.error("Error fetching newsletters:", error)
     return NextResponse.json(
-      { error: "No articles found in database. Please ensure articles are being fetched and stored." },
-      { status: 400 }
+      { error: "Failed to fetch newsletters" },
+      { status: 500 }
     )
   }
+}
 
-  const articlesText = articles.map((article, index) =>
-    `${index + 1}. ${article.title}
+// POST - Generate new newsletter using AI SDK with Vercel AI Gateway
+export async function POST(request: Request) {
+  try {
+    // Check for optional AI tool selection from request body
+    let selectedAiTool = null
+    try {
+      const body = await request.json()
+      selectedAiTool = body.aiToolOfTheDay || null
+    } catch {
+      // No body or invalid JSON, continue without AI tool
+    }
+
+    const articles = await getArticlesForNewsletter()
+
+    if (articles.length === 0) {
+      return NextResponse.json(
+        { error: "No articles found in database. Please ensure articles are being fetched and stored." },
+        { status: 400 }
+      )
+    }
+
+    const articlesText = articles.map((article, index) =>
+      `${index + 1}. ${article.title}
    Source: ${article.sourceName}
    Category: ${article.category}
    Description: ${article.description}
    URL: ${article.url}
    Image URL: ${article.imageUrl || "N/A"}
    Published: ${article.publishedAt}`
-  ).join("\n\n")
+    ).join("\n\n")
 
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+    const today = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
 
-  const userPrompt = `Today's date is ${today}.
+    const userPrompt = `Today's date is ${today}.
 
 Here are the ${articles.length} recent articles from Estew database:
 
@@ -408,116 +465,181 @@ Generate the newsletter JSON following the system instructions. Remember to:
 4. Leave ai_tool section articles empty (admin will fill)
 5. Make the subject line compelling and include today's date`
 
-  const geminiApiKey = process.env.GEMINI_API_KEY
-  if (!geminiApiKey) {
-    return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 })
-  }
-
-  const MAX_RETRIES = 3
-  const RETRY_DELAYS = [2000, 4000, 8000]
-  let geminiResponse: Response | null = null
-  let lastError = ""
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${NEWSLETTER_SYSTEM_PROMPT}\n\n${userPrompt}` }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 8192,
-              responseMimeType: "application/json",
-            },
-          }),
-        }
+    // Define the newsletter schema for structured output
+    // Use direct Gemini API with GEMINI_API_KEY
+    const geminiApiKey = process.env.GEMINI_API_KEY
+    if (!geminiApiKey) {
+      return NextResponse.json(
+        { error: "Gemini API key not configured" },
+        { status: 500 }
       )
-      if (geminiResponse.ok) break
-      if ([503, 429, 500].includes(geminiResponse.status)) {
-        lastError = await geminiResponse.text()
+    }
+
+    // Retry logic for Gemini API with exponential backoff
+    const MAX_RETRIES = 3
+    const RETRY_DELAYS = [2000, 4000, 8000] // ms
+    
+    let geminiResponse: Response | null = null
+    let lastError: string = ""
+    
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: `${NEWSLETTER_SYSTEM_PROMPT}\n\n${userPrompt}` },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 8192,
+                responseMimeType: "application/json",
+              },
+            }),
+          }
+        )
+
+        if (geminiResponse.ok) {
+          break // Success, exit retry loop
+        }
+        
+        // Check for retryable errors (503, 429, 500)
+        if ([503, 429, 500].includes(geminiResponse.status)) {
+          lastError = await geminiResponse.text()
+          console.log(`Gemini API attempt ${attempt + 1} failed with ${geminiResponse.status}, retrying...`)
+          
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
+            continue
+          }
+        } else {
+          // Non-retryable error
+          lastError = await geminiResponse.text()
+          break
+        }
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError.message : "Network error"
+        console.error(`Gemini API fetch error on attempt ${attempt + 1}:`, lastError)
+        
         if (attempt < MAX_RETRIES - 1) {
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
-          continue
         }
-      } else {
-        lastError = await geminiResponse.text()
-        break
-      }
-    } catch (fetchError) {
-      lastError = fetchError instanceof Error ? fetchError.message : "Network error"
-      if (attempt < MAX_RETRIES - 1) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
       }
     }
-  }
 
-  if (!geminiResponse || !geminiResponse.ok) {
-    console.error("Gemini API error after retries:", lastError)
+    if (!geminiResponse || !geminiResponse.ok) {
+      console.error("Gemini API error after retries:", lastError)
+      return NextResponse.json(
+        { error: "AI service is temporarily unavailable. Please try again in a few moments." },
+        { status: 503 }
+      )
+    }
+
+    const geminiData = await geminiResponse.json()
+    const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
+
+    if (!generatedText) {
+      console.error("No text in Gemini response:", geminiData)
+      return NextResponse.json(
+        { error: "Newsletter generation failed. Please try again." },
+        { status: 400 }
+      )
+    }
+
+    // Parse the JSON response
+    let parsedNewsletter
+    try {
+      // Clean the response - remove markdown code blocks if present
+      let cleanedText = generatedText.trim()
+      if (cleanedText.startsWith("```json")) {
+        cleanedText = cleanedText.slice(7)
+      } else if (cleanedText.startsWith("```")) {
+        cleanedText = cleanedText.slice(3)
+      }
+      if (cleanedText.endsWith("```")) {
+        cleanedText = cleanedText.slice(0, -3)
+      }
+      parsedNewsletter = JSON.parse(cleanedText.trim())
+    } catch (parseError) {
+      console.error("Failed to parse newsletter JSON:", parseError, generatedText)
+      return NextResponse.json(
+        { error: "Failed to parse newsletter content. Please try again." },
+        { status: 400 }
+      )
+    }
+
+      parsedNewsletter = output
+    } catch (aiError) {
+      console.error("AI SDK error:", aiError)
+      return NextResponse.json(
+        { error: "AI service error. Please try again in a few moments." },
+        { status: 503 }
+      )
+    }
+
+    const sections: NewsletterSection[] = parsedNewsletter.sections || []
+    const subject = parsedNewsletter.subject || `Estew Intelligence: Daily Briefing | ${today}`
+
+    // Add AI tool if provided
+    if (selectedAiTool) {
+      const aiToolSection = sections.find(s => s.type === "ai_tool")
+      if (aiToolSection) {
+        aiToolSection.articles = [{
+          title: selectedAiTool.name,
+          summary: selectedAiTool.description,
+          sourceUrl: selectedAiTool.url,
+          sourceName: "Featured Tool",
+          imageUrl: selectedAiTool.imageUrl,
+        }]
+      }
+    }
+
+    // Save newsletter
+    const savedId = await saveNewsletter(sections, articles.length, subject, selectedAiTool)
+
+    return NextResponse.json({
+      success: true,
+      newsletterId: savedId,
+      subject,
+      sections,
+      articlesUsed: articles.length,
+      generatedAt: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error("Newsletter generation error:", error)
     return NextResponse.json(
-      { error: "AI service is temporarily unavailable. Please try again in a few moments." },
-      { status: 503 }
+      { error: "Failed to generate newsletter" },
+      { status: 500 }
     )
   }
-
-  const geminiData = await geminiResponse.json()
-  const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!generatedText) {
-    return NextResponse.json({ error: "Newsletter generation failed. Please try again." }, { status: 400 })
-  }
-
-  let parsedNewsletter
-  try {
-    let cleanedText = generatedText.trim()
-    if (cleanedText.startsWith("```json")) cleanedText = cleanedText.slice(7)
-    else if (cleanedText.startsWith("```")) cleanedText = cleanedText.slice(3)
-    if (cleanedText.endsWith("```")) cleanedText = cleanedText.slice(0, -3)
-    parsedNewsletter = JSON.parse(cleanedText.trim())
-  } catch {
-    return NextResponse.json({ error: "Failed to parse newsletter content. Please try again." }, { status: 400 })
-  }
-
-  const sections: NewsletterSection[] = parsedNewsletter.sections || []
-  const subject = parsedNewsletter.subject || `Estew Intelligence: Daily Briefing | ${today}`
-
-  if (selectedAiTool) {
-    const aiToolSection = sections.find(s => s.type === "ai_tool")
-    if (aiToolSection) {
-      aiToolSection.articles = [{
-        title: selectedAiTool.name,
-        summary: selectedAiTool.description,
-        sourceUrl: selectedAiTool.url,
-        sourceName: "Featured Tool",
-        imageUrl: selectedAiTool.imageUrl,
-      }]
-    }
-  }
-
-  const savedId = await saveNewsletter(sections, articles.length, subject, selectedAiTool)
-
-  return NextResponse.json({
-    success: true,
-    newsletterId: savedId,
-    subject,
-    sections,
-    articlesUsed: articles.length,
-    generatedAt: new Date().toISOString(),
-  })
 }
 
+// PATCH - Update newsletter (sections, schedule, AI tool, etc.)
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
     const { newsletterId, sections, subject, aiToolOfTheDay, scheduledTime, status } = body
 
     if (!newsletterId) {
-      return NextResponse.json({ error: "Newsletter ID required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Newsletter ID required" },
+        { status: 400 }
+      )
     }
 
     const newsletterRef = doc(db, "newsletters", newsletterId)
-    const updateData: Record<string, any> = { updatedAt: serverTimestamp() }
+    const updateData: Record<string, any> = {
+      updatedAt: serverTimestamp(),
+    }
 
     if (sections) {
       updateData.sections = sections
@@ -532,9 +654,13 @@ export async function PATCH(request: Request) {
     if (status) updateData.status = status
 
     await updateDoc(newsletterRef, updateData)
+
     return NextResponse.json({ success: true, newsletterId })
   } catch (error) {
     console.error("Newsletter update error:", error)
-    return NextResponse.json({ error: "Failed to update newsletter" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to update newsletter" },
+      { status: 500 }
+    )
   }
 }
