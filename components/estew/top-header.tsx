@@ -27,7 +27,7 @@ export function TopHeader() {
             src="/images/logo.svg"
             alt="Estew logo"
             fill
-            className="object-contain"
+            className="object-contain dark:invert"
           />
         </div>
         <span className="font-serif text-xl font-bold tracking-tight text-foreground">

@@ -131,7 +131,7 @@ export function OnboardingScreen() {
         {/* Logo + step indicator */}
         <div className="mb-6 flex items-center gap-3">
           <div className="relative h-6 w-6">
-            <Image src="/images/logo.svg" alt="Estew" fill className="object-contain" />
+            <Image src="/images/logo.svg" alt="Estew" fill className="object-contain dark:invert" />
           </div>
           <div className="flex flex-1 gap-2">
             {[0, 1, 2].map((s) => (

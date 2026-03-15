@@ -19,7 +19,7 @@ export function ExploreScreen() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
       >
         <div className="relative h-6 w-6">
-          <Image src="/images/logo.svg" alt="Estew" fill className="object-contain" />
+          <Image src="/images/logo.svg" alt="Estew" fill className="object-contain dark:invert" />
         </div>
         <h1 className="font-serif text-xl font-bold tracking-tight text-foreground">
           Explore

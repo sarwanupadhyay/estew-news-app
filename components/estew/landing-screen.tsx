@@ -90,7 +90,7 @@ export function LandingScreen() {
             src="/images/logo.svg"
             alt="Estew logo"
             fill
-            className="object-contain"
+            className="object-contain dark:invert"
             priority
           />
         </div>

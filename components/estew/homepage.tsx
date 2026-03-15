@@ -42,7 +42,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
               src="/images/logo.svg"
               alt="Estew"
               fill
-              className="object-contain"
+              className="object-contain dark:invert"
               priority
             />
           </div>
