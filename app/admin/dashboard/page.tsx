@@ -34,6 +34,8 @@ import {
   BarChart3,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react"
 
 type TabType = "home" | "users" | "articles" | "subscribers" | "newsletter"
@@ -47,6 +49,7 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   
   // Newsletter states
   const [generatingNewsletter, setGeneratingNewsletter] = useState(false)
@@ -247,7 +250,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0a0b0f]">
+    <div className="flex h-screen overflow-hidden bg-[#0a0b0f]">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
@@ -256,98 +259,112 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-white/10 bg-[#0a0b0f] transition-transform duration-200 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
-            <div className="flex items-center gap-3">
-              <div className="relative h-8 w-8">
-                <Image
-                  src="/images/logo.svg"
-                  alt="Estew"
-                  fill
-                  className="object-contain dark:invert"
-                />
-              </div>
+      {/* Sidebar - Fixed position */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10 bg-[#0a0b0f] transition-all duration-200 ${
+        sidebarCollapsed ? "w-[72px]" : "w-64"
+      } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
+        {/* Logo */}
+        <div className={`flex h-16 items-center border-b border-white/10 ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
+          <div className={`flex items-center ${sidebarCollapsed ? "" : "gap-3"}`}>
+            <div className={`relative ${sidebarCollapsed ? "h-10 w-10" : "h-8 w-8"}`}>
+              <Image
+                src="/images/logo.svg"
+                alt="Estew"
+                fill
+                className="object-contain dark:invert"
+              />
+            </div>
+            {!sidebarCollapsed && (
               <div>
                 <h1 className="font-serif text-lg font-bold text-white">Estew</h1>
                 <p className="text-[10px] uppercase tracking-wider text-gray-500">Admin Panel</p>
               </div>
-            </div>
+            )}
+          </div>
+          {!sidebarCollapsed && (
             <button 
               onClick={() => setSidebarOpen(false)}
               className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 lg:hidden"
             >
               <X size={18} />
             </button>
-          </div>
+          )}
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-3">
-            <div className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = activeTab === item.id
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveTab(item.id)
-                      setSidebarOpen(false)
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-gray-400 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <Icon size={18} />
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${isActive ? "text-primary" : ""}`}>{item.label}</p>
-                      <p className="text-[10px] text-gray-500">{item.description}</p>
-                    </div>
-                    {isActive && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                  </button>
-                )
-              })}
-            </div>
-          </nav>
-
-          {/* User section */}
-          <div className="border-t border-white/10 p-3">
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
-            >
-              <LogOut size={18} />
-              <span className="text-sm font-medium">Logout</span>
-            </button>
+        {/* Navigation */}
+        <nav className={`flex-1 overflow-y-auto ${sidebarCollapsed ? "p-2" : "p-3"}`}>
+          <div className={`${sidebarCollapsed ? "space-y-2" : "space-y-1"}`}>
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = activeTab === item.id
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id)
+                    setSidebarOpen(false)
+                  }}
+                  title={sidebarCollapsed ? item.label : undefined}
+                  className={`flex w-full items-center rounded-xl transition-all ${
+                    sidebarCollapsed 
+                      ? `justify-center p-3 ${isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-white/5 hover:text-white"}`
+                      : `gap-3 px-3 py-2.5 text-left ${isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-white/5 hover:text-white"}`
+                  }`}
+                >
+                  <Icon size={sidebarCollapsed ? 22 : 18} />
+                  {!sidebarCollapsed && (
+                    <>
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium ${isActive ? "text-primary" : ""}`}>{item.label}</p>
+                        <p className="text-[10px] text-gray-500">{item.description}</p>
+                      </div>
+                      {isActive && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                    </>
+                  )}
+                </button>
+              )
+            })}
           </div>
+        </nav>
+
+        {/* User section */}
+        <div className={`border-t border-white/10 ${sidebarCollapsed ? "p-2" : "p-3"}`}>
+          <button
+            onClick={handleLogout}
+            title={sidebarCollapsed ? "Logout" : undefined}
+            className={`flex w-full items-center rounded-xl text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-400 ${
+              sidebarCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
+            }`}
+          >
+            <LogOut size={sidebarCollapsed ? 22 : 18} />
+            {!sidebarCollapsed && <span className="text-sm font-medium">Logout</span>}
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 lg:ml-0">
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0a0b0f]/95 backdrop-blur-sm">
-          <div className="flex h-16 items-center justify-between px-4 lg:px-6">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="rounded-lg p-2 text-gray-400 hover:bg-white/10 lg:hidden"
-              >
-                <Menu size={20} />
-              </button>
-              <div>
-                <h2 className="font-semibold text-white">
-                  {navItems.find(n => n.id === activeTab)?.label}
-                </h2>
-                <p className="text-xs text-gray-500">
-                  {navItems.find(n => n.id === activeTab)?.description}
-                </p>
-              </div>
+      {/* Main content area - scrollable */}
+      <div className={`flex flex-1 flex-col overflow-hidden transition-all duration-200 ${
+        sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
+      }`}>
+        {/* Top bar - Fixed */}
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 bg-[#0a0b0f] px-4 lg:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg p-2 text-gray-400 hover:bg-white/10 lg:hidden"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h2 className="font-semibold text-white">
+                {navItems.find(n => n.id === activeTab)?.label}
+              </h2>
+              <p className="text-xs text-gray-500">
+                {navItems.find(n => n.id === activeTab)?.description}
+              </p>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -356,10 +373,19 @@ export default function AdminDashboard() {
               <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
+            {/* Sidebar collapse toggle */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white lg:flex"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
           </div>
         </header>
 
-        <main className="p-4 lg:p-6">
+        {/* Scrollable main content */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

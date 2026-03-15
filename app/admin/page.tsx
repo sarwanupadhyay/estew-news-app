@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { verifyAdminCredentials } from "@/lib/admin-service"
-import { Lock, Mail, Eye, EyeOff, Shield } from "lucide-react"
+import { Lock, Mail, Eye, EyeOff } from "lucide-react"
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -36,8 +37,14 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20">
-            <Shield size={32} className="text-primary" />
+          <div className="relative mx-auto mb-4 h-16 w-16">
+            <Image
+              src="/images/logo.svg"
+              alt="Estew"
+              fill
+              className="object-contain dark:invert"
+              priority
+            />
           </div>
           <h1 className="font-serif text-3xl font-bold text-white">Estew Admin</h1>
           <p className="mt-2 text-sm text-gray-400">Secure access to the admin dashboard</p>
