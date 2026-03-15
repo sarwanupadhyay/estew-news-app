@@ -263,7 +263,7 @@ export default function AdminDashboard() {
       <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10 bg-[#0a0b0f] transition-all duration-200 ${
         sidebarCollapsed ? "w-[72px]" : "w-64"
       } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
-        {/* Logo */}
+        {/* Logo and collapse toggle */}
         <div className={`flex h-16 items-center border-b border-white/10 ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
           <div className={`flex items-center ${sidebarCollapsed ? "" : "gap-3"}`}>
             <div className={`relative ${sidebarCollapsed ? "h-10 w-10" : "h-8 w-8"}`}>
@@ -281,14 +281,25 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-          {!sidebarCollapsed && (
-            <button 
-              onClick={() => setSidebarOpen(false)}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 lg:hidden"
+          <div className="flex items-center gap-1">
+            {/* Mobile close button */}
+            {!sidebarCollapsed && (
+              <button 
+                onClick={() => setSidebarOpen(false)}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 lg:hidden"
+              >
+                <X size={18} />
+              </button>
+            )}
+            {/* Desktop collapse toggle */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`hidden rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white lg:flex ${sidebarCollapsed ? "mx-auto" : ""}`}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <X size={18} />
+              {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
-          )}
+          </div>
         </div>
 
         {/* Navigation */}
@@ -364,24 +375,14 @@ export default function AdminDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-gray-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-            {/* Sidebar collapse toggle */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hidden h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white lg:flex"
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-            </button>
-          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-gray-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </header>
 
         {/* Scrollable main content */}
