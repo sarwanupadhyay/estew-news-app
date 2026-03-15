@@ -604,17 +604,18 @@ Generate the newsletter JSON following the system instructions. Remember to:
       articlesUsed: articles.length,
       generatedAt: new Date().toISOString(),
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Newsletter generation error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate newsletter"
     return NextResponse.json(
-      { error: "Failed to generate newsletter" },
+      { error: errorMessage },
       { status: 500 }
     )
   }
 }
 
 // PATCH - Update newsletter sections, schedule, AI tool selection, and status
-export async function PATCH(request: Request) {
+export async function PATCH(request: Request): Promise<Response> {
   try {
     const body = await request.json()
     const { newsletterId, sections, subject, aiToolOfTheDay, scheduledTime, status } = body
