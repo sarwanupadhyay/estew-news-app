@@ -577,15 +577,6 @@ Generate the newsletter JSON following the system instructions. Remember to:
       )
     }
 
-      parsedNewsletter = output
-    } catch (aiError) {
-      console.error("AI SDK error:", aiError)
-      return NextResponse.json(
-        { error: "AI service error. Please try again in a few moments." },
-        { status: 503 }
-      )
-    }
-
     const sections: NewsletterSection[] = parsedNewsletter.sections || []
     const subject = parsedNewsletter.subject || `Estew Intelligence: Daily Briefing | ${today}`
 
