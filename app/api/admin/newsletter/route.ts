@@ -271,7 +271,7 @@ async function getNextNewsletterNumber(): Promise<number> {
   try {
     const counterRef = doc(db, "system", "newsletter_counter")
     const counterSnap = await getDoc(counterRef)
-    
+
     if (counterSnap.exists()) {
       const currentCount = counterSnap.data().count || 0
       const newCount = currentCount + 1
@@ -294,7 +294,7 @@ function formatNewsletterId(num: number): string {
 // Convert sections to plain text for backward compatibility
 function sectionsToPlainText(sections: NewsletterSection[], date: string): string {
   let text = `ESTEW DAILY TECH BRIEFING\nDate: ${date}\n\n`
-  
+
   for (const section of sections) {
     text += `${section.title}\n${"─".repeat(section.title.length)}\n`
     if (section.content) {
@@ -307,7 +307,7 @@ function sectionsToPlainText(sections: NewsletterSection[], date: string): strin
     }
     text += "\n"
   }
-  
+
   return text
 }
 
@@ -321,7 +321,7 @@ async function saveNewsletter(
   try {
     const today = new Date()
     const dateStr = today.toISOString().split("T")[0]
-    
+
     const newsletterNum = await getNextNewsletterNumber()
     const newsletterId = formatNewsletterId(newsletterNum)
     const rawContent = sectionsToPlainText(sections, dateStr)
@@ -476,14 +476,14 @@ Generate the newsletter JSON following the system instructions. Remember to:
     // Retry logic for Gemini API with exponential backoff
     const MAX_RETRIES = 3
     const RETRY_DELAYS = [1000, 2000, 4000] // ms
-    
+
     let geminiResponse: Response | null = null
     let lastError: string = ""
-    
+
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
         geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
             headers: {
@@ -509,12 +509,12 @@ Generate the newsletter JSON following the system instructions. Remember to:
         if (geminiResponse.ok) {
           break // Success, exit retry loop
         }
-        
+
         // Check for retryable errors (503, 429, 500)
         if ([503, 429, 500].includes(geminiResponse.status)) {
           lastError = await geminiResponse.text()
           console.log(`Gemini API attempt ${attempt + 1} failed with ${geminiResponse.status}, retrying...`)
-          
+
           if (attempt < MAX_RETRIES - 1) {
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
             continue
@@ -527,7 +527,7 @@ Generate the newsletter JSON following the system instructions. Remember to:
       } catch (fetchError) {
         lastError = fetchError instanceof Error ? fetchError.message : "Network error"
         console.error(`Gemini API fetch error on attempt ${attempt + 1}:`, lastError)
-        
+
         if (attempt < MAX_RETRIES - 1) {
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
         }
