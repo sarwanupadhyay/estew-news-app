@@ -203,7 +203,7 @@ export function LandingScreen() {
 
         <p className="mt-8 text-center font-sans text-[11px] text-muted-foreground animate-fade-in delay-400">
           By continuing, you agree to our Terms of Service and Privacy Policy.
-        </motion.p>
+        </p>
       </div>
     </div>
   )
