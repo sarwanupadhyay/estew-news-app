@@ -98,7 +98,123 @@ async function sendEmail(
   }
 }
 
-// Convert newsletter text content to HTML
+// Section icons/labels for the new format
+const SECTION_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {
+  top_story: { label: "TOP STORY", emoji: "📰", color: "#EF4444" },
+  ai_breakthroughs: { label: "AI BREAKTHROUGHS", emoji: "🤖", color: "#8B5CF6" },
+  startup_radar: { label: "STARTUP RADAR", emoji: "🚀", color: "#F59E0B" },
+  product_launches: { label: "PRODUCT LAUNCHES", emoji: "📦", color: "#10B981" },
+  market_pulse: { label: "MARKET PULSE", emoji: "📊", color: "#3B82F6" },
+  ai_tool_of_day: { label: "AI TOOL OF THE DAY", emoji: "🔧", color: "#EC4899" },
+  quick_bytes: { label: "QUICK BYTES", emoji: "⚡", color: "#F97316" },
+  developer_insight: { label: "DEVELOPER INSIGHT", emoji: "💻", color: "#06B6D4" },
+}
+
+// Convert newsletter sections to HTML email
+function convertSectionsToHtml(sections: Array<{ id: string; title: string; content: string; articles?: Array<{ title: string; summary: string; source: string; imageUrl?: string }> }>, subject: string, aiTool?: { name: string; description: string; url: string; imageUrl?: string }): string {
+  let sectionsHtml = ""
+
+  for (const section of sections) {
+    const config = SECTION_CONFIG[section.id] || { label: section.title, emoji: "📄", color: "#6B7280" }
+    
+    sectionsHtml += `
+      <div style="margin-bottom: 32px; padding: 20px; background-color: #1a1a1f; border-radius: 12px; border-left: 4px solid ${config.color};">
+        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+          <span style="font-size: 20px; margin-right: 10px;">${config.emoji}</span>
+          <h2 style="color: ${config.color}; font-size: 16px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px;">${config.label}</h2>
+        </div>
+    `
+
+    // If section has articles with images
+    if (section.articles && section.articles.length > 0) {
+      for (const article of section.articles) {
+        sectionsHtml += `
+          <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            ${article.imageUrl ? `<img src="${article.imageUrl}" alt="${article.title}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" />` : ""}
+            <h3 style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 0 0 8px 0; line-height: 1.4;">${article.title}</h3>
+            <p style="color: #a1a1aa; font-size: 14px; margin: 0 0 8px 0; line-height: 1.6;">${article.summary}</p>
+            <a href="${article.source}" style="color: ${config.color}; font-size: 12px; text-decoration: none;">Read more →</a>
+          </div>
+        `
+      }
+    } else {
+      // Plain text content
+      const paragraphs = section.content.split("\n").filter(p => p.trim())
+      for (const para of paragraphs) {
+        // Check if it's a headline (starts with **)
+        if (para.trim().startsWith("**") && para.trim().endsWith("**")) {
+          sectionsHtml += `<h3 style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 16px 0 8px 0;">${para.trim().slice(2, -2)}</h3>`
+        } else if (para.trim().startsWith("Source:") || para.trim().startsWith("Read more:")) {
+          const url = para.replace(/^(Source:|Read more:)\s*/i, "").trim()
+          if (url.startsWith("http")) {
+            sectionsHtml += `<p style="margin: 8px 0;"><a href="${url}" style="color: ${config.color}; font-size: 12px; text-decoration: none;">Read more →</a></p>`
+          }
+        } else if (para.trim().startsWith("- ")) {
+          sectionsHtml += `<p style="color: #a1a1aa; font-size: 14px; margin: 4px 0 4px 16px; line-height: 1.5;">• ${para.trim().slice(2)}</p>`
+        } else {
+          sectionsHtml += `<p style="color: #d4d4d8; font-size: 14px; margin: 0 0 12px 0; line-height: 1.6;">${para.trim()}</p>`
+        }
+      }
+    }
+
+    sectionsHtml += `</div>`
+  }
+
+  // AI Tool of the Day special section
+  if (aiTool) {
+    sectionsHtml += `
+      <div style="margin-bottom: 32px; padding: 24px; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px;">
+        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+          <span style="font-size: 20px; margin-right: 10px;">🔧</span>
+          <h2 style="color: #c4b5fd; font-size: 16px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px;">AI TOOL OF THE DAY</h2>
+        </div>
+        ${aiTool.imageUrl ? `<img src="${aiTool.imageUrl}" alt="${aiTool.name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 16px;" />` : ""}
+        <h3 style="color: #ffffff; font-size: 20px; font-weight: 700; margin: 0 0 8px 0;">${aiTool.name}</h3>
+        <p style="color: #c4b5fd; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">${aiTool.description}</p>
+        <a href="${aiTool.url}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">Try it now →</a>
+      </div>
+    `
+  }
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <!-- Header -->
+    <div style="text-align: center; padding: 32px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+      <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">ESTEW</h1>
+      <p style="color: #EF4444; font-size: 12px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 2px;">Daily Tech Intelligence</p>
+      <p style="color: #71717a; font-size: 12px; margin: 12px 0 0 0;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+    </div>
+
+    <!-- Content -->
+    <div style="padding: 32px 0;">
+      ${sectionsHtml}
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding: 32px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p style="color: #71717a; font-size: 12px; margin: 0 0 16px 0;">You're receiving this because you subscribed to the Estew newsletter.</p>
+      <div style="margin-bottom: 16px;">
+        <a href="https://estew.vercel.app/settings" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Manage preferences</a>
+        <span style="color: #3f3f46;">|</span>
+        <a href="https://estew.vercel.app" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Visit Estew</a>
+      </div>
+      <p style="color: #52525b; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} Estew. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `
+}
+
+// Convert newsletter text content to HTML (fallback for old format)
 function convertToHtml(content: string, subject: string): string {
   // Convert plain text to styled HTML email
   const lines = content.split("\n")
@@ -109,77 +225,57 @@ function convertToHtml(content: string, subject: string): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${subject}</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
-    .container { background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .header { text-align: center; border-bottom: 2px solid #e74c3c; padding-bottom: 20px; margin-bottom: 20px; }
-    .header h1 { color: #e74c3c; margin: 0; font-size: 24px; }
-    .section { margin-bottom: 25px; }
-    .section-title { color: #e74c3c; font-size: 18px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }
-    .article { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #f0f0f0; }
-    .article:last-child { border-bottom: none; }
-    .article h3 { margin: 0 0 8px 0; color: #2c3e50; font-size: 16px; }
-    .article p { margin: 0 0 8px 0; color: #666; font-size: 14px; }
-    .article a { color: #e74c3c; text-decoration: none; }
-    .article a:hover { text-decoration: underline; }
-    .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 12px; }
-    .footer a { color: #e74c3c; }
-  </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>ESTEW DAILY TECH BRIEFING</h1>
+<body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="text-align: center; padding: 32px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+      <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">ESTEW</h1>
+      <p style="color: #EF4444; font-size: 12px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 2px;">Daily Tech Intelligence</p>
     </div>
-    <div class="content">
+    <div style="padding: 32px 0;">
 `
 
   let inSection = false
-  let currentSection = ""
 
   for (const line of lines) {
     const trimmedLine = line.trim()
 
-    // Skip the main title and date lines (they're in the header)
     if (trimmedLine.startsWith("ESTEW DAILY TECH BRIEFING") || trimmedLine.startsWith("Date:")) {
       continue
     }
 
     // Section headers
-    if (trimmedLine === "TOP STORY" || trimmedLine === "AI & MACHINE LEARNING" ||
-      trimmedLine === "PRODUCT LAUNCHES" || trimmedLine === "MARKET UPDATES") {
+    if (["TOP STORY", "AI BREAKTHROUGHS", "STARTUP RADAR", "PRODUCT LAUNCHES", "MARKET PULSE", "AI TOOL OF THE DAY", "QUICK BYTES", "DEVELOPER INSIGHT", "AI & MACHINE LEARNING", "MARKET UPDATES"].includes(trimmedLine)) {
       if (inSection) {
         html += `</div>`
       }
-      html += `<div class="section"><div class="section-title">${trimmedLine}</div>`
+      const config = SECTION_CONFIG[trimmedLine.toLowerCase().replace(/ /g, "_")] || { color: "#6B7280", emoji: "📄" }
+      html += `<div style="margin-bottom: 24px; padding: 16px; background-color: #1a1a1f; border-radius: 12px; border-left: 4px solid ${config.color};"><h2 style="color: ${config.color}; font-size: 14px; font-weight: 700; margin: 0 0 12px 0; text-transform: uppercase;">${config.emoji} ${trimmedLine}</h2>`
       inSection = true
-      currentSection = trimmedLine
       continue
     }
 
-    // Skip separator lines
     if (trimmedLine.match(/^[-=]+$/)) {
       continue
     }
 
-    // Headlines (bold lines)
     if (trimmedLine.startsWith("**") && trimmedLine.endsWith("**")) {
-      html += `<div class="article"><h3>${trimmedLine.slice(2, -2)}</h3>`
+      html += `<h3 style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 16px 0 8px 0;">${trimmedLine.slice(2, -2)}</h3>`
       continue
     }
 
-    // Links
-    if (trimmedLine.startsWith("Read more:") || trimmedLine.startsWith("Source:")) {
-      const url = trimmedLine.replace(/^(Read more:|Source:)\s*/, "")
+    if (trimmedLine.startsWith("Read more:") || trimmedLine.startsWith("Source:") || trimmedLine.startsWith("Source Link:")) {
+      const url = trimmedLine.replace(/^(Read more:|Source:|Source Link:)\s*/i, "")
       if (url.startsWith("http")) {
-        html += `<p><a href="${url}">Read more</a></p></div>`
+        html += `<p style="margin: 8px 0;"><a href="${url}" style="color: #EF4444; font-size: 12px; text-decoration: none;">Read more →</a></p>`
       }
       continue
     }
 
-    // Regular content
     if (trimmedLine && !trimmedLine.startsWith("-")) {
-      html += `<p>${trimmedLine}</p>`
+      html += `<p style="color: #d4d4d8; font-size: 14px; margin: 0 0 12px 0; line-height: 1.6;">${trimmedLine}</p>`
+    } else if (trimmedLine.startsWith("- ")) {
+      html += `<p style="color: #a1a1aa; font-size: 14px; margin: 4px 0 4px 16px;">• ${trimmedLine.slice(2)}</p>`
     }
   }
 
@@ -189,9 +285,11 @@ function convertToHtml(content: string, subject: string): string {
 
   html += `
     </div>
-    <div class="footer">
-      <p>You're receiving this because you subscribed to the Estew newsletter.</p>
-      <p><a href="https://v0-estew.vercel.app/settings">Manage preferences</a> | <a href="https://v0-estew.vercel.app">Visit Estew</a></p>
+    <div style="text-align: center; padding: 32px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p style="color: #71717a; font-size: 12px; margin: 0 0 16px 0;">You're receiving this because you subscribed to the Estew newsletter.</p>
+      <a href="https://estew.vercel.app/settings" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Manage preferences</a>
+      <span style="color: #3f3f46;">|</span>
+      <a href="https://estew.vercel.app" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Visit Estew</a>
     </div>
   </div>
 </body>
@@ -262,8 +360,15 @@ export async function POST(request: Request) {
 
     // Prepare email content
     const subject = newsletter.subject || `Estew Daily Tech Briefing - ${newsletter.date}`
-    const textContent = newsletter.content
-    const htmlContent = convertToHtml(newsletter.content, subject)
+    const textContent = newsletter.content || (newsletter.sections?.map((s: { title: string; content: string }) => `${s.title}\n${s.content}`).join("\n\n") || "")
+    
+    // Use section-based HTML if sections are available, otherwise fallback to text conversion
+    let htmlContent: string
+    if (newsletter.sections && Array.isArray(newsletter.sections) && newsletter.sections.length > 0) {
+      htmlContent = convertSectionsToHtml(newsletter.sections, subject, newsletter.aiToolOfDay)
+    } else {
+      htmlContent = convertToHtml(newsletter.content, subject)
+    }
 
     let delivered = 0
     let failed = 0
