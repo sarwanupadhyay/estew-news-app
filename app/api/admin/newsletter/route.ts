@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server"
-import { generateText, Output } from "ai"
-import { z } from "zod"
 import { db } from "@/lib/firebase"
 import {
   collection,
@@ -468,44 +466,116 @@ Generate the newsletter JSON following the system instructions. Remember to:
 5. Make the subject line compelling and include today's date`
 
     // Define the newsletter schema for structured output
-    const newsletterSchema = z.object({
-      subject: z.string().describe("Compelling email subject line with today's date"),
-      sections: z.array(z.object({
-        id: z.string(),
-        title: z.string(),
-        type: z.enum(["top_story", "ai_breakthroughs", "startup_radar", "product_launches", "market_pulse", "ai_tool", "quick_bytes", "developer_insight"]),
-        content: z.string(),
-        articles: z.array(z.object({
-          title: z.string(),
-          summary: z.string(),
-          sourceUrl: z.string(),
-          sourceName: z.string(),
-          imageUrl: z.string().nullable(),
-        })),
-        order: z.number(),
-      })),
-    })
+    // Use direct Gemini API with GEMINI_API_KEY
+    const geminiApiKey = process.env.GEMINI_API_KEY
+    if (!geminiApiKey) {
+      return NextResponse.json(
+        { error: "Gemini API key not configured" },
+        { status: 500 }
+      )
+    }
 
-    // Use AI SDK with Vercel AI Gateway - Gemini 2.5 Flash Lite
+    // Retry logic for Gemini API with exponential backoff
+    const MAX_RETRIES = 3
+    const RETRY_DELAYS = [2000, 4000, 8000] // ms
+    
+    let geminiResponse: Response | null = null
+    let lastError: string = ""
+    
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: `${NEWSLETTER_SYSTEM_PROMPT}\n\n${userPrompt}` },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 8192,
+                responseMimeType: "application/json",
+              },
+            }),
+          }
+        )
+
+        if (geminiResponse.ok) {
+          break // Success, exit retry loop
+        }
+        
+        // Check for retryable errors (503, 429, 500)
+        if ([503, 429, 500].includes(geminiResponse.status)) {
+          lastError = await geminiResponse.text()
+          console.log(`Gemini API attempt ${attempt + 1} failed with ${geminiResponse.status}, retrying...`)
+          
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
+            continue
+          }
+        } else {
+          // Non-retryable error
+          lastError = await geminiResponse.text()
+          break
+        }
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError.message : "Network error"
+        console.error(`Gemini API fetch error on attempt ${attempt + 1}:`, lastError)
+        
+        if (attempt < MAX_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]))
+        }
+      }
+    }
+
+    if (!geminiResponse || !geminiResponse.ok) {
+      console.error("Gemini API error after retries:", lastError)
+      return NextResponse.json(
+        { error: "AI service is temporarily unavailable. Please try again in a few moments." },
+        { status: 503 }
+      )
+    }
+
+    const geminiData = await geminiResponse.json()
+    const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
+
+    if (!generatedText) {
+      console.error("No text in Gemini response:", geminiData)
+      return NextResponse.json(
+        { error: "Newsletter generation failed. Please try again." },
+        { status: 400 }
+      )
+    }
+
+    // Parse the JSON response
     let parsedNewsletter
     try {
-      const { output } = await generateText({
-        model: "google/gemini-2.5-flash-lite-preview-06-17", // Gemini 2.5 Flash Lite via Vercel AI Gateway
-        output: Output.object({
-          schema: newsletterSchema,
-        }),
-        system: NEWSLETTER_SYSTEM_PROMPT,
-        prompt: userPrompt,
-        maxOutputTokens: 8192,
-        temperature: 0.7,
-      })
-
-      if (!output) {
-        return NextResponse.json(
-          { error: "Newsletter generation failed. Please try again." },
-          { status: 400 }
-        )
+      // Clean the response - remove markdown code blocks if present
+      let cleanedText = generatedText.trim()
+      if (cleanedText.startsWith("```json")) {
+        cleanedText = cleanedText.slice(7)
+      } else if (cleanedText.startsWith("```")) {
+        cleanedText = cleanedText.slice(3)
       }
+      if (cleanedText.endsWith("```")) {
+        cleanedText = cleanedText.slice(0, -3)
+      }
+      parsedNewsletter = JSON.parse(cleanedText.trim())
+    } catch (parseError) {
+      console.error("Failed to parse newsletter JSON:", parseError, generatedText)
+      return NextResponse.json(
+        { error: "Failed to parse newsletter content. Please try again." },
+        { status: 400 }
+      )
+    }
 
       parsedNewsletter = output
     } catch (aiError) {
