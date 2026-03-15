@@ -11,7 +11,6 @@ import { SavedScreen } from "./saved-screen"
 import { ProfileScreen } from "./profile-screen"
 import { LandingScreen } from "./landing-screen"
 import { OnboardingScreen } from "./onboarding-screen"
-import { AnimatePresence, motion } from "framer-motion"
 
 export function AppShell() {
   const { user, profile, loading } = useAuth()
@@ -29,13 +28,9 @@ export function AppShell() {
     )
   }
 
-  // Not logged in - show landing
+  // Not logged in - show landing (full width for desktop homepage)
   if (!user) {
-    return (
-      <div className="mx-auto max-w-[428px]">
-        <LandingScreen />
-      </div>
-    )
+    return <LandingScreen />
   }
 
   // Logged in but hasn't completed onboarding
@@ -51,21 +46,13 @@ export function AppShell() {
   return (
     <div className="relative mx-auto min-h-screen max-w-[428px] bg-background">
       <div className="relative z-10">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -16 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            {activeTab === "home" && <FeedScreen />}
-            {activeTab === "explore" && <ExploreScreen />}
-            {activeTab === "trending" && <TrendingScreen />}
-            {activeTab === "saved" && <SavedScreen />}
-            {activeTab === "profile" && <ProfileScreen />}
-          </motion.div>
-        </AnimatePresence>
+        <div key={activeTab} className="animate-fade-in">
+          {activeTab === "home" && <FeedScreen />}
+          {activeTab === "explore" && <ExploreScreen />}
+          {activeTab === "trending" && <TrendingScreen />}
+          {activeTab === "saved" && <SavedScreen />}
+          {activeTab === "profile" && <ProfileScreen />}
+        </div>
       </div>
 
       <BottomNav />

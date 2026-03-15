@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
-import { Mail, Eye, EyeOff } from "lucide-react"
+import { Mail, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
+import { Homepage } from "./homepage"
 
 export function LandingScreen() {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth()
+  const [showAuthScreen, setShowAuthScreen] = useState(false)
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState("")
@@ -65,16 +66,26 @@ export function LandingScreen() {
     }
   }
 
+  // Show homepage first
+  if (!showAuthScreen) {
+    return <Homepage onGetStarted={() => setShowAuthScreen(true)} />
+  }
+
+  // Auth screen
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-8">
-      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
+      {/* Back button */}
+      <button
+        onClick={() => setShowAuthScreen(false)}
+        className="absolute left-4 top-4 flex items-center gap-1.5 rounded-lg px-3 py-2 font-sans text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft size={16} />
+        Back
+      </button>
+
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center animate-fade-in">
         {/* Logo image */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="relative mb-5 h-20 w-20"
-        >
+        <div className="relative mb-5 h-20 w-20 animate-slide-up">
           <Image
             src="/images/logo.png"
             alt="Estew logo"
@@ -82,26 +93,18 @@ export function LandingScreen() {
             className="object-contain dark:invert"
             priority
           />
-        </motion.div>
+        </div>
 
         {/* App name */}
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className="mb-1 font-serif text-3xl font-bold tracking-tight text-foreground"
-        >
+        <h1 className="mb-1 font-serif text-3xl font-bold tracking-tight text-foreground animate-slide-up delay-100">
           Estew
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18, duration: 0.4 }}
-          className="mb-10 text-center font-sans text-sm text-muted-foreground"
+        </h1>
+        <p
+          className="mb-10 text-center font-sans text-sm text-muted-foreground animate-slide-up delay-200"
           style={{ lineHeight: 1.6 }}
         >
-          Tech news that never sleeps.
-        </motion.p>
+          Sign in to continue reading.
+        </p>
 
         {/* Error display */}
         {error && (
@@ -111,12 +114,7 @@ export function LandingScreen() {
         )}
 
         {/* Auth buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
-          className="flex w-full flex-col gap-3"
-        >
+        <div className="flex w-full flex-col gap-3 animate-slide-up delay-300">
           {/* Google */}
           <button
             onClick={handleGoogle}
@@ -142,11 +140,9 @@ export function LandingScreen() {
               Continue with Email
             </button>
           ) : (
-            <motion.form
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+            <form
               onSubmit={handleEmail}
-              className="flex flex-col gap-3"
+              className="flex flex-col gap-3 animate-fade-in"
             >
               <input
                 type="email"
@@ -201,16 +197,11 @@ export function LandingScreen() {
               >
                 {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
               </button>
-            </motion.form>
+            </form>
           )}
-        </motion.div>
+        </div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-          className="mt-8 text-center font-sans text-[11px] text-muted-foreground"
-        >
+        <p className="mt-8 text-center font-sans text-[11px] text-muted-foreground animate-fade-in delay-400">
           By continuing, you agree to our Terms of Service and Privacy Policy.
         </motion.p>
       </div>

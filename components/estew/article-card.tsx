@@ -7,7 +7,6 @@ import { Bookmark, BookmarkCheck, Lock } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { useAuth } from "@/lib/auth-context"
 import { timeAgo } from "@/lib/time"
-import { motion } from "framer-motion"
 
 // Get favicon for source using DuckDuckGo (better CORS support)
 function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
@@ -55,13 +54,14 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
   const sourceInitial = article.sourceName.charAt(0).toUpperCase()
   const faviconUrl = getSourceFavicon(article.sourceName, article.originalUrl)
 
+  // Calculate animation delay based on index (max 5 items staggered)
+  const animationDelay = Math.min(index, 5) * 50
+
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.04, ease: "easeOut" }}
-        className="mx-4 mb-1 cursor-pointer rounded-lg border-b border-border bg-background transition-colors active:bg-muted/30"
+      <div
+        className="mx-4 mb-1 cursor-pointer rounded-lg border-b border-border bg-background animate-fade-up press-effect active:bg-muted/30"
+        style={{ animationDelay: `${animationDelay}ms` }}
         onClick={handleClick}
       >
         <div className="flex gap-3 py-4">
@@ -130,15 +130,13 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
             )}
           </button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Rate Limit Modal */}
       {limitReached && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-6" onClick={() => setLimitReached(false)}>
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-sm rounded-2xl bg-background p-6 text-center"
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-6 animate-fade-in" onClick={() => setLimitReached(false)}>
+          <div
+            className="w-full max-w-sm rounded-2xl bg-background p-6 text-center animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
@@ -162,7 +160,7 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
             >
               Maybe later
             </button>
-          </motion.div>
+          </div>
         </div>
       )}
     </>
