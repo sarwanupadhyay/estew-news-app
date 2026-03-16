@@ -111,12 +111,12 @@ const SECTION_CONFIG: Record<string, { label: string; emoji: string; color: stri
 }
 
 // Convert newsletter sections to HTML email
-function convertSectionsToHtml(sections: Array<{ id: string; title: string; content: string; articles?: Array<{ title: string; summary: string; source: string; imageUrl?: string }> }>, subject: string, aiTool?: { name: string; description: string; url: string; imageUrl?: string }): string {
+function convertSectionsToHtml(sections: Array<{ id: string; title: string; content: string; articles?: Array<{ title: string; summary: string; sourceUrl: string; imageUrl?: string }> }>, subject: string, aiTool?: { name: string; description: string; url: string; imageUrl?: string }): string {
   let sectionsHtml = ""
 
   for (const section of sections) {
     const config = SECTION_CONFIG[section.id] || { label: section.title, emoji: "📄", color: "#6B7280" }
-    
+
     sectionsHtml += `
       <div style="margin-bottom: 32px; padding: 20px; background-color: #1a1a1f; border-radius: 12px; border-left: 4px solid ${config.color};">
         <div style="display: flex; align-items: center; margin-bottom: 16px;">
@@ -133,7 +133,7 @@ function convertSectionsToHtml(sections: Array<{ id: string; title: string; cont
             ${article.imageUrl ? `<img src="${article.imageUrl}" alt="${article.title}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" />` : ""}
             <h3 style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 0 0 8px 0; line-height: 1.4;">${article.title}</h3>
             <p style="color: #a1a1aa; font-size: 14px; margin: 0 0 8px 0; line-height: 1.6;">${article.summary}</p>
-            <a href="${article.source}" style="color: ${config.color}; font-size: 12px; text-decoration: none;">Read more →</a>
+            <a href="${article.sourceUrl}" style="color: ${config.color}; font-size: 12px; text-decoration: none;">Read more →</a>
           </div>
         `
       }
@@ -202,9 +202,9 @@ function convertSectionsToHtml(sections: Array<{ id: string; title: string; cont
     <div style="text-align: center; padding: 32px 0; border-top: 1px solid rgba(255,255,255,0.1);">
       <p style="color: #71717a; font-size: 12px; margin: 0 0 16px 0;">You're receiving this because you subscribed to the Estew newsletter.</p>
       <div style="margin-bottom: 16px;">
-        <a href="https://estew.vercel.app/settings" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Manage preferences</a>
+        <a href="https://estew.xyz/" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Manage preferences</a>
         <span style="color: #3f3f46;">|</span>
-        <a href="https://estew.vercel.app" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Visit Estew</a>
+        <a href="https://estew.xyz" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Visit Estew</a>
       </div>
       <p style="color: #52525b; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} Estew. All rights reserved.</p>
     </div>
@@ -287,9 +287,9 @@ function convertToHtml(content: string, subject: string): string {
     </div>
     <div style="text-align: center; padding: 32px 0; border-top: 1px solid rgba(255,255,255,0.1);">
       <p style="color: #71717a; font-size: 12px; margin: 0 0 16px 0;">You're receiving this because you subscribed to the Estew newsletter.</p>
-      <a href="https://estew.vercel.app/settings" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Manage preferences</a>
+      <a href="https://estew.xyz/" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Manage preferences</a>
       <span style="color: #3f3f46;">|</span>
-      <a href="https://estew.vercel.app" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Visit Estew</a>
+      <a href="https://estew.xyz" style="color: #a1a1aa; font-size: 12px; text-decoration: none; margin: 0 8px;">Visit Estew</a>
     </div>
   </div>
 </body>
@@ -361,7 +361,7 @@ export async function POST(request: Request) {
     // Prepare email content
     const subject = newsletter.subject || `Estew Daily Tech Briefing - ${newsletter.date}`
     const textContent = newsletter.content || (newsletter.sections?.map((s: { title: string; content: string }) => `${s.title}\n${s.content}`).join("\n\n") || "")
-    
+
     // Use section-based HTML if sections are available, otherwise fallback to text conversion
     let htmlContent: string
     if (newsletter.sections && Array.isArray(newsletter.sections) && newsletter.sections.length > 0) {
