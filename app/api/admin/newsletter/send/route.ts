@@ -17,6 +17,8 @@ import {
 const BATCH_SIZE = 10
 const BATCH_DELAY_MS = 1000
 
+type AudienceType = "ALL_USERS" | "SUBSCRIBERS" | "SELECTED"
+
 // Get newsletter subscribers (users where newsletterSubscribed = true)
 async function getNewsletterSubscribers() {
   try {
@@ -32,6 +34,74 @@ async function getNewsletterSubscribers() {
   } catch (error) {
     console.error("Error fetching subscribers:", error)
     return []
+  }
+}
+
+// Get all users
+async function getAllUsers() {
+  try {
+    const usersRef = collection(db, "users")
+    const snapshot = await getDocs(usersRef)
+
+    return snapshot.docs.map((doc) => ({
+      userId: doc.id,
+      email: doc.data().email || "",
+      displayName: doc.data().displayName || doc.data().name || "",
+    }))
+  } catch (error) {
+    console.error("Error fetching all users:", error)
+    return []
+  }
+}
+
+// Get selected users by email
+async function getSelectedUsers(emails: string[]) {
+  if (!emails || emails.length === 0) return []
+  
+  try {
+    const usersRef = collection(db, "users")
+    // Firestore 'in' query supports max 30 items, so we need to batch
+    const batches: Array<Promise<any>> = []
+    
+    for (let i = 0; i < emails.length; i += 30) {
+      const batch = emails.slice(i, i + 30)
+      const q = query(usersRef, where("email", "in", batch))
+      batches.push(getDocs(q))
+    }
+    
+    const results = await Promise.all(batches)
+    const users: Array<{ userId: string; email: string; displayName: string }> = []
+    
+    for (const snapshot of results) {
+      for (const doc of snapshot.docs) {
+        users.push({
+          userId: doc.id,
+          email: doc.data().email || "",
+          displayName: doc.data().displayName || doc.data().name || "",
+        })
+      }
+    }
+    
+    return users
+  } catch (error) {
+    console.error("Error fetching selected users:", error)
+    return []
+  }
+}
+
+// Get recipients based on audience type
+async function getRecipientsByAudience(
+  audienceType: AudienceType, 
+  selectedUsers: string[]
+): Promise<Array<{ userId: string; email: string; displayName: string }>> {
+  switch (audienceType) {
+    case "ALL_USERS":
+      return getAllUsers()
+    case "SELECTED":
+      return getSelectedUsers(selectedUsers)
+    case "SUBSCRIBERS":
+    default:
+      return getNewsletterSubscribers()
   }
 }
 
@@ -303,10 +373,10 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// POST - Send newsletter to all subscribers
+// POST - Send newsletter to audience (supports re-sending)
 export async function POST(request: Request) {
   try {
-    const { newsletterId } = await request.json()
+    const { newsletterId, audienceType: overrideAudience, selectedUsers: overrideSelectedUsers } = await request.json()
 
     if (!newsletterId) {
       return NextResponse.json(
@@ -328,20 +398,16 @@ export async function POST(request: Request) {
 
     const newsletter = newsletterSnap.data()
 
-    // Check if already sent
-    if (newsletter.status === "sent") {
-      return NextResponse.json(
-        { error: "Newsletter has already been sent" },
-        { status: 400 }
-      )
-    }
+    // Use override audience if provided, otherwise use saved audience
+    const audienceType: AudienceType = overrideAudience || newsletter.audienceType || "SUBSCRIBERS"
+    const selectedUserEmails: string[] = overrideSelectedUsers || newsletter.selectedUsers || []
 
-    // Get subscribers
-    const subscribers = await getNewsletterSubscribers()
+    // Get recipients based on audience type
+    const recipients = await getRecipientsByAudience(audienceType, selectedUserEmails)
 
-    if (subscribers.length === 0) {
+    if (recipients.length === 0) {
       return NextResponse.json(
-        { error: "No subscribers found" },
+        { error: `No recipients found for audience type: ${audienceType}` },
         { status: 400 }
       )
     }
@@ -349,11 +415,13 @@ export async function POST(request: Request) {
     // Update newsletter status to "sending"
     await updateDoc(newsletterRef, {
       status: "sending",
+      audienceType,
+      selectedUsers: selectedUserEmails,
       deliveryStats: {
-        totalRecipients: subscribers.length,
+        totalRecipients: recipients.length,
         delivered: 0,
         failed: 0,
-        pending: subscribers.length,
+        pending: recipients.length,
       },
       updatedAt: serverTimestamp(),
     })
@@ -374,18 +442,18 @@ export async function POST(request: Request) {
     let failed = 0
 
     // Send emails in batches to respect rate limits
-    for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {
-      const batch = subscribers.slice(i, i + BATCH_SIZE)
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+      const batch = recipients.slice(i, i + BATCH_SIZE)
 
       const results = await Promise.all(
-        batch.map(async (subscriber) => {
-          const result = await sendEmail(subscriber.email, subject, htmlContent, textContent)
+        batch.map(async (recipient) => {
+          const result = await sendEmail(recipient.email, subject, htmlContent, textContent)
 
           // Log the delivery
           await logDelivery(
             newsletterId,
-            subscriber.userId,
-            subscriber.email,
+            recipient.userId,
+            recipient.email,
             result.success ? "success" : "failed",
             result.error
           )
@@ -406,43 +474,58 @@ export async function POST(request: Request) {
       // Update progress
       await updateDoc(newsletterRef, {
         deliveryStats: {
-          totalRecipients: subscribers.length,
+          totalRecipients: recipients.length,
           delivered,
           failed,
-          pending: subscribers.length - delivered - failed,
+          pending: recipients.length - delivered - failed,
         },
         updatedAt: serverTimestamp(),
       })
 
       // Delay before next batch (rate limiting)
-      if (i + BATCH_SIZE < subscribers.length) {
+      if (i + BATCH_SIZE < recipients.length) {
         await delay(BATCH_DELAY_MS)
       }
     }
 
-    // Update final status
-    const finalStatus = failed === 0 ? "sent" : delivered > 0 ? "partially_sent" : "failed"
+    // Build delivery history entry
+    const deliveryHistoryEntry = {
+      sentAt: new Date().toISOString(),
+      audienceType,
+      totalRecipients: recipients.length,
+      delivered,
+      failed,
+    }
+
+    // Get existing delivery history
+    const existingHistory = newsletter.deliveryHistory || []
+
+    // Update final status - always allow re-sending, track in history
+    const finalStatus = delivered > 0 ? "sent" : "failed"
 
     await updateDoc(newsletterRef, {
       status: finalStatus,
       sentAt: serverTimestamp(),
       deliveryStats: {
-        totalRecipients: subscribers.length,
+        totalRecipients: recipients.length,
         delivered,
         failed,
         pending: 0,
       },
+      deliveryHistory: [...existingHistory, deliveryHistoryEntry],
       updatedAt: serverTimestamp(),
     })
 
     return NextResponse.json({
       success: true,
       newsletterId,
+      audienceType,
       stats: {
-        totalRecipients: subscribers.length,
+        totalRecipients: recipients.length,
         delivered,
         failed,
       },
+      deliveryHistoryEntry,
     })
   } catch (error) {
     console.error("Newsletter send error:", error)

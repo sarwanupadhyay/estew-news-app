@@ -30,6 +30,8 @@ export interface NewsletterSection {
   order: number
 }
 
+export type AudienceType = "ALL_USERS" | "SUBSCRIBERS" | "SELECTED"
+
 export interface Newsletter {
   id: string
   newsletterId: string
@@ -46,6 +48,8 @@ export interface Newsletter {
   articlesUsed: number
   date: string
   status: "draft" | "generated" | "scheduled" | "sending" | "sent" | "failed"
+  audienceType: AudienceType
+  selectedUsers: string[] // Array of emails for SELECTED audience
   scheduledTime?: string | null
   deliveryStats: {
     totalRecipients: number
@@ -53,6 +57,13 @@ export interface Newsletter {
     failed: number
     pending: number
   }
+  deliveryHistory: Array<{
+    sentAt: string
+    audienceType: AudienceType
+    totalRecipients: number
+    delivered: number
+    failed: number
+  }>
   generatedAt: string
   sentAt?: string | null
   createdAt: string
@@ -336,7 +347,9 @@ async function saveNewsletter(
       aiToolOfTheDay: aiToolOfTheDay || null,
       articlesUsed: articlesCount,
       date: dateStr,
-      status: "generated",
+      status: "draft",
+      audienceType: "SUBSCRIBERS", // Default to subscribers
+      selectedUsers: [],
       scheduledTime: null,
       deliveryStats: {
         totalRecipients: 0,
@@ -344,6 +357,7 @@ async function saveNewsletter(
         failed: 0,
         pending: 0,
       },
+      deliveryHistory: [],
       generatedAt: serverTimestamp(),
       sentAt: null,
       createdAt: serverTimestamp(),
@@ -379,7 +393,9 @@ async function getSavedNewsletters() {
         generatedAt: data.generatedAt instanceof Timestamp
           ? data.generatedAt.toDate().toISOString()
           : data.generatedAt || new Date().toISOString(),
-        status: data.status || "generated",
+        status: data.status || "draft",
+        audienceType: data.audienceType || "SUBSCRIBERS",
+        selectedUsers: data.selectedUsers || [],
         scheduledTime: data.scheduledTime instanceof Timestamp
           ? data.scheduledTime.toDate().toISOString()
           : data.scheduledTime || null,
@@ -389,6 +405,15 @@ async function getSavedNewsletters() {
           failed: 0,
           pending: 0,
         },
+        deliveryHistory: (data.deliveryHistory || []).map((entry: any) => ({
+          sentAt: entry.sentAt instanceof Timestamp
+            ? entry.sentAt.toDate().toISOString()
+            : entry.sentAt,
+          audienceType: entry.audienceType || "SUBSCRIBERS",
+          totalRecipients: entry.totalRecipients || 0,
+          delivered: entry.delivered || 0,
+          failed: entry.failed || 0,
+        })),
         sentAt: data.sentAt instanceof Timestamp
           ? data.sentAt.toDate().toISOString()
           : data.sentAt || null,
@@ -619,11 +644,20 @@ Generate the newsletter JSON following the system instructions. Remember to:
   }
 }
 
-// PATCH - Update newsletter (sections, schedule, AI tool, etc.)
+// PATCH - Update newsletter (sections, schedule, AI tool, audience, etc.)
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
-    const { newsletterId, sections, subject, aiToolOfTheDay, scheduledTime, status } = body
+    const { 
+      newsletterId, 
+      sections, 
+      subject, 
+      aiToolOfTheDay, 
+      scheduledTime, 
+      status,
+      audienceType,
+      selectedUsers,
+    } = body
 
     if (!newsletterId) {
       return NextResponse.json(
@@ -641,17 +675,36 @@ export async function PATCH(request: Request) {
       updateData.sections = sections
       updateData.rawContent = sectionsToPlainText(sections, new Date().toISOString().split("T")[0])
     }
-    if (subject) updateData.subject = subject
+    if (subject !== undefined) updateData.subject = subject
     if (aiToolOfTheDay !== undefined) updateData.aiToolOfTheDay = aiToolOfTheDay
     if (scheduledTime !== undefined) {
       updateData.scheduledTime = scheduledTime ? new Date(scheduledTime) : null
       if (scheduledTime) updateData.status = "scheduled"
     }
     if (status) updateData.status = status
+    if (audienceType) updateData.audienceType = audienceType
+    if (selectedUsers !== undefined) updateData.selectedUsers = selectedUsers
 
     await updateDoc(newsletterRef, updateData)
 
-    return NextResponse.json({ success: true, newsletterId })
+    // Fetch updated newsletter to return
+    const updatedSnap = await getDoc(newsletterRef)
+    const data = updatedSnap.data()
+
+    return NextResponse.json({ 
+      success: true, 
+      newsletterId,
+      newsletter: data ? {
+        ...data,
+        id: newsletterId,
+        generatedAt: data.generatedAt instanceof Timestamp
+          ? data.generatedAt.toDate().toISOString()
+          : data.generatedAt,
+        sentAt: data.sentAt instanceof Timestamp
+          ? data.sentAt.toDate().toISOString()
+          : data.sentAt,
+      } : null,
+    })
   } catch (error) {
     console.error("Newsletter update error:", error)
     return NextResponse.json(

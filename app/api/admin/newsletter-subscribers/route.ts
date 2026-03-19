@@ -11,19 +11,31 @@ import {
   Timestamp,
 } from "firebase/firestore"
 
-// GET - Fetch all newsletter subscribers from users table
-export async function GET() {
+// GET - Fetch newsletter subscribers or all users
+export async function GET(request: Request) {
   try {
-    const usersRef = collection(db, "users")
-    const q = query(usersRef, where("newsletterSubscribed", "==", true))
-    const snapshot = await getDocs(q)
+    const { searchParams } = new URL(request.url)
+    const fetchAll = searchParams.get("all") === "true"
     
-    const subscribers = snapshot.docs.map((docSnap) => {
+    const usersRef = collection(db, "users")
+    let snapshot
+    
+    if (fetchAll) {
+      // Fetch ALL users (for audience selection)
+      snapshot = await getDocs(usersRef)
+    } else {
+      // Fetch only subscribers
+      const q = query(usersRef, where("newsletterSubscribed", "==", true))
+      snapshot = await getDocs(q)
+    }
+    
+    const users = snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
       return {
         id: docSnap.id,
         email: data.email || "",
         displayName: data.displayName || data.name || data.email?.split("@")[0] || "",
+        newsletterSubscribed: data.newsletterSubscribed === true,
         subscribedAt: data.createdAt instanceof Timestamp 
           ? data.createdAt.toDate().toISOString()
           : new Date().toISOString(),
@@ -31,9 +43,18 @@ export async function GET() {
       }
     })
 
+    // Return in format expected by the editor component
+    if (fetchAll) {
+      return NextResponse.json({ 
+        users,
+        count: users.length,
+        subscriberCount: users.filter(u => u.newsletterSubscribed).length,
+      })
+    }
+
     return NextResponse.json({ 
-      subscribers,
-      count: subscribers.length,
+      subscribers: users,
+      count: users.length,
     })
   } catch (error) {
     console.error("Error fetching newsletter subscribers:", error)
