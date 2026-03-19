@@ -148,8 +148,8 @@ async function sendEmail(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // Using Resend test domain for free tier - replace with verified domain in production
-        from: process.env.RESEND_FROM_EMAIL || "Estew <newsletter@news.estew.xyz>",
+  // Branded sender name for professional email display
+  from: process.env.RESEND_FROM_EMAIL || "Estew Newsletter <newsletter@news.estew.xyz>",
         to: [to],
         subject: subject,
         html: htmlContent,
@@ -261,8 +261,10 @@ function convertSectionsToHtml(sections: Array<{ id: string; title: string; cont
 </head>
 <body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-    <!-- Header -->
+    <!-- Header with Logo -->
     <div style="text-align: center; padding: 32px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+      <!-- Logo -->
+      <img src="https://estew.xyz/estew-logo.png" alt="Estew Logo" width="120" height="auto" style="display: block; margin: 0 auto 16px auto; max-width: 120px;" />
       <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">ESTEW</h1>
       <p style="color: #EF4444; font-size: 12px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 2px;">Daily Tech Intelligence</p>
       <p style="color: #71717a; font-size: 12px; margin: 12px 0 0 0;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
@@ -303,9 +305,13 @@ function convertToHtml(content: string, subject: string): string {
 </head>
 <body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <!-- Header with Logo -->
     <div style="text-align: center; padding: 32px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+      <!-- Logo -->
+      <img src="https://estew.xyz/estew-logo.png" alt="Estew Logo" width="120" height="auto" style="display: block; margin: 0 auto 16px auto; max-width: 120px;" />
       <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">ESTEW</h1>
       <p style="color: #EF4444; font-size: 12px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 2px;">Daily Tech Intelligence</p>
+      <p style="color: #71717a; font-size: 12px; margin: 12px 0 0 0;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
     </div>
     <div style="padding: 32px 0;">
 `
