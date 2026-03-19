@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Zap, Clock, Sparkles, ChevronRight, Crown } from "lucide-react"
+import { ArrowRight, Zap, Clock, Sparkles, ChevronRight } from "lucide-react"
 
 interface HomepageProps {
   onGetStarted: () => void
@@ -260,32 +260,6 @@ export function Homepage({ onGetStarted }: HomepageProps) {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Pricing Teaser */}
-      <section id="pricing" className="relative z-10 px-6 py-16 md:px-12 md:py-24">
-        <div className="mx-auto max-w-3xl text-center">
-          {/* Section header */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2">
-            <Crown size={16} className="text-primary" />
-            <span className="font-sans text-sm font-medium text-primary">Simple Pricing</span>
-          </div>
-
-          <h2 className="mb-4 font-serif text-3xl font-bold text-foreground md:text-4xl">
-            Start free, upgrade anytime
-          </h2>
-          <p className="mx-auto mb-8 max-w-lg font-sans text-base text-muted-foreground" style={{ lineHeight: 1.7 }}>
-            Free plan at ₹0/month. Pro plan at just ₹599/month (~$5). No hidden fees, cancel anytime.
-          </p>
-
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-sans text-base font-semibold text-primary-foreground transition-all hover:bg-primary/90 press-effect"
-          >
-            View Pricing
-            <ChevronRight size={18} />
-          </Link>
         </div>
       </section>
 
