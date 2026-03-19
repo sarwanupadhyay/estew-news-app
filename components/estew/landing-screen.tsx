@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Mail, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { Homepage } from "./homepage"
 
@@ -202,7 +203,15 @@ export function LandingScreen() {
         </div>
 
         <p className="mt-8 text-center font-sans text-[11px] text-muted-foreground animate-fade-in delay-400">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
+          By continuing, you agree to our{" "}
+          <Link href="/terms-of-service" className="text-primary hover:underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy-policy" className="text-primary hover:underline">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
     </div>

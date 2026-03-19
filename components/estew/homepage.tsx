@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { ArrowRight, Zap, Clock, Sparkles, ChevronRight } from "lucide-react"
+import Link from "next/link"
+import { ArrowRight, Zap, Clock, Sparkles, ChevronRight, Check, Crown, Star } from "lucide-react"
 
 interface HomepageProps {
   onGetStarted: () => void
@@ -262,6 +263,185 @@ export function Homepage({ onGetStarted }: HomepageProps) {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="relative z-10 px-6 py-16 md:px-12 md:py-24">
+        <div className="mx-auto max-w-5xl">
+          {/* Section header */}
+          <div className="mb-12 flex items-center gap-3">
+            <div className="h-px w-8 bg-primary"></div>
+            <span className="font-mono text-xs font-medium uppercase tracking-wider text-primary">
+              Pricing
+            </span>
+          </div>
+
+          <h2 className="mb-4 font-serif text-3xl font-bold text-foreground md:text-4xl">
+            Simple, transparent pricing
+          </h2>
+          <p className="mb-12 max-w-lg font-sans text-base text-muted-foreground" style={{ lineHeight: 1.7 }}>
+            Start free. Upgrade when you need more. No hidden fees, cancel anytime.
+          </p>
+
+          {/* Pricing cards */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Free Plan */}
+            <div className="relative rounded-2xl border border-border/50 bg-card/30 p-6 transition-all hover:border-border hover:bg-card/50">
+              <div className="mb-6">
+                <h3 className="mb-2 font-serif text-xl font-semibold text-foreground">Free</h3>
+                <p className="font-sans text-sm text-muted-foreground">Perfect for getting started</p>
+              </div>
+              
+              <div className="mb-6">
+                <span className="font-serif text-4xl font-bold text-foreground">$0</span>
+                <span className="font-sans text-sm text-muted-foreground">/month</span>
+              </div>
+
+              <button
+                onClick={onGetStarted}
+                className="mb-6 w-full rounded-xl border border-border bg-background py-3 font-sans text-sm font-semibold text-foreground transition-all hover:bg-muted press-effect"
+              >
+                Get Started Free
+              </button>
+
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Daily news feed access</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">5 topic preferences</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Save up to 10 articles</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Weekly newsletter digest</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Pro Plan - Featured */}
+            <div className="relative rounded-2xl border-2 border-primary bg-card/50 p-6 shadow-lg shadow-primary/10">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 font-sans text-xs font-semibold text-primary-foreground">
+                  <Star size={12} fill="currentColor" />
+                  Most Popular
+                </span>
+              </div>
+
+              <div className="mb-6 pt-2">
+                <h3 className="mb-2 flex items-center gap-2 font-serif text-xl font-semibold text-foreground">
+                  <Crown size={20} className="text-primary" />
+                  Pro
+                </h3>
+                <p className="font-sans text-sm text-muted-foreground">For serious tech enthusiasts</p>
+              </div>
+              
+              <div className="mb-6">
+                <span className="font-serif text-4xl font-bold text-foreground">$9</span>
+                <span className="font-sans text-sm text-muted-foreground">/month</span>
+                <p className="mt-1 font-sans text-xs text-primary">Billed annually ($108/year)</p>
+              </div>
+
+              <button
+                onClick={onGetStarted}
+                className="mb-6 w-full rounded-xl bg-primary py-3 font-sans text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 press-effect"
+              >
+                Start Pro Trial
+              </button>
+
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-foreground font-medium">Everything in Free, plus:</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Unlimited topic preferences</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Unlimited saved articles</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Daily AI-curated newsletter</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Ad-free experience</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Early access to new features</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Priority support</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Team Plan */}
+            <div className="relative rounded-2xl border border-border/50 bg-card/30 p-6 transition-all hover:border-border hover:bg-card/50">
+              <div className="mb-6">
+                <h3 className="mb-2 font-serif text-xl font-semibold text-foreground">Team</h3>
+                <p className="font-sans text-sm text-muted-foreground">For startups and teams</p>
+              </div>
+              
+              <div className="mb-6">
+                <span className="font-serif text-4xl font-bold text-foreground">$29</span>
+                <span className="font-sans text-sm text-muted-foreground">/month</span>
+                <p className="mt-1 font-sans text-xs text-muted-foreground">Per team (up to 10 members)</p>
+              </div>
+
+              <button
+                onClick={onGetStarted}
+                className="mb-6 w-full rounded-xl border border-border bg-background py-3 font-sans text-sm font-semibold text-foreground transition-all hover:bg-muted press-effect"
+              >
+                Contact Sales
+              </button>
+
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-foreground font-medium">Everything in Pro, plus:</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Team collaboration features</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Shared reading lists</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Team insights dashboard</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Admin controls</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <span className="font-sans text-sm text-muted-foreground">Dedicated account manager</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Money-back guarantee */}
+          <div className="mt-10 text-center">
+            <p className="font-sans text-sm text-muted-foreground">
+              30-day money-back guarantee. No questions asked.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="relative z-10 px-6 py-16 md:py-24">
         <div className="mx-auto max-w-2xl text-center">
@@ -280,7 +460,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-border/50 px-6 py-8">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2">
             <div className="relative h-5 w-5">
               <Image
@@ -295,12 +475,12 @@ export function Homepage({ onGetStarted }: HomepageProps) {
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Privacy
-            </a>
-            <a href="#" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Terms
-            </a>
+            <Link href="/privacy-policy" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-of-service" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
+              Terms of Service
+            </Link>
           </div>
         </div>
       </footer>
