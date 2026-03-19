@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="mb-4 font-serif text-xl font-semibold text-foreground">
               2. Information We Collect
             </h2>
-            
+
             <h3 className="mb-3 font-sans text-base font-medium text-foreground">
               2.1 Personal Information
             </h3>
@@ -190,7 +190,7 @@ export default function PrivacyPolicyPage() {
             <div className="mt-4 rounded-lg border border-border bg-card/50 p-4">
               <p className="font-sans text-sm text-foreground">
                 <strong>Estew</strong><br />
-                Email: privacy@estew.xyz<br />
+                Email: sarwanupadhyay19@gmail.com<br />
                 Website: https://estew.xyz
               </p>
             </div>
