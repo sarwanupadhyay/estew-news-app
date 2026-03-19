@@ -31,7 +31,7 @@ import {
   Sparkles,
 } from "lucide-react"
 
-type TabType = "home" | "users" | "articles" | "subscribers" | "newsletter"
+type TabType = "home" | "users" | "articles" | "subscribers" | "newsletter" | "newsletter_subscribers"
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -88,6 +88,7 @@ export default function AdminDashboard() {
     { id: "articles" as TabType, label: "Articles", icon: Newspaper, description: "Stored articles" },
     { id: "subscribers" as TabType, label: "Pro Subscribers", icon: CreditCard, description: "Premium members" },
     { id: "newsletter" as TabType, label: "Newsletter", icon: Mail, description: "AI briefings" },
+    { id: "newsletter_subscribers" as TabType, label: "Newsletter Subs", icon: Users, description: "Email subscribers" },
   ]
 
   if (!isAuthenticated) {
@@ -530,9 +531,150 @@ export default function AdminDashboard() {
 
               {/* Newsletter Tab */}
               {activeTab === "newsletter" && <NewsletterEditor />}
+
+              {/* Newsletter Subscribers Tab */}
+              {activeTab === "newsletter_subscribers" && <NewsletterSubscribersTab />}
             </>
           )}
         </main>
+      </div>
+    </div>
+  )
+}
+
+// Newsletter Subscribers Tab Component
+function NewsletterSubscribersTab() {
+  const [subscribers, setSubscribers] = useState<Array<{
+    id: string
+    email: string
+    displayName: string
+    subscribedAt: string
+    status: string
+  }>>([])
+  const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    loadSubscribers()
+  }, [])
+
+  const loadSubscribers = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/admin/newsletter-subscribers")
+      const data = await res.json()
+      if (data.subscribers) {
+        setSubscribers(data.subscribers)
+      }
+    } catch (error) {
+      console.error("Failed to load subscribers:", error)
+    }
+    setLoading(false)
+  }
+
+  const exportToCSV = () => {
+    setExporting(true)
+    try {
+      const headers = ["Email", "Name", "Subscribed At", "Status"]
+      const rows = subscribers.map(sub => [
+        sub.email,
+        sub.displayName,
+        new Date(sub.subscribedAt).toLocaleDateString(),
+        sub.status
+      ])
+      
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      ].join("\n")
+      
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
+      link.href = URL.createObjectURL(blob)
+      link.download = `newsletter_subscribers_${new Date().toISOString().split("T")[0]}.csv`
+      link.click()
+    } catch (error) {
+      console.error("Export failed:", error)
+    }
+    setExporting(false)
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", { 
+      month: "short", 
+      day: "numeric", 
+      year: "numeric" 
+    })
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with actions */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Newsletter Subscribers</h3>
+          <p className="text-sm text-gray-400">{subscribers.length} total subscribers</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadSubscribers}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            onClick={exportToCSV}
+            disabled={exporting || subscribers.length === 0}
+            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
+          >
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <ChevronRight size={14} />}
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Subscribers list */}
+      <div className="rounded-2xl border border-white/10 bg-[#12131a]">
+        <div className="border-b border-white/10 px-5 py-4">
+          <div className="grid grid-cols-12 gap-4 text-xs font-medium uppercase tracking-wider text-gray-500">
+            <div className="col-span-5">Subscriber</div>
+            <div className="col-span-4">Email</div>
+            <div className="col-span-3">Subscribed</div>
+          </div>
+        </div>
+        <div className="divide-y divide-white/5">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={24} className="animate-spin text-primary" />
+            </div>
+          ) : subscribers.length === 0 ? (
+            <div className="py-12 text-center">
+              <Mail size={32} className="mx-auto mb-3 text-gray-600" />
+              <p className="text-gray-500">No newsletter subscribers yet</p>
+            </div>
+          ) : (
+            subscribers.map((subscriber) => (
+              <div key={subscriber.id} className="grid grid-cols-12 items-center gap-4 px-5 py-4 transition-colors hover:bg-white/5">
+                <div className="col-span-5 flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-sm font-medium text-amber-500">
+                    {subscriber.displayName?.charAt(0).toUpperCase() || subscriber.email?.charAt(0).toUpperCase() || "?"}
+                  </div>
+                  <span className="truncate font-medium text-white">
+                    {subscriber.displayName || "Anonymous"}
+                  </span>
+                </div>
+                <div className="col-span-4 truncate text-sm text-gray-400">
+                  {subscriber.email}
+                </div>
+                <div className="col-span-3 text-sm text-gray-500">
+                  {formatDate(subscriber.subscribedAt)}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
