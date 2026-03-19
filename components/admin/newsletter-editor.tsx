@@ -813,7 +813,7 @@ export function NewsletterEditor() {
                     {/* Sections editor */}
                     <div className="space-y-2">
                       <h5 className="text-xs font-medium uppercase tracking-wider text-gray-500">Sections</h5>
-                      {selectedNewsletter.sections?.map((section) => {
+                      {selectedNewsletter.sections?.filter(s => s.id !== "ai_tool" && s.type !== "ai_tool").map((section) => {
                         const Icon = SECTION_ICONS[section.id] || SECTION_ICONS[section.type] || FileText
                         const isExpanded = expandedSections.has(section.id)
                         const isEditing = editingSection === section.id

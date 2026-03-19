@@ -185,6 +185,11 @@ function convertSectionsToHtml(sections: Array<{ id: string; title: string; cont
   let sectionsHtml = ""
 
   for (const section of sections) {
+    // Skip any ai_tool sections from the generated content - we only use the special aiToolOfTheDay
+    if (section.id === "ai_tool" || section.type === "ai_tool") {
+      continue
+    }
+    
     const config = SECTION_CONFIG[section.id] || { label: section.title, emoji: "📄", color: "#6B7280" }
 
     sectionsHtml += `
