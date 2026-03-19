@@ -19,7 +19,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
     const steps = 30
     const increment = target / steps
     let current = 0
-    
+
     const timer = setInterval(() => {
       current += increment
       if (current >= target) {
@@ -29,7 +29,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
         setUserCount(Math.floor(current))
       }
     }, duration / steps)
-    
+
     return () => clearInterval(timer)
   }, [])
 
@@ -51,7 +51,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
             Est<span className="text-primary">ew</span>
           </span>
         </div>
-        
+
         <nav className="hidden items-center gap-8 md:flex">
           <a href="#features" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
             Features
@@ -59,7 +59,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
           <a href="#how-it-works" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
             How it works
           </a>
-          <a href="#pricing" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <a href="pricing" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
             Pricing
           </a>
         </nav>
@@ -93,14 +93,14 @@ export function Homepage({ onGetStarted }: HomepageProps) {
           in <span className="relative inline-block text-primary">
             60 seconds
             <svg className="absolute -bottom-1 left-0 w-full" height="8" viewBox="0 0 200 8" fill="none">
-              <path d="M1 5.5C47 2 153 2 199 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M1 5.5C47 2 153 2 199 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </span>
         </h1>
 
         {/* Subtitle */}
         <p className="mb-10 max-w-lg text-center font-sans text-base text-muted-foreground animate-slide-up delay-100 md:text-lg" style={{ lineHeight: 1.7 }}>
-          AI-curated tech intelligence. Zero noise. 
+          AI-curated tech intelligence. Zero noise.
           <br className="hidden md:block" />
           Get the stories that matter, delivered daily.
         </p>
@@ -144,7 +144,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
               <div className="mb-6 inline-flex rounded-lg border border-border bg-background px-3 py-1.5 font-mono text-xs text-muted-foreground">
                 001
               </div>
-              
+
               <div className="mb-6 flex h-24 items-center justify-center">
                 <div className="grid grid-cols-4 gap-1.5">
                   {[...Array(16)].map((_, i) => (
@@ -178,7 +178,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
               <div className="mb-6 inline-flex rounded-lg border border-border bg-background px-3 py-1.5 font-mono text-xs text-muted-foreground">
                 002
               </div>
-              
+
               <div className="mb-6 flex h-24 items-center justify-center gap-3">
                 <span className="rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs text-muted-foreground">
                   APP
@@ -204,7 +204,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
               <div className="mb-6 inline-flex rounded-lg border border-border bg-background px-3 py-1.5 font-mono text-xs text-muted-foreground">
                 003
               </div>
-              
+
               <div className="mb-6 flex h-24 items-center justify-center">
                 <div className="relative">
                   <div className="absolute inset-0 animate-ping rounded-full bg-emerald-500/20"></div>
