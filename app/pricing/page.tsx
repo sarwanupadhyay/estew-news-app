@@ -60,7 +60,7 @@ export default function PricingPage() {
                 <h2 className="mb-2 font-serif text-2xl font-semibold text-foreground">Free</h2>
                 <p className="font-sans text-sm text-muted-foreground">Perfect for getting started</p>
               </div>
-              
+
               <div className="mb-8">
                 <div className="flex items-baseline gap-1">
                   <span className="font-serif text-5xl font-bold text-foreground">₹0</span>
@@ -115,7 +115,7 @@ export default function PricingPage() {
                 </h2>
                 <p className="font-sans text-sm text-muted-foreground">For serious tech enthusiasts</p>
               </div>
-              
+
               <div className="mb-8">
                 <div className="flex items-baseline gap-1">
                   <span className="font-serif text-5xl font-bold text-foreground">₹599</span>
@@ -167,8 +167,8 @@ export default function PricingPage() {
           <div className="mt-16 text-center">
             <p className="font-sans text-sm text-muted-foreground">
               Questions? Contact us at{" "}
-              <a href="mailto:support@estew.xyz" className="text-primary hover:underline">
-                support@estew.xyz
+              <a href="mailto:sarwanupadhyay19@gmail.com" className="text-primary hover:underline">
+                sarwanupadhyay19@gmail.com
               </a>
             </p>
           </div>
