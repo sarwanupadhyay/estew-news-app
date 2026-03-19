@@ -59,9 +59,12 @@ export function Homepage({ onGetStarted }: HomepageProps) {
           <a href="#how-it-works" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
             How it works
           </a>
-          <a href="pricing" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <Link href="/pricing" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
             Pricing
-          </a>
+          </Link>
+          <Link href="/about-us" className="font-sans text-sm text-muted-foreground transition-colors hover:text-foreground">
+            About
+          </Link>
         </nav>
 
         <button
