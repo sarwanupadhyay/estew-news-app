@@ -1,35 +1,129 @@
-# estew-news-app
+# 🚀 Estew
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+### Tech news, reimagined for the modern reader
 
-## Built with v0
+Estew is an **AI-powered tech news platform** that cuts through the noise to deliver the stories that matter most.
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+> We believe staying informed shouldn't feel like a full-time job.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_zf1jIImk4zsh6GAhlwMNco1gqSde)
+---
 
-## Getting Started
+## 🎯 Our Mission
 
-First, run the development server:
+### Making tech news accessible to everyone
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+In a world flooded with information, finding quality tech news has become overwhelming.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Estew solves this by:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Aggregating news from **50+ trusted sources**
+- Analyzing thousands of articles daily
+- Delivering only the most relevant stories
+- All in **under 60 seconds of reading time**
 
-## Learn More
+---
 
-To learn more, take a look at the following resources:
+## 🧠 How It Works
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+### Intelligence, not information overload
 
-<a href="https://v0.app/chat/api/kiro/clone/sarwanupadhyay/estew-news-app" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+#### 01 — We Aggregate
+Our system continuously monitors **50+ trusted tech publications**, blogs, and news sources worldwide, collecting thousands of articles every day.
+
+#### 02 — AI Curates
+Advanced AI algorithms:
+- Analyze
+- Deduplicate
+- Rank stories
+
+Based on:
+- Relevance  
+- Impact  
+- Your personal interests  
+
+#### 03 — You Read
+Access your personalized feed via:
+
+- 🌐 Web App  
+- 📱 Mobile App  
+- 📧 Daily Email Newsletter  
+
+Stay informed in just **5 minutes a day**.
+
+---
+
+## ✨ What We Offer
+
+### Built for busy professionals
+
+#### ⚡ Real-Time Updates
+Breaking news delivered within minutes — stay ahead of the curve.
+
+#### 🎯 Personalized Topics
+Choose from:
+- AI  
+- Startups  
+- Crypto  
+- Developer Tools  
+- and more  
+
+Your feed adapts to what matters to you.
+
+#### ⏱️ 5-Minute Briefings
+Concise summaries + smart categorization =  
+**full-day news in 5 minutes**
+
+#### 🚫 Ad-Free Experience
+No distractions.  
+Pro users enjoy a clean, focused reading experience.
+
+---
+
+## 📊 Platform Stats
+
+| Metric | Value |
+|------|------|
+| 📰 News Sources | 50+ |
+| 📈 Daily Articles Processed | 1000+ |
+| ⏱️ Average Read Time | 5 min |
+| 👥 Active Readers | 600+ |
+
+---
+
+## 💡 Our Values
+
+### What drives us
+
+#### 👤 User First
+Every feature starts with one question:  
+> "Does this help users save time and stay informed?"
+
+#### 🎯 Quality Over Quantity
+No clickbait. Only meaningful, relevant content.
+
+#### 🔄 Continuous Innovation
+We constantly improve:
+- AI models  
+- UX  
+- Personalization  
+
+Based on real feedback + latest tech advancements.
+
+---
+
+## 🚀 Get Started
+
+Ready to transform how you consume tech news?
+
+👉 Join thousands of tech professionals who start their day with **Estew**
+
+---
+
+## 📬 Stay Connected
+
+- 🌐 Website: https://estew.xyz  
+- 📧 Newsletter: newsletter@news.estew.xyz
+
+---
+
+> Built with ❤️ using V0 by Vercel + modern web technologies
