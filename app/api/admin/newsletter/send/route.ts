@@ -57,21 +57,21 @@ async function getAllUsers() {
 // Get selected users by email
 async function getSelectedUsers(emails: string[]) {
   if (!emails || emails.length === 0) return []
-  
+
   try {
     const usersRef = collection(db, "users")
     // Firestore 'in' query supports max 30 items, so we need to batch
     const batches: Array<Promise<any>> = []
-    
+
     for (let i = 0; i < emails.length; i += 30) {
       const batch = emails.slice(i, i + 30)
       const q = query(usersRef, where("email", "in", batch))
       batches.push(getDocs(q))
     }
-    
+
     const results = await Promise.all(batches)
     const users: Array<{ userId: string; email: string; displayName: string }> = []
-    
+
     for (const snapshot of results) {
       for (const doc of snapshot.docs) {
         users.push({
@@ -81,7 +81,7 @@ async function getSelectedUsers(emails: string[]) {
         })
       }
     }
-    
+
     return users
   } catch (error) {
     console.error("Error fetching selected users:", error)
@@ -91,7 +91,7 @@ async function getSelectedUsers(emails: string[]) {
 
 // Get recipients based on audience type
 async function getRecipientsByAudience(
-  audienceType: AudienceType, 
+  audienceType: AudienceType,
   selectedUsers: string[]
 ): Promise<Array<{ userId: string; email: string; displayName: string }>> {
   switch (audienceType) {
@@ -148,8 +148,8 @@ async function sendEmail(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-  // Branded sender name for professional email display
-  from: process.env.RESEND_FROM_EMAIL || "Estew Newsletter <newsletter@news.estew.xyz>",
+        // Branded sender name for professional email display
+        from: `Estew <${process.env.RESEND_FROM_EMAIL}>` || "Estew Newsletter <newsletter@news.estew.xyz>",
         to: [to],
         subject: subject,
         html: htmlContent,
@@ -189,7 +189,7 @@ function convertSectionsToHtml(sections: Array<{ id: string; title: string; cont
     if (section.id === "ai_tool" || section.type === "ai_tool") {
       continue
     }
-    
+
     const config = SECTION_CONFIG[section.id] || { label: section.title, emoji: "📄", color: "#6B7280" }
 
     sectionsHtml += `
