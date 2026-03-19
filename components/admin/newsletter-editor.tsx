@@ -66,7 +66,12 @@ interface Newsletter {
   date: string
   status: string
   sections: NewsletterSection[]
-  aiToolOfDay?: AITool
+  aiToolOfDay?: {
+    name: string
+    description: string
+    url: string
+    imageUrl?: string
+  }
   generatedAt: string
   scheduledTime?: string | null
   sentAt?: string | null
@@ -138,7 +143,12 @@ export function NewsletterEditor() {
       const res = await fetch("/api/admin/newsletter")
       const data = await res.json()
       if (data.newsletters) {
-        setNewsletters(data.newsletters)
+        // Map aiToolOfTheDay to aiToolOfDay for consistency in the UI
+        const mappedNewsletters = data.newsletters.map((n: Newsletter & { aiToolOfTheDay?: Newsletter["aiToolOfDay"] }) => ({
+          ...n,
+          aiToolOfDay: n.aiToolOfTheDay || n.aiToolOfDay,
+        }))
+        setNewsletters(mappedNewsletters)
       }
     } catch (err) {
       setError("Failed to load newsletters")
@@ -402,43 +412,54 @@ export function NewsletterEditor() {
           </div>
 
           {/* Add new tool form */}
-          <div className="mb-4 grid gap-3 rounded-lg bg-black/30 p-3 sm:grid-cols-2 lg:grid-cols-5">
-            <input
-              type="text"
-              placeholder="Tool name *"
-              value={newTool.name}
-              onChange={(e) => setNewTool({ ...newTool, name: e.target.value })}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
-            />
-            <input
-              type="text"
-              placeholder="Category"
-              value={newTool.category}
-              onChange={(e) => setNewTool({ ...newTool, category: e.target.value })}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
-            />
-            <input
-              type="url"
-              placeholder="URL *"
-              value={newTool.url}
-              onChange={(e) => setNewTool({ ...newTool, url: e.target.value })}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
-            />
-            <input
-              type="text"
-              placeholder="Description *"
-              value={newTool.description}
-              onChange={(e) => setNewTool({ ...newTool, description: e.target.value })}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none sm:col-span-2 lg:col-span-1"
-            />
-            <button
-              onClick={addAiTool}
-              disabled={addingTool}
-              className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50 sm:col-span-2 lg:col-span-1"
-            >
-              {addingTool ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-              Add Tool
-            </button>
+          <div className="mb-4 space-y-3 rounded-lg bg-black/30 p-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <input
+                type="text"
+                placeholder="Tool name *"
+                value={newTool.name}
+                onChange={(e) => setNewTool({ ...newTool, name: e.target.value })}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Category"
+                value={newTool.category}
+                onChange={(e) => setNewTool({ ...newTool, category: e.target.value })}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
+              />
+              <input
+                type="url"
+                placeholder="Tool URL *"
+                value={newTool.url}
+                onChange={(e) => setNewTool({ ...newTool, url: e.target.value })}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
+              />
+              <input
+                type="url"
+                placeholder="Image URL (optional)"
+                value={newTool.imageUrl}
+                onChange={(e) => setNewTool({ ...newTool, imageUrl: e.target.value })}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input
+                type="text"
+                placeholder="Description *"
+                value={newTool.description}
+                onChange={(e) => setNewTool({ ...newTool, description: e.target.value })}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
+              />
+              <button
+                onClick={addAiTool}
+                disabled={addingTool}
+                className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
+              >
+                {addingTool ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Add Tool
+              </button>
+            </div>
           </div>
 
           {/* Tools list */}
@@ -587,6 +608,38 @@ export function NewsletterEditor() {
                       <div className="text-center">
                         <p className="text-lg font-bold text-blue-400">{newsletter.deliveryStats.pending}</p>
                         <p className="text-[10px] text-gray-500">Pending</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Tool of the Day display */}
+                  {newsletter.aiToolOfDay && (
+                    <div className="mb-4 rounded-lg border border-purple-500/20 bg-purple-500/10 p-3">
+                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-purple-400">
+                        <Wrench size={12} />
+                        AI Tool of the Day
+                      </div>
+                      <div className="mt-2 flex items-center gap-3">
+                        {newsletter.aiToolOfDay.imageUrl && (
+                          <img
+                            src={newsletter.aiToolOfDay.imageUrl}
+                            alt={newsletter.aiToolOfDay.name}
+                            className="h-12 w-12 rounded-lg object-cover"
+                            onError={(e) => { e.currentTarget.style.display = "none" }}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white">{newsletter.aiToolOfDay.name}</p>
+                          <p className="truncate text-sm text-gray-400">{newsletter.aiToolOfDay.description}</p>
+                        </div>
+                        <a
+                          href={newsletter.aiToolOfDay.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg bg-purple-500/20 p-2 text-purple-400 hover:bg-purple-500/30"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
                       </div>
                     </div>
                   )}

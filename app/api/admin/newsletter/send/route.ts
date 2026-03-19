@@ -365,7 +365,7 @@ export async function POST(request: Request) {
     // Use section-based HTML if sections are available, otherwise fallback to text conversion
     let htmlContent: string
     if (newsletter.sections && Array.isArray(newsletter.sections) && newsletter.sections.length > 0) {
-      htmlContent = convertSectionsToHtml(newsletter.sections, subject, newsletter.aiToolOfDay)
+      htmlContent = convertSectionsToHtml(newsletter.sections, subject, newsletter.aiToolOfTheDay)
     } else {
       htmlContent = convertToHtml(newsletter.content, subject)
     }

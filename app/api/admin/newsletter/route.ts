@@ -426,10 +426,26 @@ export async function POST(request: Request) {
     }
 
     // Check for optional AI tool selection from request body
-    let selectedAiTool = null
+    let selectedAiTool: { name: string; description: string; url: string; imageUrl?: string } | null = null
     try {
       const body = await request.json()
-      selectedAiTool = body.aiToolOfTheDay || null
+      // Support both direct aiToolOfTheDay object and aiToolId for lookup
+      if (body.aiToolOfTheDay) {
+        selectedAiTool = body.aiToolOfTheDay
+      } else if (body.aiToolId) {
+        // Look up the tool from the ai_tools collection
+        const toolRef = doc(db, "ai_tools", body.aiToolId)
+        const toolSnap = await getDoc(toolRef)
+        if (toolSnap.exists()) {
+          const toolData = toolSnap.data()
+          selectedAiTool = {
+            name: toolData.name,
+            description: toolData.description,
+            url: toolData.url,
+            imageUrl: toolData.imageUrl || undefined,
+          }
+        }
+      }
     } catch {
       // No body or invalid JSON, continue without AI tool
     }
