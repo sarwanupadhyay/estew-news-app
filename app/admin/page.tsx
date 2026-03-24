@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { verifyAdminCredentials } from "@/lib/admin-service"
-import { Lock, Mail, Eye, EyeOff } from "lucide-react"
+import { Lock, Mail, Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -19,9 +19,7 @@ export default function AdminLoginPage() {
     setError("")
     setLoading(true)
 
-    // Verify credentials
     if (verifyAdminCredentials(email, password)) {
-      // Store admin session in sessionStorage
       sessionStorage.setItem("estew_admin_auth", "true")
       sessionStorage.setItem("estew_admin_email", email)
       router.push("/admin/dashboard")
@@ -33,11 +31,11 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0b0f] p-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Title */}
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="relative mx-auto mb-4 h-16 w-16">
+          <div className="relative mx-auto mb-4 h-12 w-12">
             <Image
               src="/images/logo.svg"
               alt="Estew"
@@ -46,78 +44,85 @@ export default function AdminLoginPage() {
               priority
             />
           </div>
-          <h1 className="font-serif text-3xl font-bold text-white">Estew Admin</h1>
-          <p className="mt-2 text-sm text-gray-400">Secure access to the admin dashboard</p>
+          <h1 className="text-xl font-semibold text-foreground">Admin Login</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Access the admin dashboard</p>
         </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleLogin} className="rounded-2xl border border-white/10 bg-[#12131a] p-8">
+        {/* Form */}
+        <form onSubmit={handleLogin} className="rounded-2xl border border-border bg-card p-6">
           {error && (
-            <div className="mb-6 rounded-xl bg-red-500/10 p-4 text-center text-sm text-red-400 ring-1 ring-red-500/20">
+            <div className="mb-5 rounded-xl bg-destructive/10 p-3 text-center text-sm text-destructive">
               {error}
             </div>
           )}
 
-          <div className="space-y-5">
-            {/* Email Field */}
+          <div className="space-y-4">
+            {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-300">
-                Admin Email
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
+                Email
               </label>
               <div className="relative">
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter admin email"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-white placeholder-gray-500 outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                  placeholder="admin@estew.com"
+                  className="w-full rounded-xl border border-border bg-muted/30 py-2.5 pl-10 pr-4 text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                   required
                 />
               </div>
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
                 Password
               </label>
               <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-12 pr-12 text-white placeholder-gray-500 outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-xl border border-border bg-muted/30 py-2.5 pl-10 pr-10 text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className="mt-8 w-full rounded-xl bg-primary py-3.5 font-semibold text-white transition-all hover:bg-primary/90 disabled:opacity-50"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
-            {loading ? "Authenticating..." : "Access Dashboard"}
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-gray-500">
-          This is a protected admin area. Unauthorized access is prohibited.
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Protected area. Unauthorized access prohibited.
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { Mail, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -67,60 +67,51 @@ export function LandingScreen() {
     }
   }
 
-  // Show homepage first
   if (!showAuthScreen) {
     return <Homepage onGetStarted={() => setShowAuthScreen(true)} />
   }
 
-  // Auth screen
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-8">
-      {/* Back button */}
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+      {/* Back */}
       <button
         onClick={() => setShowAuthScreen(false)}
-        className="absolute left-4 top-4 flex items-center gap-1.5 rounded-lg px-3 py-2 font-sans text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="absolute left-4 top-4 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft size={16} />
         Back
       </button>
 
-      <div className="relative z-10 flex w-full max-w-sm flex-col items-center animate-fade-in">
-        {/* Logo image */}
-        <div className="relative mb-5 h-20 w-20 animate-slide-up">
-          <Image
-            src="/images/logo.svg"
-            alt="Estew logo"
-            fill
-            className="object-contain dark:invert"
-            priority
-          />
+      <div className="w-full max-w-sm animate-fade-in">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center">
+          <div className="relative mb-4 h-16 w-16 animate-slide-up">
+            <Image
+              src="/images/logo.svg"
+              alt="Estew"
+              fill
+              className="object-contain dark:invert"
+              priority
+            />
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to continue</p>
         </div>
 
-        {/* App name */}
-        <h1 className="mb-1 font-serif text-3xl font-bold tracking-tight text-foreground animate-slide-up delay-100">
-          Estew
-        </h1>
-        <p
-          className="mb-10 text-center font-sans text-sm text-muted-foreground animate-slide-up delay-200"
-          style={{ lineHeight: 1.6 }}
-        >
-          Sign in to continue reading.
-        </p>
-
-        {/* Error display */}
+        {/* Error */}
         {error && (
-          <div className="mb-4 w-full rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-center font-sans text-xs text-destructive">
+          <div className="mb-4 rounded-xl bg-destructive/10 p-3 text-center text-sm text-destructive">
             {error}
           </div>
         )}
 
-        {/* Auth buttons */}
-        <div className="flex w-full flex-col gap-3 animate-slide-up delay-300">
+        {/* Auth */}
+        <div className="flex flex-col gap-3">
           {/* Google */}
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="flex h-[52px] items-center justify-center gap-3 rounded-xl border border-border bg-card font-sans text-sm font-semibold text-foreground transition-colors hover:bg-muted active:scale-[0.98] disabled:opacity-50"
+            className="flex h-12 items-center justify-center gap-3 rounded-xl border border-border bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -131,27 +122,24 @@ export function LandingScreen() {
             {loading ? "Signing in..." : "Continue with Google"}
           </button>
 
-          {/* Email toggle */}
+          {/* Email */}
           {!showEmailForm ? (
             <button
               onClick={() => setShowEmailForm(true)}
-              className="flex h-[52px] items-center justify-center gap-3 rounded-xl bg-primary font-sans text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98]"
+              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <Mail size={18} strokeWidth={1.5} />
+              <Mail size={18} />
               Continue with Email
             </button>
           ) : (
-            <form
-              onSubmit={handleEmail}
-              className="flex flex-col gap-3 animate-fade-in"
-            >
+            <form onSubmit={handleEmail} className="flex flex-col gap-3 animate-fade-in">
               <input
                 type="email"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-[48px] rounded-xl border border-border bg-input px-4 font-sans text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                className="h-12 rounded-xl border border-border bg-muted/30 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               <div className="relative">
                 <input
@@ -161,12 +149,12 @@ export function LandingScreen() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="h-[48px] w-full rounded-xl border border-border bg-input px-4 pr-12 font-sans text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                  className="h-12 w-full rounded-xl border border-border bg-muted/30 px-4 pr-12 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -177,9 +165,9 @@ export function LandingScreen() {
                     type="checkbox"
                     checked={subscribeNewsletter}
                     onChange={(e) => setSubscribeNewsletter(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-border bg-input accent-primary"
+                    className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
                   />
-                  <span className="font-sans text-[12px] text-muted-foreground leading-relaxed">
+                  <span className="text-xs text-muted-foreground leading-relaxed">
                     Subscribe to our daily newsletter with AI-curated tech news
                   </span>
                 </label>
@@ -187,14 +175,23 @@ export function LandingScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex h-[52px] items-center justify-center rounded-xl bg-primary font-sans text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
-                {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Loading...
+                  </>
+                ) : isSignUp ? (
+                  "Create Account"
+                ) : (
+                  "Sign In"
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
                 {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
               </button>
@@ -202,16 +199,15 @@ export function LandingScreen() {
           )}
         </div>
 
-        <p className="mt-8 text-center font-sans text-[11px] text-muted-foreground animate-fade-in delay-400">
+        <p className="mt-6 text-center text-[11px] text-muted-foreground">
           By continuing, you agree to our{" "}
           <Link href="/terms-of-service" className="text-primary hover:underline">
-            Terms of Service
+            Terms
           </Link>{" "}
           and{" "}
           <Link href="/privacy-policy" className="text-primary hover:underline">
             Privacy Policy
           </Link>
-          .
         </p>
       </div>
     </div>

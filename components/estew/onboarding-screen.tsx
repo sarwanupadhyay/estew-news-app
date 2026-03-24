@@ -7,7 +7,6 @@ import { ArrowRight, Check, Sparkles, Bot, TrendingUp, Rocket, Smartphone, Zap, 
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 
-// Topic icons mapped to Lucide components for visual appeal
 const TOPIC_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   AI: Bot,
   Market: TrendingUp,
@@ -15,15 +14,6 @@ const TOPIC_ICONS: Record<string, React.ComponentType<{ size?: number; className
   Apps: Smartphone,
   Startups: Zap,
   Products: Package,
-}
-
-const CATEGORY_COLORS: Record<string, string> = {
-  AI: "#8B5CF6",
-  Market: "#10B981",
-  Launches: "#F59E0B",
-  Apps: "#3B82F6",
-  Startups: "#EF4444",
-  Products: "#EC4899",
 }
 
 const TOPICS = [
@@ -88,7 +78,6 @@ export function OnboardingScreen() {
 
     setProcessingPayment(true)
 
-    // Load Razorpay script if not already loaded
     if (!window.Razorpay) {
       const script = document.createElement("script")
       script.src = "https://checkout.razorpay.com/v1/checkout.js"
@@ -101,13 +90,12 @@ export function OnboardingScreen() {
 
     const options: RazorpayOptions = {
       key: razorpayKey,
-      amount: 59900, // Rs 599 in paise (monthly)
+      amount: 59900,
       currency: "INR",
       name: "Estew Pro",
       description: "Unlimited articles, AI summaries, priority alerts",
       handler: async function (response) {
         if (response.razorpay_payment_id) {
-          // Payment successful - update plan
           await completeOnboarding(selectedTopics, selectedCompanies, "pro")
         }
         setProcessingPayment(false)
@@ -116,7 +104,7 @@ export function OnboardingScreen() {
         email: user?.email || "",
       },
       theme: {
-        color: "#0066FF",
+        color: "#7C3AED",
       },
     }
 
@@ -126,240 +114,229 @@ export function OnboardingScreen() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-background px-6 py-8">
-      <div className="relative z-10 flex flex-1 flex-col">
-        {/* Logo + step indicator */}
-        <div className="mb-6 flex items-center gap-3">
-          <div className="relative h-6 w-6">
-            <Image src="/images/logo.svg" alt="Estew" fill className="object-contain dark:invert" />
-          </div>
-          <div className="flex flex-1 gap-2">
-            {[0, 1, 2].map((s) => (
-              <div
-                key={s}
-                className="h-1 flex-1 rounded-full transition-colors"
-                style={{
-                  background: s <= step ? "var(--primary)" : "var(--border)",
-                }}
-              />
-            ))}
-          </div>
+    <div className="flex min-h-screen flex-col bg-background px-6 py-8">
+      {/* Header */}
+      <div className="mb-8 flex items-center gap-3">
+        <div className="relative h-6 w-6">
+          <Image src="/images/logo.svg" alt="Estew" fill className="object-contain dark:invert" />
         </div>
-
-        <AnimatePresence mode="wait">
-          {/* Step 1: Topics */}
-          {step === 0 && (
-            <motion.div
-              key="step-0"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.25 }}
-              className="flex flex-1 flex-col"
-            >
-              <h1 className="mb-1 font-serif text-2xl font-bold tracking-tight text-foreground">
-                {"What's your interest?"}
-              </h1>
-              <p className="mb-6 font-sans text-sm text-muted-foreground" style={{ lineHeight: 1.6 }}>
-                Select topics to personalize your feed.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                {TOPICS.map((cat) => {
-                  const isSelected = selectedTopics.includes(cat.value)
-                  const color = CATEGORY_COLORS[cat.value] || "#6B7280"
-                  const IconComponent = TOPIC_ICONS[cat.value]
-                  return (
-                    <button
-                      key={cat.value}
-                      onClick={() => toggleTopic(cat.value)}
-                      className="relative flex flex-col items-center justify-center gap-2 rounded-xl border py-6 transition-all active:scale-[0.97]"
-                      style={{
-                        background: isSelected ? `${color}15` : "var(--card)",
-                        borderColor: isSelected ? color : "var(--border)",
-                        borderWidth: isSelected ? 2 : 1,
-                      }}
-                    >
-                      {isSelected && (
-                        <div className="absolute right-2 top-2">
-                          <Check size={16} strokeWidth={2} style={{ color }} />
-                        </div>
-                      )}
-                      <div
-                        className="flex h-12 w-12 items-center justify-center rounded-full"
-                        style={{ background: color }}
-                      >
-                        {IconComponent && <IconComponent size={24} className="text-white" />}
-                      </div>
-                      <span
-                        className="font-sans text-[13px] font-semibold"
-                        style={{ color: isSelected ? color : "var(--foreground)" }}
-                      >
-                        {cat.label}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 2: Companies */}
-          {step === 1 && (
-            <motion.div
-              key="step-1"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.25 }}
-              className="flex flex-1 flex-col"
-            >
-              <h1 className="mb-1 font-serif text-2xl font-bold tracking-tight text-foreground">
-                Follow companies
-              </h1>
-              <p className="mb-6 font-sans text-sm text-muted-foreground" style={{ lineHeight: 1.6 }}>
-                Get updates when they make news.
-              </p>
-
-              <div className="flex flex-col gap-3">
-                {mockCompanies.map((company) => {
-                  const isSelected = selectedCompanies.includes(company.id)
-                  return (
-                    <button
-                      key={company.id}
-                      onClick={() => toggleCompany(company.id)}
-                      className="flex items-center gap-3 rounded-xl border p-3 transition-colors active:scale-[0.98]"
-                      style={{
-                        background: isSelected ? "var(--primary)" + "10" : "var(--card)",
-                        borderColor: isSelected ? "var(--primary)" : "var(--border)",
-                        borderWidth: isSelected ? 2 : 1,
-                      }}
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-muted">
-                        <img
-                          src={company.logoUrl}
-                          alt={company.name}
-                          className="h-7 w-7 object-contain"
-                          crossOrigin="anonymous"
-                        />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h3 className="font-sans text-[15px] font-semibold text-foreground">
-                          {company.name}
-                        </h3>
-                        <p className="font-sans text-[12px] text-muted-foreground">
-                          {company.category}
-                        </p>
-                      </div>
-                      {isSelected && <Check size={20} strokeWidth={2} className="text-primary" />}
-                    </button>
-                  )
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 3: Plan selection */}
-          {step === 2 && (
-            <motion.div
-              key="step-2"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.25 }}
-              className="flex flex-1 flex-col"
-            >
-              <h1 className="mb-1 font-serif text-2xl font-bold tracking-tight text-foreground">
-                Choose your plan
-              </h1>
-              <p className="mb-6 font-sans text-sm text-muted-foreground" style={{ lineHeight: 1.6 }}>
-                Start free, upgrade anytime.
-              </p>
-
-              <div className="flex flex-col gap-4">
-                {/* Free plan */}
-                <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-serif text-lg font-bold text-foreground">Free</h3>
-                    <span className="font-sans text-[13px] font-semibold text-muted-foreground">Rs 0/mo</span>
-                  </div>
-                  <ul className="flex flex-col gap-1.5">
-                    {["20 articles/day", "1 newsletter topic", "Basic search", "Standard feed"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 font-sans text-[13px] text-muted-foreground">
-                        <Check size={14} strokeWidth={2} className="text-muted-foreground" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    onClick={handleFreePlan}
-                    disabled={processingPayment}
-                    className="mt-2 rounded-full border border-border bg-card py-3 font-sans text-[14px] font-semibold text-foreground transition-transform active:scale-[0.97] disabled:opacity-50"
-                  >
-                    Start Free
-                  </button>
-                </div>
-
-                {/* Pro plan */}
-                <div
-                  className="relative flex flex-col gap-3 overflow-hidden rounded-xl p-5"
-                  style={{
-                    border: "2px solid var(--primary)",
-                    background: "var(--card)",
-                  }}
-                >
-                  <div className="absolute right-3 top-3">
-                    <Sparkles size={16} className="text-primary" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-serif text-lg font-bold text-foreground">Pro</h3>
-                      <span className="rounded-full bg-primary px-2 py-0.5 font-sans text-[9px] font-bold uppercase tracking-wider text-primary-foreground">
-                        Popular
-                      </span>
-                    </div>
-                    <span className="font-sans text-[13px] font-semibold text-primary">Rs 599/mo</span>
-                  </div>
-                  <ul className="flex flex-col gap-1.5">
-                    {["Unlimited articles", "Refresh every 10 min", "Full profiles & search", "Extended newsletter", "Priority alerts"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 font-sans text-[13px] text-muted-foreground">
-                        <Check size={14} strokeWidth={2} className="text-primary" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    onClick={handleProPlan}
-                    disabled={processingPayment}
-                    className="mt-2 rounded-full bg-primary py-3 font-sans text-[14px] font-semibold text-primary-foreground transition-transform active:scale-[0.97] disabled:opacity-50"
-                  >
-                    {processingPayment ? "Processing..." : "Upgrade to Pro"}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Bottom action */}
-        {step < 2 && (
-          <div className="mt-auto pt-6">
-            <button
-              onClick={() => setStep(step + 1)}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-sans text-[15px] font-semibold text-primary-foreground transition-transform active:scale-[0.97]"
-            >
-              Continue
-              <ArrowRight size={18} strokeWidth={1.5} />
-            </button>
-            <button
-              onClick={() => setStep(step + 1)}
-              className="mt-3 w-full text-center font-sans text-[13px] font-medium text-muted-foreground"
-            >
-              Skip for now
-            </button>
-          </div>
-        )}
+        <div className="flex flex-1 gap-1.5">
+          {[0, 1, 2].map((s) => (
+            <div
+              key={s}
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                s <= step ? "bg-primary" : "bg-border"
+              }`}
+            />
+          ))}
+        </div>
       </div>
+
+      <AnimatePresence mode="wait">
+        {/* Step 1: Topics */}
+        {step === 0 && (
+          <motion.div
+            key="step-0"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-1 flex-col"
+          >
+            <h1 className="mb-2 text-xl font-semibold text-foreground">
+              What interests you?
+            </h1>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Select topics to personalize your feed.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {TOPICS.map((cat) => {
+                const isSelected = selectedTopics.includes(cat.value)
+                const IconComponent = TOPIC_ICONS[cat.value]
+                return (
+                  <button
+                    key={cat.value}
+                    onClick={() => toggleTopic(cat.value)}
+                    className={`relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-5 transition-all press-effect ${
+                      isSelected 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border bg-card hover:bg-muted/50"
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute right-2 top-2">
+                        <Check size={14} className="text-primary" />
+                      </div>
+                    )}
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                      isSelected ? "bg-primary" : "bg-muted"
+                    }`}>
+                      {IconComponent && (
+                        <IconComponent 
+                          size={20} 
+                          className={isSelected ? "text-primary-foreground" : "text-muted-foreground"} 
+                        />
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium ${
+                      isSelected ? "text-primary" : "text-foreground"
+                    }`}>
+                      {cat.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 2: Companies */}
+        {step === 1 && (
+          <motion.div
+            key="step-1"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-1 flex-col"
+          >
+            <h1 className="mb-2 text-xl font-semibold text-foreground">
+              Follow companies
+            </h1>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Get updates when they make news.
+            </p>
+
+            <div className="flex flex-col gap-2">
+              {mockCompanies.map((company) => {
+                const isSelected = selectedCompanies.includes(company.id)
+                return (
+                  <button
+                    key={company.id}
+                    onClick={() => toggleCompany(company.id)}
+                    className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all press-effect ${
+                      isSelected 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border bg-card hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-muted">
+                      <img
+                        src={company.logoUrl}
+                        alt={company.name}
+                        className="h-6 w-6 object-contain"
+                        crossOrigin="anonymous"
+                      />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="text-sm font-medium text-foreground">
+                        {company.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {company.category}
+                      </p>
+                    </div>
+                    {isSelected && <Check size={18} className="text-primary" />}
+                  </button>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: Plan */}
+        {step === 2 && (
+          <motion.div
+            key="step-2"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-1 flex-col"
+          >
+            <h1 className="mb-2 text-xl font-semibold text-foreground">
+              Choose your plan
+            </h1>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Start free, upgrade anytime.
+            </p>
+
+            <div className="flex flex-col gap-4">
+              {/* Free */}
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-foreground">Free</h3>
+                  <span className="text-sm text-muted-foreground">Rs 0/mo</span>
+                </div>
+                <ul className="mb-4 flex flex-col gap-1.5">
+                  {["20 articles/day", "1 newsletter topic", "Basic search", "Standard feed"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check size={14} className="text-muted-foreground" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={handleFreePlan}
+                  disabled={processingPayment}
+                  className="w-full rounded-xl border border-border bg-card py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  Start Free
+                </button>
+              </div>
+
+              {/* Pro */}
+              <div className="relative rounded-2xl border-2 border-primary bg-card p-5">
+                <div className="absolute right-4 top-4">
+                  <Sparkles size={16} className="text-primary" />
+                </div>
+                <div className="mb-3 flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-foreground">Pro</h3>
+                  <span className="rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase text-primary-foreground">
+                    Popular
+                  </span>
+                </div>
+                <p className="mb-3 text-sm text-primary">Rs 599/mo</p>
+                <ul className="mb-4 flex flex-col gap-1.5">
+                  {["Unlimited articles", "Refresh every 10 min", "Full profiles & search", "Extended newsletter", "Priority alerts"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check size={14} className="text-primary" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={handleProPlan}
+                  disabled={processingPayment}
+                  className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {processingPayment ? "Processing..." : "Upgrade to Pro"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom */}
+      {step < 2 && (
+        <div className="mt-auto pt-6">
+          <button
+            onClick={() => setStep(step + 1)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Continue
+            <ArrowRight size={16} />
+          </button>
+          <button
+            onClick={() => setStep(step + 1)}
+            className="mt-3 w-full text-center text-sm text-muted-foreground"
+          >
+            Skip for now
+          </button>
+        </div>
+      )}
     </div>
   )
 }
