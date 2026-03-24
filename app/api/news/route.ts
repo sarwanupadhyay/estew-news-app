@@ -65,8 +65,16 @@ async function fetchFeedData(category: string) {
     clearPersistenceCache()
 
     // Build articles with temporary IDs first
+    // Filter out PyPI.org and other unwanted sources
     const rawArticles: Article[] = (data.articles || [])
-      .filter((item: { url?: string }) => item.url && item.url !== "#")
+      .filter((item: { url?: string; source?: { name?: string } }) => {
+        if (!item.url || item.url === "#") return false
+        // Exclude PyPI.org articles
+        const url = item.url.toLowerCase()
+        const sourceName = (item.source?.name || "").toLowerCase()
+        if (url.includes("pypi.org") || sourceName.includes("pypi")) return false
+        return true
+      })
       .map((item: {
         title?: string
         description?: string
