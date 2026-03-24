@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server"
+import { db } from "@/lib/firebase"
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore"
 import type { Article } from "@/lib/types"
 import { mockArticles, mockCompanies, mockAgencies } from "@/lib/mock-data"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const query = searchParams.get("q")?.toLowerCase() || ""
-  const type = searchParams.get("type") || "articles" // articles, companies, sources
-  const source = searchParams.get("source") // filter by source name
-
-  if (!query && !source) {
-    return NextResponse.json({ results: [], message: "No search query provided" })
-  }
+  const searchQuery = searchParams.get("q")?.toLowerCase() || ""
+  const type = searchParams.get("type") || "articles"
+  const source = searchParams.get("source")?.toLowerCase() || ""
 
   try {
     if (type === "articles") {
-      return searchArticles(query, source)
+      return searchArticles(searchQuery, source)
     } else if (type === "companies") {
-      return searchCompanies(query)
+      return searchCompanies(searchQuery)
     } else if (type === "sources") {
-      return searchSources(query)
+      return searchSources(searchQuery)
     }
 
     return NextResponse.json({ results: [], message: "Invalid search type" })
@@ -28,49 +26,79 @@ export async function GET(request: Request) {
   }
 }
 
-function searchArticles(query: string, source?: string | null) {
-  let articles: Article[] = [...mockArticles]
+async function searchArticles(searchQuery: string, source: string) {
+  let articles: Article[] = []
+
+  try {
+    // Fetch articles from Firebase
+    const articlesRef = collection(db, "articles")
+    const q = query(articlesRef, orderBy("publishedAt", "desc"), limit(100))
+    const snapshot = await getDocs(q)
+
+    if (snapshot.empty) {
+      // Fallback to mock data if no articles in Firebase
+      articles = mockArticles.map((a, i) => ({
+        ...a,
+        id: `mock_${a.originalUrl.replace(/[^a-z0-9]/gi, "_").substring(0, 30)}_${i}`,
+      }))
+    } else {
+      articles = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      })) as Article[]
+    }
+  } catch (firebaseError) {
+    console.error("Firebase query error, using mock data:", firebaseError)
+    // Fallback to mock data
+    articles = mockArticles.map((a, i) => ({
+      ...a,
+      id: `mock_${a.originalUrl.replace(/[^a-z0-9]/gi, "_").substring(0, 30)}_${i}`,
+    }))
+  }
 
   // Filter by source if provided
   if (source) {
-    const sourceQuery = source.toLowerCase()
-    articles = articles.filter((article) =>
-      article.sourceName.toLowerCase().includes(sourceQuery)
-    )
+    articles = articles.filter((article) => {
+      const articleSource = article.sourceName?.toLowerCase() || ""
+      const articleUrl = article.originalUrl?.toLowerCase() || ""
+      return articleSource.includes(source) || articleUrl.includes(source)
+    })
   }
 
-  // Filter by search query (search in title, summary, tags, sourceName)
-  if (query) {
+  // Filter by search query
+  if (searchQuery) {
     articles = articles.filter((article) => {
-      const searchableText = [
-        article.title,
-        article.summary,
-        article.sourceName,
-        ...(article.tags || []),
-      ]
-        .join(" ")
-        .toLowerCase()
+      const title = article.title?.toLowerCase() || ""
+      const summary = article.summary?.toLowerCase() || ""
+      const sourceName = article.sourceName?.toLowerCase() || ""
+      const category = article.category?.toLowerCase() || ""
+      const tags = (article.tags || []).join(" ").toLowerCase()
 
-      return searchableText.includes(query)
+      return (
+        title.includes(searchQuery) ||
+        summary.includes(searchQuery) ||
+        sourceName.includes(searchQuery) ||
+        category.includes(searchQuery) ||
+        tags.includes(searchQuery)
+      )
     })
   }
 
   return NextResponse.json({
-    results: articles.slice(0, 20),
+    results: articles.slice(0, 30),
     total: articles.length,
-    source: "mock",
   })
 }
 
-function searchCompanies(query: string) {
+function searchCompanies(searchQuery: string) {
   let results = mockCompanies
 
-  if (query) {
+  if (searchQuery) {
     results = mockCompanies.filter((company) => {
       const searchableText = [company.name, company.description, company.category]
         .join(" ")
         .toLowerCase()
-      return searchableText.includes(query)
+      return searchableText.includes(searchQuery)
     })
   }
 
@@ -80,15 +108,15 @@ function searchCompanies(query: string) {
   })
 }
 
-function searchSources(query: string) {
+function searchSources(searchQuery: string) {
   let results = mockAgencies
 
-  if (query) {
+  if (searchQuery) {
     results = mockAgencies.filter((agency) => {
       const searchableText = [agency.name, ...agency.categoryFocus]
         .join(" ")
         .toLowerCase()
-      return searchableText.includes(query)
+      return searchableText.includes(searchQuery)
     })
   }
 

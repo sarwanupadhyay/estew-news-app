@@ -1,11 +1,13 @@
 "use client"
 
-import { Search, X, TrendingUp, Building2, Newspaper, Clock, ExternalLink } from "lucide-react"
+import { Search, X, TrendingUp, Building2, Newspaper, Clock } from "lucide-react"
 import { trendingTopics, CATEGORIES, mockCompanies, mockAgencies } from "@/lib/mock-data"
-import { formatViewCount, formatRelativeTime } from "@/lib/time"
+import { formatViewCount } from "@/lib/time"
+import { timeAgo } from "@/lib/time"
 import { useState, useCallback, useEffect } from "react"
 import Image from "next/image"
 import type { Article, Company, Agency } from "@/lib/types"
+import { useAppStore } from "@/lib/store"
 
 type Segment = "Topics" | "Companies" | "Sources"
 
@@ -16,6 +18,7 @@ interface SearchResults {
 }
 
 export function ExploreScreen() {
+  const { setSelectedArticle, addArticle } = useAppStore()
   const [segment, setSegment] = useState<Segment>("Topics")
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
@@ -29,6 +32,12 @@ export function ExploreScreen() {
   const [followedCompanies, setFollowedCompanies] = useState<Set<string>>(new Set())
   const [followedSources, setFollowedSources] = useState<Set<string>>(new Set())
 
+  // Handle article click - open in detail view
+  const handleArticleClick = (article: Article) => {
+    addArticle(article) // Add to store for lookup
+    setSelectedArticle(article) // Open in ArticleDetail modal
+  }
+
   // Debounced search
   const performSearch = useCallback(async (query: string, source?: string | null) => {
     if (!query && !source) {
@@ -38,7 +47,6 @@ export function ExploreScreen() {
 
     setIsSearching(true)
     try {
-      // Search articles
       const articleParams = new URLSearchParams()
       if (query) articleParams.set("q", query)
       if (source) articleParams.set("source", source)
@@ -183,13 +191,11 @@ export function ExploreScreen() {
                     Articles ({searchResults.articles.length})
                   </h3>
                   <div className="space-y-2">
-                    {searchResults.articles.slice(0, 10).map((article) => (
-                      <a
+                    {searchResults.articles.slice(0, 15).map((article) => (
+                      <button
                         key={article.id}
-                        href={article.originalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+                        onClick={() => handleArticleClick(article)}
+                        className="flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-muted/50 active:scale-[0.98]"
                       >
                         {article.imageUrl && (
                           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg">
@@ -205,15 +211,14 @@ export function ExploreScreen() {
                           <h4 className="line-clamp-2 text-sm font-medium text-foreground">
                             {article.title}
                           </h4>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{article.sourceName}</span>
-                            <span>-</span>
+                          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-medium">{article.sourceName}</span>
+                            <span className="text-muted-foreground/50">-</span>
                             <Clock size={10} />
-                            <span>{formatRelativeTime(article.publishedAt)}</span>
+                            <span>{timeAgo(article.publishedAt)}</span>
                           </div>
                         </div>
-                        <ExternalLink size={14} className="shrink-0 text-muted-foreground" />
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
