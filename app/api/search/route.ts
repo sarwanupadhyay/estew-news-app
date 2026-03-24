@@ -88,7 +88,7 @@ async function searchArticles(searchQuery: string, source: string) {
 
   // Return up to 50 results for better search coverage
   return NextResponse.json({
-    results: articles.slice(0, 50),
+    results: articles.slice(0, 70),
     total: articles.length,
   })
 }
