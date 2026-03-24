@@ -30,9 +30,10 @@ async function searchArticles(searchQuery: string, source: string) {
   let articles: Article[] = []
 
   try {
-    // Fetch articles from Firebase
+    // Fetch ALL articles from Firebase (no limit, no date restriction)
+    // This allows searching through the entire article history
     const articlesRef = collection(db, "articles")
-    const q = query(articlesRef, orderBy("publishedAt", "desc"), limit(100))
+    const q = query(articlesRef, orderBy("publishedAt", "desc"))
     const snapshot = await getDocs(q)
 
     if (snapshot.empty) {
@@ -42,6 +43,7 @@ async function searchArticles(searchQuery: string, source: string) {
         id: `mock_${a.originalUrl.replace(/[^a-z0-9]/gi, "_").substring(0, 30)}_${i}`,
       }))
     } else {
+      // Map all articles from Firebase - includes archived and older articles
       articles = snapshot.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id,
@@ -84,8 +86,9 @@ async function searchArticles(searchQuery: string, source: string) {
     })
   }
 
+  // Return up to 50 results for better search coverage
   return NextResponse.json({
-    results: articles.slice(0, 30),
+    results: articles.slice(0, 50),
     total: articles.length,
   })
 }
