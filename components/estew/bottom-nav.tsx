@@ -15,33 +15,36 @@ export function BottomNav() {
   const { activeTab, setActiveTab } = useAppStore()
 
   const handleTabClick = (tabId: typeof tabs[number]["id"]) => {
-    // Always scroll to top when switching tabs
     window.scrollTo({ top: 0, behavior: "instant" })
     setActiveTab(tabId)
   }
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-[428px] border-t border-border bg-background/95 backdrop-blur-md"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-[428px] border-t border-border bg-card"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="flex items-center justify-around px-2" style={{ height: 56 }}>
+      <div className="flex h-16 items-center justify-around">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
           return (
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className="flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors"
+              className="group flex flex-col items-center gap-1 px-4 py-2 transition-colors"
             >
-              <tab.icon
-                size={20}
-                strokeWidth={isActive ? 2 : 1.5}
-                className={isActive ? "text-primary" : "text-muted-foreground"}
-              />
-              <span
-                className={`font-sans text-[10px] font-medium ${isActive ? "text-primary" : "text-muted-foreground"}`}
-              >
+              <div className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${
+                isActive ? "bg-primary/10" : ""
+              }`}>
+                <tab.icon
+                  size={20}
+                  strokeWidth={isActive ? 2 : 1.5}
+                  className={isActive ? "text-primary" : "text-muted-foreground"}
+                />
+              </div>
+              <span className={`text-[10px] font-medium ${
+                isActive ? "text-primary" : "text-muted-foreground"
+              }`}>
                 {tab.label}
               </span>
             </button>

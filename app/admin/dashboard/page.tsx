@@ -17,7 +17,6 @@ import {
   RefreshCw,
   ChevronRight,
   Calendar,
-  Clock,
   User,
   Loader2,
   Home,
@@ -26,9 +25,8 @@ import {
   BarChart3,
   Menu,
   X,
-  PanelLeftClose,
-  PanelLeftOpen,
   Sparkles,
+  FileText,
 } from "lucide-react"
 
 type TabType = "home" | "users" | "articles" | "subscribers" | "newsletter" | "newsletter_subscribers"
@@ -40,11 +38,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>("home")
   const [refreshing, setRefreshing] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  // Check authentication
   useEffect(() => {
     const auth = sessionStorage.getItem("estew_admin_auth")
     if (auth !== "true") {
@@ -83,40 +78,40 @@ export default function AdminDashboard() {
   }
 
   const navItems = [
-    { id: "home" as TabType, label: "Home", icon: Home, description: "Overview & insights" },
-    { id: "users" as TabType, label: "Users", icon: Users, description: "Onboarded users" },
-    { id: "articles" as TabType, label: "Articles", icon: Newspaper, description: "Stored articles" },
-    { id: "subscribers" as TabType, label: "Pro Subscribers", icon: CreditCard, description: "Premium members" },
-    { id: "newsletter" as TabType, label: "Newsletter", icon: Mail, description: "AI briefings" },
-    { id: "newsletter_subscribers" as TabType, label: "Newsletter Subs", icon: Users, description: "Email subscribers" },
+    { id: "home" as TabType, label: "Overview", icon: Home },
+    { id: "users" as TabType, label: "Users", icon: Users },
+    { id: "articles" as TabType, label: "Articles", icon: Newspaper },
+    { id: "subscribers" as TabType, label: "Pro Subs", icon: CreditCard },
+    { id: "newsletter" as TabType, label: "Newsletter", icon: Mail },
+    { id: "newsletter_subscribers" as TabType, label: "Email List", icon: Users },
   ]
 
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0b0f]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0a0b0f]">
-      {/* Mobile sidebar overlay */}
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Mobile overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar - Fixed position */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10 bg-[#0a0b0f] transition-all duration-200 ${
-        sidebarCollapsed ? "w-[72px]" : "w-64"
-      } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
-        {/* Logo and collapse toggle */}
-        <div className={`flex h-16 items-center border-b border-white/10 ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
-          <div className={`flex items-center ${sidebarCollapsed ? "" : "gap-3"}`}>
-            <div className={`relative ${sidebarCollapsed ? "h-10 w-10" : "h-8 w-8"}`}>
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform lg:translate-x-0 ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`}>
+        {/* Logo */}
+        <div className="flex h-14 items-center justify-between border-b border-border px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="relative h-7 w-7">
               <Image
                 src="/images/logo.svg"
                 alt="Estew"
@@ -124,37 +119,22 @@ export default function AdminDashboard() {
                 className="object-contain dark:invert"
               />
             </div>
-            {!sidebarCollapsed && (
-              <div>
-                <h1 className="font-serif text-lg font-bold text-white">Estew</h1>
-                <p className="text-[10px] uppercase tracking-wider text-gray-500">Admin Panel</p>
-              </div>
-            )}
+            <div>
+              <span className="text-base font-semibold text-foreground">estew</span>
+              <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">ADMIN</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            {/* Mobile close button */}
-            {!sidebarCollapsed && (
-              <button 
-                onClick={() => setSidebarOpen(false)}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 lg:hidden"
-              >
-                <X size={18} />
-              </button>
-            )}
-            {/* Desktop collapse toggle */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`hidden rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white lg:flex ${sidebarCollapsed ? "mx-auto" : ""}`}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            </button>
-          </div>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted lg:hidden"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Navigation */}
-        <nav className={`flex-1 overflow-y-auto ${sidebarCollapsed ? "p-2" : "p-3"}`}>
-          <div className={`${sidebarCollapsed ? "space-y-2" : "space-y-1"}`}>
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          <div className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = activeTab === item.id
@@ -165,216 +145,125 @@ export default function AdminDashboard() {
                     setActiveTab(item.id)
                     setSidebarOpen(false)
                   }}
-                  title={sidebarCollapsed ? item.label : undefined}
-                  className={`flex w-full items-center rounded-xl transition-all ${
-                    sidebarCollapsed 
-                      ? `justify-center p-3 ${isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-white/5 hover:text-white"}`
-                      : `gap-3 px-3 py-2.5 text-left ${isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-white/5 hover:text-white"}`
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                    isActive 
+                      ? "bg-primary/10 text-primary" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
-                  <Icon size={sidebarCollapsed ? 22 : 18} />
-                  {!sidebarCollapsed && (
-                    <>
-                      <div className="flex-1">
-                        <p className={`text-sm font-medium ${isActive ? "text-primary" : ""}`}>{item.label}</p>
-                        <p className="text-[10px] text-gray-500">{item.description}</p>
-                      </div>
-                      {isActive && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                    </>
-                  )}
+                  <Icon size={18} />
+                  {item.label}
                 </button>
               )
             })}
           </div>
         </nav>
 
-        {/* User section */}
-        <div className={`border-t border-white/10 ${sidebarCollapsed ? "p-2" : "p-3"}`}>
+        {/* Logout */}
+        <div className="border-t border-border p-3">
           <button
             onClick={handleLogout}
-            title={sidebarCollapsed ? "Logout" : undefined}
-            className={`flex w-full items-center rounded-xl text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-400 ${
-              sidebarCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
-            }`}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
-            <LogOut size={sidebarCollapsed ? 22 : 18} />
-            {!sidebarCollapsed && <span className="text-sm font-medium">Logout</span>}
+            <LogOut size={18} />
+            Logout
           </button>
         </div>
       </aside>
 
-      {/* Main content area - scrollable */}
-      <div className={`flex flex-1 flex-col overflow-hidden transition-all duration-200 ${
-        sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
-      }`}>
-        {/* Top bar - Fixed */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 bg-[#0a0b0f] px-4 lg:px-6">
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden lg:ml-64">
+        {/* Top bar */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-lg p-2 text-gray-400 hover:bg-white/10 lg:hidden"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted lg:hidden"
             >
               <Menu size={20} />
             </button>
-            <div>
-              <h2 className="font-semibold text-white">
-                {navItems.find(n => n.id === activeTab)?.label}
-              </h2>
-              <p className="text-xs text-gray-500">
-                {navItems.find(n => n.id === activeTab)?.description}
-              </p>
-            </div>
+            <h1 className="text-base font-semibold text-foreground">
+              {navItems.find(n => n.id === activeTab)?.label}
+            </h1>
           </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-gray-400 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+            className="flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         </header>
 
-        {/* Scrollable main content */}
+        {/* Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : (
             <>
-              {/* Home Tab - Insights Overview */}
+              {/* Home Tab */}
               {activeTab === "home" && (
                 <div className="space-y-6">
                   {/* Stats Grid */}
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-                        <Users size={20} className="text-blue-500" />
-                      </div>
-                      <p className="text-sm text-gray-500">Total Users</p>
-                      <p className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-                        <Newspaper size={20} className="text-emerald-500" />
-                      </div>
-                      <p className="text-sm text-gray-500">Total Articles</p>
-                      <p className="text-2xl font-bold text-white">{stats?.totalArticles || 0}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
-                        <CreditCard size={20} className="text-purple-500" />
-                      </div>
-                      <p className="text-sm text-gray-500">Pro Subscribers</p>
-                      <p className="text-2xl font-bold text-white">{stats?.totalSubscribers || 0}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-                        <Mail size={20} className="text-amber-500" />
-                      </div>
-                      <p className="text-sm text-gray-500">Newsletter Subs</p>
-                      <p className="text-2xl font-bold text-white">{stats?.totalNewsletterSubscribers || 0}</p>
-                    </div>
+                    <StatCard icon={Users} label="Total Users" value={stats?.totalUsers || 0} color="text-info" bgColor="bg-info/10" />
+                    <StatCard icon={Newspaper} label="Total Articles" value={stats?.totalArticles || 0} color="text-success" bgColor="bg-success/10" />
+                    <StatCard icon={CreditCard} label="Pro Subs" value={stats?.totalSubscribers || 0} color="text-primary" bgColor="bg-primary/10" />
+                    <StatCard icon={Mail} label="Email List" value={stats?.totalNewsletterSubscribers || 0} color="text-warning" bgColor="bg-warning/10" />
                   </div>
 
                   {/* Quick Actions */}
-                  <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
-                    <h3 className="mb-4 font-semibold text-white">Quick Actions</h3>
+                  <div className="rounded-2xl border border-border bg-card p-5">
+                    <h3 className="mb-4 text-sm font-semibold text-foreground">Quick Actions</h3>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      <button
-                        onClick={() => setActiveTab("newsletter")}
-                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-                          <Sparkles size={18} className="text-amber-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">Generate Newsletter</p>
-                          <p className="text-xs text-gray-500">AI-powered briefing</p>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setActiveTab("users")}
-                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                          <Eye size={18} className="text-blue-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">View Users</p>
-                          <p className="text-xs text-gray-500">{stats?.totalUsers || 0} onboarded</p>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setActiveTab("articles")}
-                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                          <BarChart3 size={18} className="text-emerald-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">Browse Articles</p>
-                          <p className="text-xs text-gray-500">{stats?.totalArticles || 0} stored</p>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setActiveTab("subscribers")}
-                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10">
-                          <TrendingUp size={18} className="text-purple-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">Pro Members</p>
-                          <p className="text-xs text-gray-500">{stats?.totalSubscribers || 0} active</p>
-                        </div>
-                      </button>
+                      <QuickAction icon={Sparkles} label="Generate Newsletter" description="AI briefing" onClick={() => setActiveTab("newsletter")} />
+                      <QuickAction icon={Eye} label="View Users" description={`${stats?.totalUsers || 0} users`} onClick={() => setActiveTab("users")} />
+                      <QuickAction icon={BarChart3} label="Browse Articles" description={`${stats?.totalArticles || 0} articles`} onClick={() => setActiveTab("articles")} />
+                      <QuickAction icon={TrendingUp} label="Pro Members" description={`${stats?.totalSubscribers || 0} active`} onClick={() => setActiveTab("subscribers")} />
                     </div>
                   </div>
 
                   {/* Recent Activity */}
                   <div className="grid gap-6 lg:grid-cols-2">
                     {/* Recent Users */}
-                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                    <div className="rounded-2xl border border-border bg-card p-5">
                       <div className="mb-4 flex items-center justify-between">
-                        <h3 className="font-semibold text-white">Recent Users</h3>
-                        <button
-                          onClick={() => setActiveTab("users")}
-                          className="text-xs text-primary hover:underline"
-                        >
+                        <h3 className="text-sm font-semibold text-foreground">Recent Users</h3>
+                        <button onClick={() => setActiveTab("users")} className="text-xs text-primary hover:underline">
                           View all
                         </button>
                       </div>
                       <div className="space-y-3">
                         {stats?.recentUsers.slice(0, 5).map((user) => (
                           <div key={user.id} className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-sm font-medium text-blue-500">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-info/10 text-xs font-semibold text-info">
                               {user.displayName?.charAt(0).toUpperCase() || "U"}
                             </div>
                             <div className="flex-1 truncate">
-                              <p className="truncate text-sm font-medium text-white">{user.displayName || "Unknown"}</p>
-                              <p className="truncate text-xs text-gray-500">{user.email}</p>
+                              <p className="truncate text-sm font-medium text-foreground">{user.displayName || "Unknown"}</p>
+                              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                             </div>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${user.plan === "pro" ? "bg-purple-500/20 text-purple-400" : "bg-gray-500/20 text-gray-400"}`}>
+                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                              user.plan === "pro" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                            }`}>
                               {user.plan.toUpperCase()}
                             </span>
                           </div>
                         ))}
                         {(!stats?.recentUsers || stats.recentUsers.length === 0) && (
-                          <p className="py-4 text-center text-sm text-gray-500">No users yet</p>
+                          <p className="py-4 text-center text-sm text-muted-foreground">No users yet</p>
                         )}
                       </div>
                     </div>
 
                     {/* Recent Articles */}
-                    <div className="rounded-2xl border border-white/10 bg-[#12131a] p-5">
+                    <div className="rounded-2xl border border-border bg-card p-5">
                       <div className="mb-4 flex items-center justify-between">
-                        <h3 className="font-semibold text-white">Recent Articles</h3>
-                        <button
-                          onClick={() => setActiveTab("articles")}
-                          className="text-xs text-primary hover:underline"
-                        >
+                        <h3 className="text-sm font-semibold text-foreground">Recent Articles</h3>
+                        <button onClick={() => setActiveTab("articles")} className="text-xs text-primary hover:underline">
                           View all
                         </button>
                       </div>
@@ -390,13 +279,13 @@ export default function AdminDashboard() {
                               />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="line-clamp-1 text-sm font-medium text-white">{article.title}</p>
-                              <p className="text-xs text-gray-500">{article.sourceName}</p>
+                              <p className="line-clamp-1 text-sm font-medium text-foreground">{article.title}</p>
+                              <p className="text-xs text-muted-foreground">{article.sourceName}</p>
                             </div>
                           </div>
                         ))}
                         {(!stats?.recentArticles || stats.recentArticles.length === 0) && (
-                          <p className="py-4 text-center text-sm text-gray-500">No articles yet</p>
+                          <p className="py-4 text-center text-sm text-muted-foreground">No articles yet</p>
                         )}
                       </div>
                     </div>
@@ -406,36 +295,35 @@ export default function AdminDashboard() {
 
               {/* Users Tab */}
               {activeTab === "users" && (
-                <div className="rounded-2xl border border-white/10 bg-[#12131a]">
-                  <div className="border-b border-white/10 px-5 py-4">
-                    <h3 className="font-semibold text-white">Onboarded Users</h3>
-                    <p className="text-sm text-gray-500">{stats?.totalUsers || 0} total users</p>
+                <div className="rounded-2xl border border-border bg-card">
+                  <div className="border-b border-border px-5 py-4">
+                    <h3 className="text-sm font-semibold text-foreground">All Users</h3>
+                    <p className="text-xs text-muted-foreground">{stats?.totalUsers || 0} total</p>
                   </div>
                   <div className="p-5">
                     {stats?.recentUsers.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <User size={32} className="mx-auto mb-3 text-gray-600" />
-                        <p className="text-gray-500">No users found</p>
-                      </div>
+                      <EmptyState icon={User} message="No users found" />
                     ) : (
                       <div className="space-y-3">
                         {stats?.recentUsers.map((user) => (
-                          <div key={user.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 font-semibold text-blue-500">
+                          <div key={user.id} className="flex items-center gap-4 rounded-xl border border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-info/10 font-semibold text-info">
                               {user.displayName?.charAt(0).toUpperCase() || "U"}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <p className="truncate font-medium text-white">{user.displayName || "Unknown"}</p>
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${user.plan === "pro" ? "bg-purple-500/20 text-purple-400" : "bg-gray-500/20 text-gray-400"}`}>
+                                <p className="truncate font-medium text-foreground">{user.displayName || "Unknown"}</p>
+                                <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                                  user.plan === "pro" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                }`}>
                                   {user.plan.toUpperCase()}
                                 </span>
                               </div>
-                              <p className="truncate text-sm text-gray-500">{user.email}</p>
+                              <p className="truncate text-sm text-muted-foreground">{user.email}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-gray-500">Joined</p>
-                              <p className="text-sm text-gray-400">{formatDate(user.createdAt)}</p>
+                              <p className="text-[10px] text-muted-foreground">Joined</p>
+                              <p className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</p>
                             </div>
                           </div>
                         ))}
@@ -447,35 +335,32 @@ export default function AdminDashboard() {
 
               {/* Articles Tab */}
               {activeTab === "articles" && (
-                <div className="rounded-2xl border border-white/10 bg-[#12131a]">
-                  <div className="border-b border-white/10 px-5 py-4">
-                    <h3 className="font-semibold text-white">Stored Articles</h3>
-                    <p className="text-sm text-gray-500">{stats?.totalArticles || 0} total articles</p>
+                <div className="rounded-2xl border border-border bg-card">
+                  <div className="border-b border-border px-5 py-4">
+                    <h3 className="text-sm font-semibold text-foreground">Stored Articles</h3>
+                    <p className="text-xs text-muted-foreground">{stats?.totalArticles || 0} total</p>
                   </div>
                   <div className="p-5">
                     {stats?.recentArticles.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <FileText size={32} className="mx-auto mb-3 text-gray-600" />
-                        <p className="text-gray-500">No articles found</p>
-                      </div>
+                      <EmptyState icon={FileText} message="No articles found" />
                     ) : (
                       <div className="space-y-3">
                         {stats?.recentArticles.map((article) => (
-                          <div key={article.id} className="flex items-start gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
+                          <div key={article.id} className="flex items-start gap-4 rounded-xl border border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50">
                             {article.imageUrl && (
                               <img src={article.imageUrl} alt="" className="h-16 w-24 shrink-0 rounded-lg object-cover" onError={(e) => { e.currentTarget.style.display = "none" }} />
                             )}
                             <div className="min-w-0 flex-1">
-                              <p className="line-clamp-2 font-medium text-white">{article.title}</p>
+                              <p className="line-clamp-2 font-medium text-foreground">{article.title}</p>
                               <div className="mt-1 flex items-center gap-2">
-                                <span className="text-sm text-gray-500">{article.sourceName}</span>
-                                <span className="text-gray-600">·</span>
-                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">{article.category}</span>
+                                <span className="text-sm text-muted-foreground">{article.sourceName}</span>
+                                <span className="text-muted-foreground/50">·</span>
+                                <span className="rounded-md bg-success/10 px-2 py-0.5 text-[10px] text-success">{article.category}</span>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-gray-500">Published</p>
-                              <p className="text-sm text-gray-400">{formatDate(article.publishedAt)}</p>
+                              <p className="text-[10px] text-muted-foreground">Published</p>
+                              <p className="text-sm text-muted-foreground">{formatDate(article.publishedAt)}</p>
                             </div>
                           </div>
                         ))}
@@ -487,39 +372,38 @@ export default function AdminDashboard() {
 
               {/* Subscribers Tab */}
               {activeTab === "subscribers" && (
-                <div className="rounded-2xl border border-white/10 bg-[#12131a]">
-                  <div className="border-b border-white/10 px-5 py-4">
-                    <h3 className="font-semibold text-white">Pro Subscribers</h3>
-                    <p className="text-sm text-gray-500">{stats?.totalSubscribers || 0} active subscriptions</p>
+                <div className="rounded-2xl border border-border bg-card">
+                  <div className="border-b border-border px-5 py-4">
+                    <h3 className="text-sm font-semibold text-foreground">Pro Subscribers</h3>
+                    <p className="text-xs text-muted-foreground">{stats?.totalSubscribers || 0} active</p>
                   </div>
                   <div className="p-5">
                     {stats?.subscribers.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <CreditCard size={32} className="mx-auto mb-3 text-gray-600" />
-                        <p className="text-gray-500">No subscribers yet</p>
-                      </div>
+                      <EmptyState icon={CreditCard} message="No subscribers yet" />
                     ) : (
                       <div className="space-y-3">
                         {stats?.subscribers.map((subscriber) => (
-                          <div key={subscriber.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20 font-semibold text-purple-500">
+                          <div key={subscriber.id} className="flex items-center gap-4 rounded-xl border border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
                               {subscriber.displayName?.charAt(0).toUpperCase() || "S"}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <p className="truncate font-medium text-white">{subscriber.displayName || subscriber.id}</p>
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${subscriber.status === "active" ? "bg-green-500/20 text-green-400" : "bg-amber-500/20 text-amber-400"}`}>
+                                <p className="truncate font-medium text-foreground">{subscriber.displayName || subscriber.id}</p>
+                                <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                                  subscriber.status === "active" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
+                                }`}>
                                   {subscriber.status.toUpperCase()}
                                 </span>
                               </div>
-                              <p className="truncate text-sm text-gray-500">{subscriber.email}</p>
+                              <p className="truncate text-sm text-muted-foreground">{subscriber.email}</p>
                             </div>
                             <div className="text-right">
-                              <div className="flex items-center gap-1 text-xs text-gray-500">
-                                <Calendar size={12} />
+                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <Calendar size={10} />
                                 Renewal
                               </div>
-                              <p className="text-sm text-gray-400">{formatDate(subscriber.renewalDate)}</p>
+                              <p className="text-sm text-muted-foreground">{formatDate(subscriber.renewalDate)}</p>
                             </div>
                           </div>
                         ))}
@@ -542,7 +426,46 @@ export default function AdminDashboard() {
   )
 }
 
-// Newsletter Subscribers Tab Component
+// Helper Components
+function StatCard({ icon: Icon, label, value, color, bgColor }: { icon: any; label: string; value: number; color: string; bgColor: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${bgColor}`}>
+        <Icon size={20} className={color} />
+      </div>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
+    </div>
+  )
+}
+
+function QuickAction({ icon: Icon, label, description, onClick }: { icon: any; label: string; description: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
+    >
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+        <Icon size={18} className="text-primary" />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+    </button>
+  )
+}
+
+function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
+  return (
+    <div className="py-12 text-center">
+      <Icon size={32} className="mx-auto mb-3 text-muted-foreground/40" />
+      <p className="text-muted-foreground">{message}</p>
+    </div>
+  )
+}
+
+// Newsletter Subscribers Tab
 function NewsletterSubscribersTab() {
   const [subscribers, setSubscribers] = useState<Array<{
     id: string
@@ -600,26 +523,22 @@ function NewsletterSubscribersTab() {
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", { 
-      month: "short", 
-      day: "numeric", 
-      year: "numeric" 
-    })
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with actions */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Newsletter Subscribers</h3>
-          <p className="text-sm text-gray-400">{subscribers.length} total subscribers</p>
+          <h3 className="text-base font-semibold text-foreground">Newsletter Subscribers</h3>
+          <p className="text-sm text-muted-foreground">{subscribers.length} total</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={loadSubscribers}
             disabled={loading}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Refresh
@@ -627,7 +546,7 @@ function NewsletterSubscribersTab() {
           <button
             onClick={exportToCSV}
             disabled={exporting || subscribers.length === 0}
-            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             {exporting ? <Loader2 size={14} className="animate-spin" /> : <ChevronRight size={14} />}
             Export CSV
@@ -635,40 +554,37 @@ function NewsletterSubscribersTab() {
         </div>
       </div>
 
-      {/* Subscribers list */}
-      <div className="rounded-2xl border border-white/10 bg-[#12131a]">
-        <div className="border-b border-white/10 px-5 py-4">
-          <div className="grid grid-cols-12 gap-4 text-xs font-medium uppercase tracking-wider text-gray-500">
+      {/* List */}
+      <div className="rounded-2xl border border-border bg-card">
+        <div className="border-b border-border px-5 py-3">
+          <div className="grid grid-cols-12 gap-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             <div className="col-span-5">Subscriber</div>
             <div className="col-span-4">Email</div>
             <div className="col-span-3">Subscribed</div>
           </div>
         </div>
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-border">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 size={24} className="animate-spin text-primary" />
             </div>
           ) : subscribers.length === 0 ? (
-            <div className="py-12 text-center">
-              <Mail size={32} className="mx-auto mb-3 text-gray-600" />
-              <p className="text-gray-500">No newsletter subscribers yet</p>
-            </div>
+            <EmptyState icon={Mail} message="No newsletter subscribers yet" />
           ) : (
             subscribers.map((subscriber) => (
-              <div key={subscriber.id} className="grid grid-cols-12 items-center gap-4 px-5 py-4 transition-colors hover:bg-white/5">
+              <div key={subscriber.id} className="grid grid-cols-12 items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/30">
                 <div className="col-span-5 flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-sm font-medium text-amber-500">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/10 text-sm font-medium text-warning">
                     {subscriber.displayName?.charAt(0).toUpperCase() || subscriber.email?.charAt(0).toUpperCase() || "?"}
                   </div>
-                  <span className="truncate font-medium text-white">
+                  <span className="truncate font-medium text-foreground">
                     {subscriber.displayName || "Anonymous"}
                   </span>
                 </div>
-                <div className="col-span-4 truncate text-sm text-gray-400">
+                <div className="col-span-4 truncate text-sm text-muted-foreground">
                   {subscriber.email}
                 </div>
-                <div className="col-span-3 text-sm text-gray-500">
+                <div className="col-span-3 text-sm text-muted-foreground">
                   {formatDate(subscriber.subscribedAt)}
                 </div>
               </div>

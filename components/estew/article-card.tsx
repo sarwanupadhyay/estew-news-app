@@ -2,13 +2,12 @@
 
 import { useState } from "react"
 import type { Article } from "@/lib/types"
-import { CategoryBadge } from "./category-badge"
-import { Bookmark, BookmarkCheck, Lock } from "lucide-react"
+import { Bookmark, BookmarkCheck, Lock, MoreHorizontal } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { useAuth } from "@/lib/auth-context"
 import { timeAgo } from "@/lib/time"
 
-// Get favicon for source using DuckDuckGo (better CORS support)
+// Get favicon for source
 function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
   let domain = sourceUrl || ""
   if (!domain.includes(".")) {
@@ -21,7 +20,6 @@ function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
       domain = `${sourceName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
     }
   }
-  // Use DuckDuckGo favicon service - better CORS support
   return `https://icons.duckduckgo.com/ip3/${domain}.ico`
 }
 
@@ -41,7 +39,6 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
   }
 
   const handleClick = async () => {
-    // Check rate limit before opening
     const result = await checkArticleAccess()
     if (!result.allowed) {
       setLimitReached(true)
@@ -54,56 +51,21 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
   const sourceInitial = article.sourceName.charAt(0).toUpperCase()
   const faviconUrl = getSourceFavicon(article.sourceName, article.originalUrl)
 
-  // Calculate animation delay based on index (max 5 items staggered)
-  const animationDelay = Math.min(index, 5) * 50
-
   return (
     <>
-      <div
-        className="mx-4 mb-1 cursor-pointer rounded-lg border-b border-border bg-background animate-fade-up press-effect active:bg-muted/30"
-        style={{ animationDelay: `${animationDelay}ms` }}
+      <article
+        className="group cursor-pointer bg-card p-4 transition-colors hover:bg-muted/50 active:bg-muted"
         onClick={handleClick}
       >
-        <div className="flex gap-3 py-4">
-          {/* Content */}
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div className="mb-1.5">
-              <CategoryBadge category={article.category} />
-            </div>
-            <h3 className="mb-2 line-clamp-2 font-serif text-[15px] font-semibold leading-snug text-foreground">
-              {article.title}
-            </h3>
-            <div className="mt-auto flex items-center gap-2">
-              {logoError ? (
-                <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">
-                  {sourceInitial}
-                </div>
-              ) : (
-                <img
-                  src={faviconUrl}
-                  alt=""
-                  className="h-4 w-4 shrink-0 rounded-sm object-contain"
-                  onError={() => setLogoError(true)}
-                />
-              )}
-              <span className="truncate font-sans text-[11px] text-muted-foreground">
-                {article.sourceName}
-              </span>
-              <span className="shrink-0 text-[11px] text-muted-foreground/50">/</span>
-              <span className="shrink-0 font-sans text-[11px] text-muted-foreground">
-                {timeAgo(article.publishedAt)}
-              </span>
-            </div>
-          </div>
-
+        <div className="flex gap-3">
           {/* Thumbnail */}
-          <div className="relative shrink-0 overflow-hidden rounded-xl bg-muted" style={{ width: 88, height: 88 }}>
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
             {!imgLoaded && !imgError && (
-              <div className="absolute inset-0 animate-pulse bg-muted" />
+              <div className="absolute inset-0 animate-shimmer" />
             )}
             {imgError ? (
-              <div className="flex h-full w-full items-center justify-center bg-muted">
-                <span className="font-serif text-2xl font-bold text-muted-foreground/30">
+              <div className="flex h-full w-full items-center justify-center">
+                <span className="text-lg font-medium text-muted-foreground/40">
                   {article.category.charAt(0)}
                 </span>
               </div>
@@ -111,52 +73,87 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
               <img
                 src={article.imageUrl}
                 alt=""
-                className={`h-full w-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+                className={`h-full w-full object-cover transition-opacity ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                 onLoad={() => setImgLoaded(true)}
                 onError={() => setImgError(true)}
               />
             )}
           </div>
 
-          {/* Bookmark */}
-          <button
-            onClick={handleSave}
-            className="flex h-8 w-6 shrink-0 items-start justify-center pt-1 transition-transform active:scale-90"
-          >
-            {isSaved ? (
-              <BookmarkCheck size={14} strokeWidth={1.5} className="text-primary" />
-            ) : (
-              <Bookmark size={14} strokeWidth={1.5} className="text-muted-foreground" />
-            )}
-          </button>
+          {/* Content */}
+          <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+            {/* Title */}
+            <h3 className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground">
+              {article.title}
+            </h3>
+            
+            {/* Meta */}
+            <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+              {logoError ? (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-muted text-[9px] font-semibold">
+                  {sourceInitial}
+                </span>
+              ) : (
+                <img
+                  src={faviconUrl}
+                  alt=""
+                  className="h-4 w-4 shrink-0 rounded object-contain"
+                  onError={() => setLogoError(true)}
+                />
+              )}
+              <span className="truncate">{article.sourceName}</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="shrink-0">{timeAgo(article.publishedAt)}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              onClick={handleSave}
+              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"
+              aria-label={isSaved ? "Unsave" : "Save"}
+            >
+              {isSaved ? (
+                <BookmarkCheck size={16} className="text-primary" />
+              ) : (
+                <Bookmark size={16} className="text-muted-foreground" />
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      </article>
+
+      {/* Divider */}
+      <div className="mx-4 border-b border-border/50" />
 
       {/* Rate Limit Modal */}
       {limitReached && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-6 animate-fade-in" onClick={() => setLimitReached(false)}>
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-6 animate-fade-in" 
+          onClick={() => setLimitReached(false)}
+        >
           <div
-            className="w-full max-w-sm rounded-2xl bg-background p-6 text-center animate-slide-up"
+            className="w-full max-w-sm rounded-2xl bg-card p-6 text-center animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
-              <Lock size={24} className="text-amber-500" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-warning/10">
+              <Lock size={20} className="text-warning" />
             </div>
-            <h3 className="mb-2 font-serif text-xl font-bold text-foreground">Daily Limit Reached</h3>
-            <p className="mb-5 font-sans text-[14px] text-muted-foreground">{limitMessage}</p>
+            <h3 className="mb-2 text-lg font-semibold text-foreground">Daily Limit Reached</h3>
+            <p className="mb-5 text-sm text-muted-foreground">{limitMessage}</p>
             <button
               onClick={() => {
                 setLimitReached(false)
-                // Navigate to profile for upgrade
                 useAppStore.getState().setActiveTab("profile")
               }}
-              className="w-full rounded-full bg-primary py-3 font-sans text-[14px] font-semibold text-primary-foreground"
+              className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground press-effect"
             >
               Upgrade to Pro
             </button>
             <button
               onClick={() => setLimitReached(false)}
-              className="mt-3 font-sans text-[13px] text-muted-foreground"
+              className="mt-3 text-sm text-muted-foreground hover:text-foreground"
             >
               Maybe later
             </button>
