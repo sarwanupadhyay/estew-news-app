@@ -18,32 +18,35 @@ export function TopHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/80 px-5 backdrop-blur-md"
+    <header 
+      className="sticky top-0 z-40 flex items-center justify-between bg-background/95 px-4 backdrop-blur-sm"
       style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)", paddingBottom: 12 }}
     >
-      <div className="flex items-center gap-2.5">
-        <div className="relative h-7 w-7">
+      {/* Logo */}
+      <div className="flex items-center gap-2">
+        <div className="relative h-6 w-6">
           <Image
             src="/images/logo.svg"
-            alt="Estew logo"
+            alt="Estew"
             fill
             className="object-contain dark:invert"
           />
         </div>
-        <span className="font-serif text-xl font-bold tracking-tight text-foreground">
+        <span className="text-lg font-semibold tracking-tight text-foreground">
           estew
         </span>
       </div>
 
+      {/* Theme toggle */}
       <button
         onClick={toggleTheme}
-        className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-muted"
+        className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-muted"
         aria-label="Toggle theme"
       >
         {dark ? (
-          <Sun size={18} strokeWidth={1.5} className="text-muted-foreground" />
+          <Sun size={18} className="text-muted-foreground" />
         ) : (
-          <Moon size={18} strokeWidth={1.5} className="text-muted-foreground" />
+          <Moon size={18} className="text-muted-foreground" />
         )}
       </button>
     </header>
