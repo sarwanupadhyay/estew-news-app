@@ -11,6 +11,10 @@ export function timeAgo(dateString: string): string {
   return `${days}d ago`
 }
 
+export function formatRelativeTime(dateString: string): string {
+  return timeAgo(dateString)
+}
+
 export function formatViewCount(n: number): string {
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
