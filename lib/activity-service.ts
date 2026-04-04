@@ -41,7 +41,6 @@ export async function recordActivity(
   activity: Omit<Activity, "id" | "timestamp">
 ): Promise<string> {
   try {
-    console.log("[v0] recordActivity: Recording", activity.type, "for user", userId)
     const activityRef = doc(collection(db, "users", userId, "activities"))
     
     await setDoc(activityRef, {
@@ -49,10 +48,9 @@ export async function recordActivity(
       timestamp: serverTimestamp(),
     })
     
-    console.log("[v0] recordActivity: Successfully recorded activity", activityRef.id)
     return activityRef.id
   } catch (error) {
-    console.error("[v0] Error recording activity:", error)
+    console.error("Error recording activity:", error)
     throw error
   }
 }
@@ -72,8 +70,6 @@ export async function getActivitiesByDate(
   
   const endOfDay = new Date(date)
   endOfDay.setHours(23, 59, 59, 999)
-  
-  console.log("[v0] getActivitiesByDate: Fetching for", date.toISOString().split("T")[0])
   
   try {
     // Simplified query - just filter by timestamp range, then filter type in code
@@ -100,13 +96,8 @@ export async function getActivitiesByDate(
     
     const snapshot = await getDocs(q)
     
-    console.log("[v0] getActivitiesByDate: Got", snapshot.docs.length, "total docs")
-    
     // Filter by type in code to avoid composite index requirement
     const filteredDocs = snapshot.docs.filter(doc => doc.data().type === "article_read")
-    
-    console.log("[v0] getActivitiesByDate: Filtered to", filteredDocs.length, "article_read activities")
-    
     const docs = filteredDocs.slice(0, pageSize + 1)
   
     // Check if there are more results
@@ -153,8 +144,6 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
   const ninetyDaysAgo = new Date()
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   
-  console.log("[v0] getActivityDates: Fetching activities since", ninetyDaysAgo.toISOString().split("T")[0])
-  
   try {
     // Simplified query - filter by type in code to avoid composite index
     const q = query(
@@ -164,8 +153,6 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
     )
     
     const snapshot = await getDocs(q)
-    console.log("[v0] getActivityDates: Got", snapshot.docs.length, "total activities")
-    
     const dates = new Set<string>()
     
     snapshot.docs.forEach((doc) => {
@@ -181,10 +168,9 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
       dates.add(dateStr)
     })
     
-    console.log("[v0] getActivityDates: Found", dates.size, "unique dates with article_read")
     return dates
   } catch (error) {
-    console.error("[v0] Error fetching activity dates:", error)
+    console.error("Error fetching activity dates:", error)
     return new Set()
   }
 }

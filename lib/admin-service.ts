@@ -70,14 +70,11 @@ export function verifyAdminCredentials(email: string, password: string): boolean
 // Get all users count
 export async function getTotalUsersCount(): Promise<number> {
   try {
-    console.log("[v0] Admin: Getting total users count...")
     const usersRef = collection(db, "users")
     const snapshot = await getCountFromServer(usersRef)
-    const count = snapshot.data().count
-    console.log("[v0] Admin: Total users count:", count)
-    return count
+    return snapshot.data().count
   } catch (error) {
-    console.error("[v0] Admin: Error getting users count:", error)
+    console.error("Error getting users count:", error)
     return 0
   }
 }
@@ -85,14 +82,11 @@ export async function getTotalUsersCount(): Promise<number> {
 // Get all articles count
 export async function getTotalArticlesCount(): Promise<number> {
   try {
-    console.log("[v0] Admin: Getting total articles count...")
     const articlesRef = collection(db, "articles")
     const snapshot = await getCountFromServer(articlesRef)
-    const count = snapshot.data().count
-    console.log("[v0] Admin: Total articles count:", count)
-    return count
+    return snapshot.data().count
   } catch (error) {
-    console.error("[v0] Admin: Error getting articles count:", error)
+    console.error("Error getting articles count:", error)
     return 0
   }
 }
@@ -100,14 +94,11 @@ export async function getTotalArticlesCount(): Promise<number> {
 // Get all subscribers count
 export async function getTotalSubscribersCount(): Promise<number> {
   try {
-    console.log("[v0] Admin: Getting total subscribers count...")
     const subscribersRef = collection(db, "subscriptions")
     const snapshot = await getCountFromServer(subscribersRef)
-    const count = snapshot.data().count
-    console.log("[v0] Admin: Total subscribers count:", count)
-    return count
+    return snapshot.data().count
   } catch (error) {
-    console.error("[v0] Admin: Error getting subscribers count:", error)
+    console.error("Error getting subscribers count:", error)
     return 0
   }
 }
@@ -115,11 +106,9 @@ export async function getTotalSubscribersCount(): Promise<number> {
 // Get recent users
 export async function getRecentUsers(limitCount: number = 10): Promise<AdminUser[]> {
   try {
-    console.log("[v0] Admin: Getting recent users...")
     const usersRef = collection(db, "users")
     const q = query(usersRef, orderBy("createdAt", "desc"), limit(limitCount))
     const snapshot = await getDocs(q)
-    console.log("[v0] Admin: Found", snapshot.docs.length, "users")
     
     return snapshot.docs.map((doc) => {
       const data = doc.data()

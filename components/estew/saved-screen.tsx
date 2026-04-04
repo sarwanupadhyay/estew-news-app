@@ -28,13 +28,10 @@ export function SavedScreen() {
     const loadSavedArticles = async () => {
       try {
         setLoading(true)
-        console.log("[v0] Loading saved articles for user:", user.uid)
-        console.log("[v0] Profile savedArticles IDs:", profile?.savedArticles)
         const articles = await getUserSavedArticles(user.uid)
-        console.log("[v0] Loaded saved articles:", articles.length)
         setSaved(articles)
       } catch (error) {
-        console.error("[v0] Error loading saved articles:", error)
+        console.error("Error loading saved articles:", error)
         setSaved([])
       } finally {
         setLoading(false)
