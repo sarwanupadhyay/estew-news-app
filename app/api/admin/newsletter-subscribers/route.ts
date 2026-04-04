@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
-import { adminDb } from "@/lib/firebase-admin"
+import { getAdminDb } from "@/lib/firebase-admin"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 // GET - Fetch newsletter subscribers or all users
 export async function GET(request: Request) {
+  const adminDb = getAdminDb()
   if (!adminDb) {
+    console.error("[v0] Firebase Admin not configured for newsletter-subscribers GET")
     return NextResponse.json({ 
       subscribers: [],
       users: [],
@@ -60,6 +62,7 @@ export async function GET(request: Request) {
 
 // POST - Sync newsletter subscribers to separate collection
 export async function POST() {
+  const adminDb = getAdminDb()
   if (!adminDb) {
     return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
   }

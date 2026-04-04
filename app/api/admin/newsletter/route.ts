@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { adminDb } from "@/lib/firebase-admin"
+import { getAdminDb } from "@/lib/firebase-admin"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 // Newsletter section types
@@ -223,6 +223,7 @@ async function getArticlesForNewsletter() {
   }
 
   // Fallback: try Firebase articles collection with Admin SDK
+  const adminDb = getAdminDb()
   if (adminDb) {
     try {
       const articlesRef = adminDb.collection("articles")
@@ -258,6 +259,7 @@ async function getArticlesForNewsletter() {
 
 // Get next newsletter number
 async function getNextNewsletterNumber(): Promise<number> {
+  const adminDb = getAdminDb()
   if (!adminDb) return Date.now()
   
   try {
@@ -310,6 +312,7 @@ async function saveNewsletter(
   subject: string,
   aiToolOfTheDay?: Newsletter["aiToolOfTheDay"]
 ) {
+  const adminDb = getAdminDb()
   if (!adminDb) throw new Error("Firebase Admin not configured")
   
   try {
@@ -356,6 +359,7 @@ async function saveNewsletter(
 
 // Get all saved newsletters
 async function getSavedNewsletters() {
+  const adminDb = getAdminDb()
   if (!adminDb) return []
   
   try {
@@ -438,14 +442,15 @@ export async function POST(request: Request) {
 
     // Check for optional AI tool selection from request body
     let selectedAiTool: { name: string; description: string; url: string; imageUrl?: string } | null = null
+    const adminDbForTool = getAdminDb()
     try {
       const body = await request.json()
       // Support both direct aiToolOfTheDay object and aiToolId for lookup
       if (body.aiToolOfTheDay) {
         selectedAiTool = body.aiToolOfTheDay
-      } else if (body.aiToolId && adminDb) {
+      } else if (body.aiToolId && adminDbForTool) {
         // Look up the tool from the ai_tools collection
-        const toolSnap = await adminDb.collection("ai_tools").doc(body.aiToolId).get()
+        const toolSnap = await adminDbForTool.collection("ai_tools").doc(body.aiToolId).get()
         if (toolSnap.exists) {
           const toolData = toolSnap.data()
           selectedAiTool = {
@@ -631,6 +636,7 @@ Generate the newsletter JSON following the system instructions. Remember to:
 
 // PATCH - Update newsletter (sections, schedule, AI tool, audience, etc.)
 export async function PATCH(request: Request) {
+  const adminDb = getAdminDb()
   if (!adminDb) {
     return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
   }

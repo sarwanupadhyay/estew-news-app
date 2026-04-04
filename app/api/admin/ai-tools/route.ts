@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { adminDb } from "@/lib/firebase-admin"
+import { getAdminDb } from "@/lib/firebase-admin"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 export interface AITool {
@@ -16,7 +16,9 @@ export interface AITool {
 
 // GET - Fetch all AI tools
 export async function GET() {
+  const adminDb = getAdminDb()
   if (!adminDb) {
+    console.error("[v0] Firebase Admin not configured for ai-tools GET")
     return NextResponse.json({ tools: [], error: "Firebase Admin not configured" })
   }
   
@@ -57,6 +59,7 @@ export async function GET() {
 
 // POST - Create new AI tool
 export async function POST(request: Request) {
+  const adminDb = getAdminDb()
   if (!adminDb) {
     return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
   }
@@ -102,6 +105,7 @@ export async function POST(request: Request) {
 
 // PATCH - Update AI tool
 export async function PATCH(request: Request) {
+  const adminDb = getAdminDb()
   if (!adminDb) {
     return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
   }
@@ -146,6 +150,7 @@ export async function PATCH(request: Request) {
 
 // DELETE - Remove AI tool
 export async function DELETE(request: Request) {
+  const adminDb = getAdminDb()
   if (!adminDb) {
     return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
   }
