@@ -101,14 +101,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = await getUserProfile(firebaseUser.uid)
           if (data) {
             const plan = data.plan || "free"
+            const topics = data.topics || []
+            const companies = data.companies || []
+            
+            // Determine if user has completed onboarding:
+            // 1. If hasOnboarded is explicitly set, use that value
+            // 2. If hasOnboarded is undefined but user has topics OR companies OR a createdAt timestamp older than a day, assume they've onboarded
+            // 3. This protects existing users who were created before hasOnboarded field existed
+            let hasOnboarded = data.hasOnboarded
+            if (hasOnboarded === undefined) {
+              // Legacy user detection: if they have any preferences set, they're not new
+              hasOnboarded = topics.length > 0 || companies.length > 0 || !!data.createdAt
+            }
+            
             setProfile({
               plan,
-              topics: data.topics || [],
-              companies: data.companies || [],
+              topics,
+              companies,
               savedArticles: data.savedArticles || [],
               displayName: data.displayName || firebaseUser.displayName || "",
               photoURL: data.photoURL || firebaseUser.photoURL || undefined,
-              hasOnboarded: data.hasOnboarded ?? true,
+              hasOnboarded: hasOnboarded,
               newsletterSubscribed: data.newsletterSubscribed ?? false,
             })
             // Load usage stats
@@ -120,7 +133,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (err) {
           console.error("[v0] Error loading profile:", err)
-          setProfile(defaultProfile)
+          // On error, assume existing user (hasOnboarded: true) to prevent forcing existing users through onboarding again
+          // This is safer than showing onboarding which could overwrite their plan
+          setProfile({
+            ...defaultProfile,
+            displayName: firebaseUser.displayName || "",
+            photoURL: firebaseUser.photoURL || undefined,
+            hasOnboarded: true, // Assume existing user on error - safer than showing onboarding
+          })
         }
       } else {
         setProfile(null)
@@ -135,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user exists in Firestore
     const existing = await getUserProfile(result.user.uid)
     if (!existing) {
-      // Create initial profile for new Google users
+      // Create initial profile for new Google users - they need to complete onboarding
       await createUserProfile(result.user.uid, {
         email: result.user.email || "",
         displayName: result.user.displayName || "",
@@ -144,8 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         topics: [],
         companies: [],
         savedArticles: [],
+        hasOnboarded: false, // New users need onboarding
       })
     }
+    // If existing user, their hasOnboarded status is preserved from Firestore
   }
 
   const signInWithEmailFn = async (email: string, password: string) => {
@@ -154,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmailFn = async (email: string, password: string, newsletterSubscribed: boolean = false) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
-    // Create initial profile
+    // Create initial profile - new users need onboarding
     await createUserProfile(result.user.uid, {
       email: result.user.email || "",
       displayName: email.split("@")[0],
@@ -163,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       companies: [],
       savedArticles: [],
       newsletterSubscribed,
+      hasOnboarded: false, // New users need onboarding
     })
   }
 
@@ -187,10 +210,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const completeOnboarding = async (topics: string[], companies: string[], plan: "free" | "pro") => {
-    if (!user) return
-    const data = { topics, companies, plan, hasOnboarded: true }
-    await updateUserProfile(user.uid, data)
-    setProfile((prev) => prev ? { ...prev, ...data } : null)
+    if (!user) {
+      console.error("[v0] completeOnboarding: No user logged in")
+      return
+    }
+    try {
+      // Check if user already has a profile with a plan - don't overwrite existing paid plan
+      const existingProfile = await getUserProfile(user.uid)
+      const existingPlan = existingProfile?.plan
+      
+      // Only set the new plan if user doesn't have an existing plan (truly new user)
+      // If they already have a plan (returning user), preserve it
+      const finalPlan = existingPlan || plan
+      
+      const data = { topics, companies, plan: finalPlan, hasOnboarded: true }
+      await updateUserProfile(user.uid, data)
+      setProfile((prev) => prev ? { ...prev, ...data } : null)
+    } catch (err) {
+      console.error("[v0] completeOnboarding error:", err)
+      // Still update local state to unblock user, preserve existing plan if available
+      setProfile((prev) => {
+        if (!prev) return null
+        return { ...prev, topics, companies, hasOnboarded: true }
+        // Note: NOT updating plan here to avoid accidentally downgrading
+      })
+    }
   }
 
   const updateDisplayName = async (name: string) => {
