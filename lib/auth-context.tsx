@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user exists in Firestore
     const existing = await getUserProfile(result.user.uid)
     if (!existing) {
-      // Create initial profile for new Google users
+      // Create initial profile for new Google users - they need to complete onboarding
       await createUserProfile(result.user.uid, {
         email: result.user.email || "",
         displayName: result.user.displayName || "",
@@ -144,8 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         topics: [],
         companies: [],
         savedArticles: [],
+        hasOnboarded: false, // New users need onboarding
       })
     }
+    // If existing user, their hasOnboarded status is preserved from Firestore
   }
 
   const signInWithEmailFn = async (email: string, password: string) => {
@@ -154,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmailFn = async (email: string, password: string, newsletterSubscribed: boolean = false) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
-    // Create initial profile
+    // Create initial profile - new users need onboarding
     await createUserProfile(result.user.uid, {
       email: result.user.email || "",
       displayName: email.split("@")[0],
@@ -163,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       companies: [],
       savedArticles: [],
       newsletterSubscribed,
+      hasOnboarded: false, // New users need onboarding
     })
   }
 
@@ -187,10 +190,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const completeOnboarding = async (topics: string[], companies: string[], plan: "free" | "pro") => {
-    if (!user) return
-    const data = { topics, companies, plan, hasOnboarded: true }
-    await updateUserProfile(user.uid, data)
-    setProfile((prev) => prev ? { ...prev, ...data } : null)
+    if (!user) {
+      console.error("[v0] completeOnboarding: No user logged in")
+      return
+    }
+    try {
+      const data = { topics, companies, plan, hasOnboarded: true }
+      await updateUserProfile(user.uid, data)
+      setProfile((prev) => prev ? { ...prev, ...data } : null)
+    } catch (err) {
+      console.error("[v0] completeOnboarding error:", err)
+      // Still update local state to unblock user
+      setProfile((prev) => prev ? { ...prev, topics, companies, plan, hasOnboarded: true } : null)
+    }
   }
 
   const updateDisplayName = async (name: string) => {
