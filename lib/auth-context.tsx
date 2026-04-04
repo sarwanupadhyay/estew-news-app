@@ -95,11 +95,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load profile when user changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("[v0] Auth: User state changed:", firebaseUser?.email || "signed out")
       setUser(firebaseUser)
       if (firebaseUser) {
         try {
+          console.log("[v0] Auth: Loading profile for", firebaseUser.uid)
           const data = await getUserProfile(firebaseUser.uid)
           if (data) {
+            console.log("[v0] Auth: Profile found - plan:", data.plan, "hasOnboarded:", data.hasOnboarded, "newsletterSubscribed:", data.newsletterSubscribed)
             // Get the plan directly from Firebase - this preserves Pro status
             const plan = data.plan || "free"
             const topics = data.topics || []
@@ -120,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             
             
-            setProfile({
+            const profileData = {
               plan,
               topics,
               companies,
@@ -129,7 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               photoURL: data.photoURL || firebaseUser.photoURL || undefined,
               hasOnboarded,
               newsletterSubscribed: data.newsletterSubscribed ?? false,
-            })
+            }
+            console.log("[v0] Auth: Setting profile:", profileData.displayName, "plan:", profileData.plan, "hasOnboarded:", profileData.hasOnboarded)
+            setProfile(profileData)
             // Load usage stats
             const stats = await getUsageStats(firebaseUser.uid, plan)
             setUsage({ articlesUsed: stats.used, articlesLimit: stats.limit, isUnlimited: stats.isUnlimited })

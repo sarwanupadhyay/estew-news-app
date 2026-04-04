@@ -72,33 +72,59 @@ export async function getActivitiesByDate(
   endOfDay.setHours(23, 59, 59, 999)
   
   try {
-    // Simplified query - just filter by timestamp range, then filter type in code
-    // This avoids needing a composite index
-    let q = query(
-      activitiesRef,
-      where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
-      where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
-      orderBy("timestamp", "desc"),
-      limit(50) // Fetch more to filter by type
-    )
+    console.log("[v0] Activity: Getting activities for date", date.toISOString().split("T")[0])
     
-    // If we have a last document, start after it for pagination
-    if (lastDocument) {
-      q = query(
+    let allDocs: QueryDocumentSnapshot<DocumentData>[] = []
+    
+    try {
+      // Try indexed query first
+      let q = query(
         activitiesRef,
         where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
         where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
         orderBy("timestamp", "desc"),
-        startAfter(lastDocument),
         limit(50)
       )
+      
+      if (lastDocument) {
+        q = query(
+          activitiesRef,
+          where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
+          where("timestamp", "<=", Timestamp.fromDate(endOfDay)),
+          orderBy("timestamp", "desc"),
+          startAfter(lastDocument),
+          limit(50)
+        )
+      }
+      
+      const snapshot = await getDocs(q)
+      allDocs = snapshot.docs
+      console.log("[v0] Activity: Found", allDocs.length, "activities (indexed query)")
+    } catch (queryError) {
+      // Fallback: fetch all activities and filter client-side
+      console.log("[v0] Activity: Fallback - fetching all activities")
+      const snapshot = await getDocs(activitiesRef)
+      allDocs = snapshot.docs.filter(doc => {
+        const ts = doc.data().timestamp
+        if (!ts) return false
+        const activityDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts)
+        return activityDate >= startOfDay && activityDate <= endOfDay
+      })
+      // Sort by timestamp descending
+      allDocs.sort((a, b) => {
+        const aTs = a.data().timestamp
+        const bTs = b.data().timestamp
+        const aDate = aTs instanceof Timestamp ? aTs.toDate() : new Date(aTs)
+        const bDate = bTs instanceof Timestamp ? bTs.toDate() : new Date(bTs)
+        return bDate.getTime() - aDate.getTime()
+      })
+      console.log("[v0] Activity: Found", allDocs.length, "activities (fallback)")
     }
     
-    const snapshot = await getDocs(q)
-    
     // Filter by type in code to avoid composite index requirement
-    const filteredDocs = snapshot.docs.filter(doc => doc.data().type === "article_read")
+    const filteredDocs = allDocs.filter(doc => doc.data().type === "article_read")
     const docs = filteredDocs.slice(0, pageSize + 1)
+    console.log("[v0] Activity: Filtered to", filteredDocs.length, "article_read activities")
   
     // Check if there are more results
     const hasMore = docs.length > pageSize
@@ -145,17 +171,36 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   
   try {
-    // Simplified query - filter by type in code to avoid composite index
-    const q = query(
-      activitiesRef,
-      where("timestamp", ">=", Timestamp.fromDate(ninetyDaysAgo)),
-      orderBy("timestamp", "desc")
-    )
+    console.log("[v0] Activity: Getting activity dates for last 90 days")
     
-    const snapshot = await getDocs(q)
+    let allDocs: QueryDocumentSnapshot<DocumentData>[] = []
+    
+    try {
+      // Try indexed query first
+      const q = query(
+        activitiesRef,
+        where("timestamp", ">=", Timestamp.fromDate(ninetyDaysAgo)),
+        orderBy("timestamp", "desc")
+      )
+      const snapshot = await getDocs(q)
+      allDocs = snapshot.docs
+      console.log("[v0] Activity: Found", allDocs.length, "activities (indexed query)")
+    } catch (queryError) {
+      // Fallback: fetch all activities and filter client-side
+      console.log("[v0] Activity: Fallback - fetching all activities for dates")
+      const snapshot = await getDocs(activitiesRef)
+      allDocs = snapshot.docs.filter(doc => {
+        const ts = doc.data().timestamp
+        if (!ts) return false
+        const activityDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts)
+        return activityDate >= ninetyDaysAgo
+      })
+      console.log("[v0] Activity: Found", allDocs.length, "activities (fallback)")
+    }
+    
     const dates = new Set<string>()
     
-    snapshot.docs.forEach((doc) => {
+    allDocs.forEach((doc) => {
       const data = doc.data()
       // Filter for article_read type
       if (data.type !== "article_read") return
@@ -168,9 +213,10 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
       dates.add(dateStr)
     })
     
+    console.log("[v0] Activity: Found", dates.size, "unique dates with activity")
     return dates
   } catch (error) {
-    console.error("Error fetching activity dates:", error)
+    console.error("[v0] Activity: Error fetching activity dates:", error)
     return new Set()
   }
 }
