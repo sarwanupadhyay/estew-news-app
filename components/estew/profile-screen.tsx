@@ -111,9 +111,13 @@ export function ProfileScreen() {
   // Load activity dates when modal opens
   useEffect(() => {
     if (showActivityModal && user) {
+      console.log("[v0] Loading activity dates for user:", user.uid)
       getActivityDates(user.uid)
-        .then(setActivityDates)
-        .catch((err) => console.error("Failed to load activity dates:", err))
+        .then((dates) => {
+          console.log("[v0] Activity dates loaded:", dates.size, "days with activity")
+          setActivityDates(dates)
+        })
+        .catch((err) => console.error("[v0] Failed to load activity dates:", err))
     }
   }, [showActivityModal, user])
 
@@ -124,13 +128,15 @@ export function ProfileScreen() {
       setActivities([])
       setLastActivityDoc(null)
       
+      console.log("[v0] Loading activities for date:", selectedDate.toISOString().split("T")[0])
       getActivitiesByDate(user.uid, selectedDate, 10)
         .then((result: ActivityPage) => {
+          console.log("[v0] Activities loaded:", result.activities.length, "items, hasMore:", result.hasMore)
           setActivities(result.activities)
           setLastActivityDoc(result.lastDoc)
           setHasMoreActivities(result.hasMore)
         })
-        .catch((err) => console.error("Failed to load activities:", err))
+        .catch((err) => console.error("[v0] Failed to load activities:", err))
         .finally(() => setLoadingActivities(false))
     }
   }, [showActivityModal, user, selectedDate])
@@ -220,11 +226,14 @@ export function ProfileScreen() {
   }
 
   const handleToggleNewsletter = async () => {
+    if (savingNewsletter) return // Prevent double-clicks
+    const newValue = !profile?.newsletterSubscribed
     setSavingNewsletter(true)
     try {
-      await saveProfile({ newsletterSubscribed: !profile?.newsletterSubscribed })
+      await saveProfile({ newsletterSubscribed: newValue })
+      console.log("[v0] Newsletter toggled to:", newValue)
     } catch (err) {
-      console.error("Error toggling newsletter:", err)
+      console.error("[v0] Error toggling newsletter:", err)
     } finally {
       setSavingNewsletter(false)
     }
@@ -727,21 +736,27 @@ export function ProfileScreen() {
                     <div>
                       <p className="font-sans text-[14px] font-semibold text-foreground">Daily Newsletter</p>
                       <p className="font-sans text-[12px] text-muted-foreground">
-                        {profile?.newsletterSubscribed ? "You're subscribed" : "You're not subscribed"}
+                        {savingNewsletter 
+                          ? "Updating..." 
+                          : profile?.newsletterSubscribed 
+                            ? "You're subscribed" 
+                            : "You're not subscribed"
+                        }
                       </p>
                     </div>
-                    <div 
-                      className={`h-6 w-11 rounded-full p-0.5 cursor-pointer transition-colors ${
+                    <button 
+                      onClick={handleToggleNewsletter}
+                      disabled={savingNewsletter}
+                      className={`relative h-6 w-11 rounded-full p-0.5 transition-colors disabled:opacity-50 ${
                         profile?.newsletterSubscribed ? "bg-primary" : "bg-muted"
                       }`}
-                      onClick={handleToggleNewsletter}
                     >
                       <div 
                         className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
                           profile?.newsletterSubscribed ? "translate-x-5" : "translate-x-0"
                         }`}
                       />
-                    </div>
+                    </button>
                   </div>
                 </div>
 
