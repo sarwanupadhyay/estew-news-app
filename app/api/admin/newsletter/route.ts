@@ -201,36 +201,42 @@ Writing Rules:
 
 IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no explanatory text.`
 
-// Get articles for newsletter - uses createdAt (Firestore Timestamp) for reliable ordering
+// Get articles for newsletter - fetches from News API since Firebase articles collection may be empty
 async function getArticlesForNewsletter() {
-  const articlesRef = collection(db, "articles")
-  const twentyFourHoursAgo = new Date()
-  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
-
-  // Helper to map docs to articles
-  const mapDocsToArticles = (docs: any[]) => {
-    return docs.map((docSnap) => {
-      const data = docSnap.data()
-      const createdAt = data.createdAt instanceof Timestamp
-        ? data.createdAt.toDate()
-        : new Date()
-
-      return {
-        id: docSnap.id,
-        title: data.title || "",
-        description: data.description || "",
-        sourceName: data.sourceName || "",
-        category: data.category || "",
-        url: data.url || data.originalUrl || "",
-        imageUrl: data.imageUrl || data.urlToImage || "",
-        publishedAt: data.publishedAt || createdAt.toISOString(),
-        createdAt: createdAt,
-      }
+  // First try to fetch fresh articles from the News API
+  try {
+    // Build the internal API URL
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+    
+    const response = await fetch(`${baseUrl}/api/news?category=All`, {
+      cache: "no-store",
     })
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.articles && data.articles.length > 0) {
+        return data.articles.map((article: any) => ({
+          id: article.id,
+          title: article.title || "",
+          description: article.summary || "",
+          sourceName: article.sourceName || "",
+          category: article.category || "",
+          url: article.originalUrl || "",
+          imageUrl: article.imageUrl || "",
+          publishedAt: article.publishedAt || new Date().toISOString(),
+          createdAt: new Date(),
+        }))
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch from News API:", error)
   }
 
-  // Primary strategy: Use createdAt
+  // Fallback: try Firebase articles collection
   try {
+    const articlesRef = collection(db, "articles")
     const recentQuery = query(
       articlesRef,
       orderBy("createdAt", "desc"),
@@ -239,29 +245,27 @@ async function getArticlesForNewsletter() {
     const snapshot = await getDocs(recentQuery)
 
     if (!snapshot.empty) {
-      const allArticles = mapDocsToArticles(snapshot.docs)
-      const recentArticles = allArticles.filter((article) => {
-        return article.createdAt >= twentyFourHoursAgo
+      return snapshot.docs.map((docSnap) => {
+        const data = docSnap.data()
+        const createdAt = data.createdAt instanceof Timestamp
+          ? data.createdAt.toDate()
+          : new Date()
+
+        return {
+          id: docSnap.id,
+          title: data.title || "",
+          description: data.description || "",
+          sourceName: data.sourceName || "",
+          category: data.category || "",
+          url: data.url || data.originalUrl || "",
+          imageUrl: data.imageUrl || data.urlToImage || "",
+          publishedAt: data.publishedAt || createdAt.toISOString(),
+          createdAt: createdAt,
+        }
       })
-
-      if (recentArticles.length >= 5) {
-        return recentArticles
-      }
-      return allArticles.slice(0, 30)
     }
   } catch (error) {
-    console.error("Primary query failed:", error)
-  }
-
-  // Fallback
-  try {
-    const simpleQuery = query(articlesRef, limit(30))
-    const snapshot = await getDocs(simpleQuery)
-    if (!snapshot.empty) {
-      return mapDocsToArticles(snapshot.docs)
-    }
-  } catch (error) {
-    console.error("Fallback query failed:", error)
+    console.error("Fallback Firebase query failed:", error)
   }
 
   return []
