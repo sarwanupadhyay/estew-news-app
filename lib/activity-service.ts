@@ -40,14 +40,19 @@ export async function recordActivity(
   userId: string,
   activity: Omit<Activity, "id" | "timestamp">
 ): Promise<string> {
-  const activityRef = doc(collection(db, "users", userId, "activities"))
-  
-  await setDoc(activityRef, {
-    ...activity,
-    timestamp: serverTimestamp(),
-  })
-  
-  return activityRef.id
+  try {
+    const activityRef = doc(collection(db, "users", userId, "activities"))
+    
+    await setDoc(activityRef, {
+      ...activity,
+      timestamp: serverTimestamp(),
+    })
+    
+    return activityRef.id
+  } catch (error) {
+    console.error("[v0] Error recording activity:", error)
+    throw error
+  }
 }
 
 // Get user activities for a specific date with pagination

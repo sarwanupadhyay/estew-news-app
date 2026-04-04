@@ -119,7 +119,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               hasOnboarded = topics.length > 0 || companies.length > 0
             }
             
-            console.log("[v0] Profile loaded - plan:", plan, "hasOnboarded:", hasOnboarded, "raw hasOnboarded:", data.hasOnboarded)
             
             setProfile({
               plan,
@@ -208,24 +207,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     try {
-      console.log("[v0] saveProfile: Saving data:", data)
       await updateUserProfile(user.uid, data)
       setProfile((prev) => prev ? { ...prev, ...data } : null)
-      console.log("[v0] saveProfile: Success")
     } catch (err) {
-      console.error("[v0] saveProfile: Error:", err)
+      console.error("[v0] saveProfile error:", err)
       // Still update local state optimistically
       setProfile((prev) => prev ? { ...prev, ...data } : null)
       throw err // Re-throw so caller knows it failed
     }
   }
 
+  // Toggle saved article in local state only
+  // Firebase update is handled separately by saveArticleForUser/removeSavedArticle
   const toggleSaveArticle = async (articleId: string) => {
     if (!user || !profile) return
     const newSaved = profile.savedArticles.includes(articleId)
       ? profile.savedArticles.filter((id) => id !== articleId)
       : [...profile.savedArticles, articleId]
-    await updateUserProfile(user.uid, { savedArticles: newSaved })
+    // Only update local state - Firebase is already updated by the caller
     setProfile((prev) => prev ? { ...prev, savedArticles: newSaved } : null)
   }
 
@@ -239,7 +238,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const existingProfile = await getUserProfile(user.uid)
       const existingPlan = existingProfile?.plan
       
-      console.log("[v0] completeOnboarding: existingPlan =", existingPlan, ", requestedPlan =", plan)
       
       // Only set the new plan if user doesn't have an existing plan (truly new user)
       // If they already have a plan (returning user), preserve it
@@ -256,7 +254,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         finalPlan = plan
       }
       
-      console.log("[v0] completeOnboarding: finalPlan =", finalPlan)
       
       const data = { topics, companies, plan: finalPlan, hasOnboarded: true }
       await updateUserProfile(user.uid, data)
