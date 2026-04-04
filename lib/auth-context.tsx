@@ -95,35 +95,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load profile when user changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("[v0] Auth: User state changed:", firebaseUser?.email || "signed out")
       setUser(firebaseUser)
       if (firebaseUser) {
         try {
+          console.log("[v0] Auth: Loading profile for", firebaseUser.uid)
           const data = await getUserProfile(firebaseUser.uid)
           if (data) {
+            console.log("[v0] Auth: Profile found - plan:", data.plan, "hasOnboarded:", data.hasOnboarded, "newsletterSubscribed:", data.newsletterSubscribed)
+            // Get the plan directly from Firebase - this preserves Pro status
             const plan = data.plan || "free"
             const topics = data.topics || []
             const companies = data.companies || []
             
             // Determine if user has completed onboarding:
-            // 1. If hasOnboarded is explicitly set, use that value
-            // 2. If hasOnboarded is undefined but user has topics OR companies OR a createdAt timestamp older than a day, assume they've onboarded
-            // 3. This protects existing users who were created before hasOnboarded field existed
-            let hasOnboarded = data.hasOnboarded
-            if (hasOnboarded === undefined) {
-              // Legacy user detection: if they have any preferences set, they're not new
-              hasOnboarded = topics.length > 0 || companies.length > 0 || !!data.createdAt
+            // 1. If hasOnboarded is explicitly set (true or false), use that value
+            // 2. Only for LEGACY users (hasOnboarded === undefined): check if they have topics/companies
+            // 3. NEW users will have hasOnboarded explicitly set to false by createUserProfile
+            let hasOnboarded: boolean
+            if (typeof data.hasOnboarded === "boolean") {
+              // Explicit value - use it directly
+              hasOnboarded = data.hasOnboarded
+            } else {
+              // Legacy user detection: only consider them onboarded if they have preferences set
+              // This protects existing users who were created before hasOnboarded field existed
+              hasOnboarded = topics.length > 0 || companies.length > 0
             }
             
-            setProfile({
+            
+            const profileData = {
               plan,
               topics,
               companies,
               savedArticles: data.savedArticles || [],
               displayName: data.displayName || firebaseUser.displayName || "",
               photoURL: data.photoURL || firebaseUser.photoURL || undefined,
-              hasOnboarded: hasOnboarded,
+              hasOnboarded,
               newsletterSubscribed: data.newsletterSubscribed ?? false,
-            })
+            }
+            console.log("[v0] Auth: Setting profile:", profileData.displayName, "plan:", profileData.plan, "hasOnboarded:", profileData.hasOnboarded)
+            setProfile(profileData)
             // Load usage stats
             const stats = await getUsageStats(firebaseUser.uid, plan)
             setUsage({ articlesUsed: stats.used, articlesLimit: stats.limit, isUnlimited: stats.isUnlimited })
@@ -133,13 +144,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (err) {
           console.error("[v0] Error loading profile:", err)
-          // On error, assume existing user (hasOnboarded: true) to prevent forcing existing users through onboarding again
-          // This is safer than showing onboarding which could overwrite their plan
+          // On Firebase permission error, we cannot determine if user is new or existing
+          // Default to showing them the app (hasOnboarded: true) to avoid breaking existing users
+          // New users who hit this error will need to set preferences in their profile later
           setProfile({
             ...defaultProfile,
             displayName: firebaseUser.displayName || "",
             photoURL: firebaseUser.photoURL || undefined,
-            hasOnboarded: true, // Assume existing user on error - safer than showing onboarding
+            hasOnboarded: true, // Assume existing user on error to avoid accidental plan downgrade
           })
         }
       } else {
@@ -195,17 +207,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const saveProfile = async (data: Partial<UserProfile>) => {
-    if (!user) return
-    await updateUserProfile(user.uid, data)
-    setProfile((prev) => prev ? { ...prev, ...data } : null)
+    if (!user) {
+      console.error("[v0] saveProfile: No user logged in")
+      return
+    }
+    try {
+      await updateUserProfile(user.uid, data)
+      setProfile((prev) => prev ? { ...prev, ...data } : null)
+    } catch (err) {
+      console.error("[v0] saveProfile error:", err)
+      // Still update local state optimistically
+      setProfile((prev) => prev ? { ...prev, ...data } : null)
+      throw err // Re-throw so caller knows it failed
+    }
   }
 
+  // Toggle saved article in local state only
+  // Firebase update is handled separately by saveArticleForUser/removeSavedArticle
   const toggleSaveArticle = async (articleId: string) => {
     if (!user || !profile) return
     const newSaved = profile.savedArticles.includes(articleId)
       ? profile.savedArticles.filter((id) => id !== articleId)
       : [...profile.savedArticles, articleId]
-    await updateUserProfile(user.uid, { savedArticles: newSaved })
+    // Only update local state - Firebase is already updated by the caller
     setProfile((prev) => prev ? { ...prev, savedArticles: newSaved } : null)
   }
 
@@ -219,9 +243,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const existingProfile = await getUserProfile(user.uid)
       const existingPlan = existingProfile?.plan
       
+      
       // Only set the new plan if user doesn't have an existing plan (truly new user)
       // If they already have a plan (returning user), preserve it
-      const finalPlan = existingPlan || plan
+      // IMPORTANT: "pro" plan should never be downgraded to "free"
+      let finalPlan: "free" | "pro"
+      if (existingPlan === "pro") {
+        // Never downgrade pro users
+        finalPlan = "pro"
+      } else if (existingPlan) {
+        // User has a plan, use it
+        finalPlan = existingPlan
+      } else {
+        // New user, use the requested plan
+        finalPlan = plan
+      }
+      
       
       const data = { topics, companies, plan: finalPlan, hasOnboarded: true }
       await updateUserProfile(user.uid, data)

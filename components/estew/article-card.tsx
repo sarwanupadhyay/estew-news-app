@@ -5,6 +5,8 @@ import type { Article } from "@/lib/types"
 import { Bookmark, BookmarkCheck, Lock, MoreHorizontal } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { useAuth } from "@/lib/auth-context"
+import { saveArticleForUser, removeSavedArticle } from "@/lib/article-storage"
+import { recordActivity } from "@/lib/activity-service"
 import { timeAgo } from "@/lib/time"
 
 // Get favicon for source
@@ -25,17 +27,49 @@ function getSourceFavicon(sourceName: string, sourceUrl?: string): string {
 
 export function ArticleCard({ article, index }: { article: Article; index: number }) {
   const { setSelectedArticleId } = useAppStore()
-  const { profile, toggleSaveArticle, checkArticleAccess } = useAuth()
+  const { user, profile, toggleSaveArticle, checkArticleAccess } = useAuth()
   const isSaved = profile?.savedArticles?.includes(article.id) || false
   const [imgLoaded, setImgLoaded] = useState(false)
   const [imgError, setImgError] = useState(false)
   const [logoError, setLogoError] = useState(false)
   const [limitReached, setLimitReached] = useState(false)
   const [limitMessage, setLimitMessage] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    await toggleSaveArticle(article.id)
+    if (!user || isSaving) return
+    
+    setIsSaving(true)
+    try {
+      if (isSaved) {
+        // Unsave article
+        await removeSavedArticle(user.uid, article.id)
+        await recordActivity(user.uid, {
+          type: "article_unsaved",
+          articleId: article.id,
+          articleTitle: article.title,
+          articleSource: article.sourceName,
+          articleCategory: article.category,
+        })
+      } else {
+        // Save article with full data
+        await saveArticleForUser(user.uid, article.id, article)
+        await recordActivity(user.uid, {
+          type: "article_saved",
+          articleId: article.id,
+          articleTitle: article.title,
+          articleSource: article.sourceName,
+          articleCategory: article.category,
+        })
+      }
+      // Update local state
+      await toggleSaveArticle(article.id)
+    } catch (error) {
+      console.error("Error saving article:", error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleClick = async () => {
@@ -111,7 +145,8 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
           <div className="flex flex-col items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <button
               onClick={handleSave}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"
+              disabled={isSaving}
+              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted disabled:opacity-50"
               aria-label={isSaved ? "Unsave" : "Save"}
             >
               {isSaved ? (
