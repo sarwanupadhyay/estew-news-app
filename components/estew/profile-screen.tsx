@@ -226,7 +226,7 @@ export function ProfileScreen() {
     try {
       await saveProfile({ newsletterSubscribed: newValue })
     } catch (err) {
-      console.error("[v0] Error toggling newsletter:", err)
+      console.error("Error toggling newsletter:", err)
     } finally {
       setSavingNewsletter(false)
     }

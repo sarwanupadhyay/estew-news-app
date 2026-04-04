@@ -70,14 +70,11 @@ export function verifyAdminCredentials(email: string, password: string): boolean
 // Get all users count
 export async function getTotalUsersCount(): Promise<number> {
   try {
-    console.log("[v0] Admin: Getting total users count...")
     const usersRef = collection(db, "users")
     const snapshot = await getCountFromServer(usersRef)
-    const count = snapshot.data().count
-    console.log("[v0] Admin: Users count =", count)
-    return count
+    return snapshot.data().count
   } catch (error) {
-    console.error("[v0] Admin: Error getting users count:", error)
+    console.error("Error getting users count:", error)
     return 0
   }
 }
@@ -109,9 +106,7 @@ export async function getTotalSubscribersCount(): Promise<number> {
 // Get recent users
 export async function getRecentUsers(limitCount: number = 10): Promise<AdminUser[]> {
   try {
-    console.log("[v0] Admin: Getting recent users...")
     const usersRef = collection(db, "users")
-    
     let docs: typeof import("firebase/firestore").QueryDocumentSnapshot[] = []
     
     // Try ordered query first
@@ -119,13 +114,10 @@ export async function getRecentUsers(limitCount: number = 10): Promise<AdminUser
       const q = query(usersRef, orderBy("createdAt", "desc"), limit(limitCount))
       const snapshot = await getDocs(q)
       docs = snapshot.docs
-      console.log("[v0] Admin: Found", docs.length, "users (ordered query)")
     } catch (queryError) {
-      // If query fails (no index or missing field), fallback to simple query
-      console.log("[v0] Admin: Fallback - fetching users without ordering")
+      // Fallback to simple query without ordering
       const snapshot = await getDocs(query(usersRef, limit(limitCount)))
       docs = snapshot.docs
-      console.log("[v0] Admin: Found", docs.length, "users (fallback)")
     }
     
     return docs.map((doc) => {
@@ -143,7 +135,7 @@ export async function getRecentUsers(limitCount: number = 10): Promise<AdminUser
       }
     })
   } catch (error) {
-    console.error("[v0] Admin: Error getting recent users:", error)
+    console.error("Error getting recent users:", error)
     return []
   }
 }
@@ -208,24 +200,19 @@ export async function getAllSubscribers(): Promise<AdminSubscriber[]> {
 // Get newsletter subscribers count (from users table where newsletterSubscribed = true)
 export async function getNewsletterSubscribersCount(): Promise<number> {
   try {
-    console.log("[v0] Admin: Getting newsletter subscribers count...")
     const usersRef = collection(db, "users")
     // Try direct query first
     try {
       const q = query(usersRef, where("newsletterSubscribed", "==", true))
       const snapshot = await getDocs(q)
-      console.log("[v0] Admin: Newsletter subscribers count =", snapshot.docs.length)
       return snapshot.docs.length
     } catch (queryError) {
-      // If query fails (no index), fallback to fetching all users and filtering
-      console.log("[v0] Admin: Fallback - fetching all users to count newsletter subscribers")
+      // Fallback to fetching all users and filtering
       const allUsersSnapshot = await getDocs(usersRef)
-      const count = allUsersSnapshot.docs.filter(doc => doc.data().newsletterSubscribed === true).length
-      console.log("[v0] Admin: Newsletter subscribers count (fallback) =", count)
-      return count
+      return allUsersSnapshot.docs.filter(doc => doc.data().newsletterSubscribed === true).length
     }
   } catch (error) {
-    console.error("[v0] Admin: Error getting newsletter subscribers count:", error)
+    console.error("Error getting newsletter subscribers count:", error)
     return 0
   }
 }
@@ -233,9 +220,7 @@ export async function getNewsletterSubscribersCount(): Promise<number> {
 // Get all newsletter subscribers (from users table where newsletterSubscribed = true)
 export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
   try {
-    console.log("[v0] Admin: Getting newsletter subscribers...")
     const usersRef = collection(db, "users")
-    
     let docs: typeof import("firebase/firestore").QueryDocumentSnapshot[] = []
     
     // Try direct query first
@@ -243,13 +228,10 @@ export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]
       const q = query(usersRef, where("newsletterSubscribed", "==", true))
       const snapshot = await getDocs(q)
       docs = snapshot.docs
-      console.log("[v0] Admin: Found", docs.length, "newsletter subscribers (direct query)")
     } catch (queryError) {
-      // If query fails (no index), fallback to fetching all users and filtering
-      console.log("[v0] Admin: Fallback - fetching all users to filter newsletter subscribers")
+      // Fallback to fetching all users and filtering
       const allUsersSnapshot = await getDocs(usersRef)
       docs = allUsersSnapshot.docs.filter(doc => doc.data().newsletterSubscribed === true)
-      console.log("[v0] Admin: Found", docs.length, "newsletter subscribers (fallback)")
     }
     
     return docs.map((doc) => {
@@ -265,7 +247,7 @@ export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]
       }
     })
   } catch (error) {
-    console.error("[v0] Admin: Error getting newsletter subscribers:", error)
+    console.error("Error getting newsletter subscribers:", error)
     return []
   }
 }

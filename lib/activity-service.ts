@@ -72,8 +72,6 @@ export async function getActivitiesByDate(
   endOfDay.setHours(23, 59, 59, 999)
   
   try {
-    console.log("[v0] Activity: Getting activities for date", date.toISOString().split("T")[0])
-    
     let allDocs: QueryDocumentSnapshot<DocumentData>[] = []
     
     try {
@@ -99,10 +97,8 @@ export async function getActivitiesByDate(
       
       const snapshot = await getDocs(q)
       allDocs = snapshot.docs
-      console.log("[v0] Activity: Found", allDocs.length, "activities (indexed query)")
     } catch (queryError) {
       // Fallback: fetch all activities and filter client-side
-      console.log("[v0] Activity: Fallback - fetching all activities")
       const snapshot = await getDocs(activitiesRef)
       allDocs = snapshot.docs.filter(doc => {
         const ts = doc.data().timestamp
@@ -118,13 +114,11 @@ export async function getActivitiesByDate(
         const bDate = bTs instanceof Timestamp ? bTs.toDate() : new Date(bTs)
         return bDate.getTime() - aDate.getTime()
       })
-      console.log("[v0] Activity: Found", allDocs.length, "activities (fallback)")
     }
     
     // Filter by type in code to avoid composite index requirement
     const filteredDocs = allDocs.filter(doc => doc.data().type === "article_read")
     const docs = filteredDocs.slice(0, pageSize + 1)
-    console.log("[v0] Activity: Filtered to", filteredDocs.length, "article_read activities")
   
     // Check if there are more results
     const hasMore = docs.length > pageSize
@@ -171,8 +165,6 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   
   try {
-    console.log("[v0] Activity: Getting activity dates for last 90 days")
-    
     let allDocs: QueryDocumentSnapshot<DocumentData>[] = []
     
     try {
@@ -184,10 +176,8 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
       )
       const snapshot = await getDocs(q)
       allDocs = snapshot.docs
-      console.log("[v0] Activity: Found", allDocs.length, "activities (indexed query)")
     } catch (queryError) {
       // Fallback: fetch all activities and filter client-side
-      console.log("[v0] Activity: Fallback - fetching all activities for dates")
       const snapshot = await getDocs(activitiesRef)
       allDocs = snapshot.docs.filter(doc => {
         const ts = doc.data().timestamp
@@ -195,7 +185,6 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
         const activityDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts)
         return activityDate >= ninetyDaysAgo
       })
-      console.log("[v0] Activity: Found", allDocs.length, "activities (fallback)")
     }
     
     const dates = new Set<string>()
@@ -213,10 +202,9 @@ export async function getActivityDates(userId: string): Promise<Set<string>> {
       dates.add(dateStr)
     })
     
-    console.log("[v0] Activity: Found", dates.size, "unique dates with activity")
     return dates
   } catch (error) {
-    console.error("[v0] Activity: Error fetching activity dates:", error)
+    console.error("Error fetching activity dates:", error)
     return new Set()
   }
 }

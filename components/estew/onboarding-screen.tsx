@@ -65,7 +65,7 @@ export function OnboardingScreen() {
         profile?.plan || "free"
       )
     } catch (err) {
-      console.error("[v0] handleQuickSkip error:", err)
+      console.error("Error skipping onboarding:", err)
     } finally {
       setProcessingFree(false)
     }
@@ -88,7 +88,7 @@ export function OnboardingScreen() {
     try {
       await completeOnboarding(selectedTopics, selectedCompanies, "free")
     } catch (err) {
-      console.error("[v0] handleFreePlan error:", err)
+      console.error("Error selecting free plan:", err)
     } finally {
       setProcessingFree(false)
     }

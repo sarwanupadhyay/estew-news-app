@@ -95,14 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load profile when user changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("[v0] Auth: User state changed:", firebaseUser?.email || "signed out")
       setUser(firebaseUser)
       if (firebaseUser) {
         try {
-          console.log("[v0] Auth: Loading profile for", firebaseUser.uid)
           const data = await getUserProfile(firebaseUser.uid)
           if (data) {
-            console.log("[v0] Auth: Profile found - plan:", data.plan, "hasOnboarded:", data.hasOnboarded, "newsletterSubscribed:", data.newsletterSubscribed)
             // Get the plan directly from Firebase - this preserves Pro status
             const plan = data.plan || "free"
             const topics = data.topics || []
@@ -123,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             
             
-            const profileData = {
+            setProfile({
               plan,
               topics,
               companies,
@@ -132,9 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               photoURL: data.photoURL || firebaseUser.photoURL || undefined,
               hasOnboarded,
               newsletterSubscribed: data.newsletterSubscribed ?? false,
-            }
-            console.log("[v0] Auth: Setting profile:", profileData.displayName, "plan:", profileData.plan, "hasOnboarded:", profileData.hasOnboarded)
-            setProfile(profileData)
+            })
             // Load usage stats
             const stats = await getUsageStats(firebaseUser.uid, plan)
             setUsage({ articlesUsed: stats.used, articlesLimit: stats.limit, isUnlimited: stats.isUnlimited })
@@ -143,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile({ ...defaultProfile, displayName: firebaseUser.displayName || "", photoURL: firebaseUser.photoURL || undefined })
           }
         } catch (err) {
-          console.error("[v0] Error loading profile:", err)
+          console.error("Error loading profile:", err)
           // On Firebase permission error, we cannot determine if user is new or existing
           // Default to showing them the app (hasOnboarded: true) to avoid breaking existing users
           // New users who hit this error will need to set preferences in their profile later
@@ -207,15 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const saveProfile = async (data: Partial<UserProfile>) => {
-    if (!user) {
-      console.error("[v0] saveProfile: No user logged in")
-      return
-    }
+    if (!user) return
     try {
       await updateUserProfile(user.uid, data)
       setProfile((prev) => prev ? { ...prev, ...data } : null)
     } catch (err) {
-      console.error("[v0] saveProfile error:", err)
+      console.error("Error saving profile:", err)
       // Still update local state optimistically
       setProfile((prev) => prev ? { ...prev, ...data } : null)
       throw err // Re-throw so caller knows it failed
@@ -234,10 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const completeOnboarding = async (topics: string[], companies: string[], plan: "free" | "pro") => {
-    if (!user) {
-      console.error("[v0] completeOnboarding: No user logged in")
-      return
-    }
+    if (!user) return
     try {
       // Check if user already has a profile with a plan - don't overwrite existing paid plan
       const existingProfile = await getUserProfile(user.uid)
@@ -264,7 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await updateUserProfile(user.uid, data)
       setProfile((prev) => prev ? { ...prev, ...data } : null)
     } catch (err) {
-      console.error("[v0] completeOnboarding error:", err)
+      console.error("Error completing onboarding:", err)
       // Still update local state to unblock user, preserve existing plan if available
       setProfile((prev) => {
         if (!prev) return null
