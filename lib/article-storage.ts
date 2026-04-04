@@ -120,11 +120,15 @@ export function clearPersistenceCache(): void {
 // This avoids permission issues with the global articles collection
 export async function saveArticleForUser(userId: string, articleId: string, articleData?: Article): Promise<void> {
   try {
+    console.log("[v0] saveArticleForUser: Saving article", articleId, "for user", userId)
+    console.log("[v0] saveArticleForUser: Article data provided:", !!articleData)
+    
     const userRef = doc(db, "users", userId)
     await updateDoc(userRef, {
       savedArticles: arrayUnion(articleId),
       updatedAt: serverTimestamp(),
     })
+    console.log("[v0] saveArticleForUser: Updated user savedArticles array")
 
     // Store full article data in user's saved_articles subcollection
     // This ensures we can retrieve the article even if global storage fails
@@ -138,8 +142,9 @@ export async function saveArticleForUser(userId: string, articleId: string, arti
       },
       { merge: true }
     )
+    console.log("[v0] saveArticleForUser: Saved article to subcollection")
   } catch (error) {
-    console.error("Error saving article for user:", error)
+    console.error("[v0] Error saving article for user:", error)
     throw error
   }
 }
@@ -182,22 +187,30 @@ export async function getUserSavedArticles(userId: string): Promise<Article[]> {
     const savedArticlesRef = collection(db, `users/${userId}/saved_articles`)
     const savedSnapshot = await getDocs(savedArticlesRef)
     
+    console.log("[v0] getUserSavedArticles: Found", savedSnapshot.docs.length, "docs in subcollection")
+    
     const articles: Article[] = []
     
     for (const docSnap of savedSnapshot.docs) {
       const data = docSnap.data()
+      console.log("[v0] Processing saved article doc:", docSnap.id, "hasArticleData:", !!data.articleData)
       
       // If article data is stored in the subcollection, use it directly
       if (data.articleData) {
         articles.push(data.articleData as Article)
       } else {
         // Fallback: try to get from global articles collection
+        console.log("[v0] Fallback: trying to get article from global collection:", data.articleId)
         const article = await getArticle(data.articleId)
         if (article) {
           articles.push(article)
+        } else {
+          console.log("[v0] Article not found in global collection:", data.articleId)
         }
       }
     }
+    
+    console.log("[v0] getUserSavedArticles: Returning", articles.length, "articles")
     
     // Sort by savedAt timestamp (newest first)
     articles.sort((a, b) => {
@@ -208,7 +221,7 @@ export async function getUserSavedArticles(userId: string): Promise<Article[]> {
     
     return articles
   } catch (error) {
-    console.error("Error getting user saved articles:", error)
+    console.error("[v0] Error getting user saved articles:", error)
     return []
   }
 }

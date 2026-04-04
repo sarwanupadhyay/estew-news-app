@@ -111,21 +111,27 @@ export function ProfileScreen() {
   // Load activity dates when modal opens
   useEffect(() => {
     if (showActivityModal && user) {
+      console.log("[v0] Loading activity dates for user:", user.uid)
       getActivityDates(user.uid)
-        .then(setActivityDates)
-        .catch((err) => console.error("Failed to load activity dates:", err))
+        .then((dates) => {
+          console.log("[v0] Activity dates loaded:", dates.size, "days with activity")
+          setActivityDates(dates)
+        })
+        .catch((err) => console.error("[v0] Failed to load activity dates:", err))
     }
   }, [showActivityModal, user])
 
   // Load activities for selected date
   useEffect(() => {
     if (showActivityModal && user && selectedDate) {
+      console.log("[v0] Loading activities for date:", selectedDate.toISOString().split("T")[0])
       setLoadingActivities(true)
       setActivities([])
       setLastActivityDoc(null)
       
       getActivitiesByDate(user.uid, selectedDate, 10)
         .then((result: ActivityPage) => {
+          console.log("[v0] Activities loaded:", result.activities.length, "hasMore:", result.hasMore)
           setActivities(result.activities)
           setLastActivityDoc(result.lastDoc)
           setHasMoreActivities(result.hasMore)
