@@ -1,17 +1,6 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/firebase"
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  doc,
-  setDoc,
-  deleteDoc,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore"
+import { adminDb } from "@/lib/firebase-admin"
+import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 export interface AITool {
   id: string
@@ -27,10 +16,15 @@ export interface AITool {
 
 // GET - Fetch all AI tools
 export async function GET() {
+  if (!adminDb) {
+    return NextResponse.json({ tools: [], error: "Firebase Admin not configured" })
+  }
+  
   try {
-    const toolsRef = collection(db, "ai_tools")
-    const q = query(toolsRef, orderBy("createdAt", "desc"), limit(100))
-    const snapshot = await getDocs(q)
+    const snapshot = await adminDb.collection("ai_tools")
+      .orderBy("createdAt", "desc")
+      .limit(100)
+      .get()
 
     const tools: AITool[] = snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
@@ -55,7 +49,7 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching AI tools:", error)
     return NextResponse.json(
-      { error: "Failed to fetch AI tools" },
+      { tools: [], error: "Failed to fetch AI tools" },
       { status: 500 }
     )
   }
@@ -63,6 +57,10 @@ export async function GET() {
 
 // POST - Create new AI tool
 export async function POST(request: Request) {
+  if (!adminDb) {
+    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
+  }
+  
   try {
     const body = await request.json()
     const { name, description, url, imageUrl, category, featured } = body
@@ -75,17 +73,17 @@ export async function POST(request: Request) {
     }
 
     const toolId = `tool_${Date.now()}`
-    const toolRef = doc(db, "ai_tools", toolId)
+    const toolRef = adminDb.collection("ai_tools").doc(toolId)
 
-    await setDoc(toolRef, {
+    await toolRef.set({
       name,
       description,
       url,
       imageUrl: imageUrl || "",
       category: category || "other",
       featured: featured || false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     })
 
     return NextResponse.json({
@@ -104,6 +102,10 @@ export async function POST(request: Request) {
 
 // PATCH - Update AI tool
 export async function PATCH(request: Request) {
+  if (!adminDb) {
+    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
+  }
+  
   try {
     const body = await request.json()
     const { id, name, description, url, imageUrl, category, featured } = body
@@ -115,9 +117,9 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const toolRef = doc(db, "ai_tools", id)
+    const toolRef = adminDb.collection("ai_tools").doc(id)
     const updateData: Record<string, any> = {
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     }
 
     if (name !== undefined) updateData.name = name
@@ -127,7 +129,7 @@ export async function PATCH(request: Request) {
     if (category !== undefined) updateData.category = category
     if (featured !== undefined) updateData.featured = featured
 
-    await setDoc(toolRef, updateData, { merge: true })
+    await toolRef.set(updateData, { merge: true })
 
     return NextResponse.json({
       success: true,
@@ -144,6 +146,10 @@ export async function PATCH(request: Request) {
 
 // DELETE - Remove AI tool
 export async function DELETE(request: Request) {
+  if (!adminDb) {
+    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
+  }
+  
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
@@ -155,8 +161,8 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const toolRef = doc(db, "ai_tools", id)
-    await deleteDoc(toolRef)
+    const toolRef = adminDb.collection("ai_tools").doc(id)
+    await toolRef.delete()
 
     return NextResponse.json({
       success: true,

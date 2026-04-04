@@ -1,40 +1,25 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/firebase"
-import { 
-  collection, 
-  getDocs, 
-  query, 
-  where,
-  doc,
-  setDoc,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore"
+import { adminDb } from "@/lib/firebase-admin"
+import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 // GET - Fetch newsletter subscribers or all users
 export async function GET(request: Request) {
+  if (!adminDb) {
+    return NextResponse.json({ 
+      subscribers: [],
+      users: [],
+      count: 0,
+      error: "Firebase Admin not configured"
+    })
+  }
+  
   try {
     const { searchParams } = new URL(request.url)
     const fetchAll = searchParams.get("all") === "true"
     
-    const usersRef = collection(db, "users")
-    let allDocs: typeof import("firebase/firestore").QueryDocumentSnapshot[] = []
+    const snapshot = await adminDb.collection("users").get()
     
-    // Always fetch all users first, then filter - avoids index requirements
-    try {
-      const snapshot = await getDocs(usersRef)
-      allDocs = snapshot.docs
-    } catch (error) {
-      console.error("Error fetching users:", error)
-      return NextResponse.json({ 
-        subscribers: [],
-        users: [],
-        count: 0,
-        error: "Failed to fetch users"
-      })
-    }
-    
-    const users = allDocs.map((docSnap) => {
+    const users = snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
       return {
         id: docSnap.id,
@@ -67,7 +52,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching newsletter subscribers:", error)
     return NextResponse.json(
-      { error: "Failed to fetch newsletter subscribers" },
+      { subscribers: [], users: [], count: 0, error: "Failed to fetch newsletter subscribers" },
       { status: 500 }
     )
   }
@@ -75,25 +60,27 @@ export async function GET(request: Request) {
 
 // POST - Sync newsletter subscribers to separate collection
 export async function POST() {
+  if (!adminDb) {
+    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
+  }
+  
   try {
-    const usersRef = collection(db, "users")
-    // Fetch all users and filter client-side to avoid index requirements
-    const snapshot = await getDocs(usersRef)
+    const snapshot = await adminDb.collection("users").get()
     const subscribedUsers = snapshot.docs.filter(d => d.data().newsletterSubscribed === true)
     
     let syncedCount = 0
     
     for (const userDoc of subscribedUsers) {
       const data = userDoc.data()
-      const subscriberRef = doc(db, "newsletter_subscribers", userDoc.id)
+      const subscriberRef = adminDb.collection("newsletter_subscribers").doc(userDoc.id)
       
-      await setDoc(subscriberRef, {
+      await subscriberRef.set({
         userId: userDoc.id,
         email: data.email || "",
         displayName: data.displayName || data.name || "",
-        subscribedAt: data.createdAt || serverTimestamp(),
+        subscribedAt: data.createdAt || FieldValue.serverTimestamp(),
         status: "active",
-        syncedAt: serverTimestamp(),
+        syncedAt: FieldValue.serverTimestamp(),
       }, { merge: true })
       
       syncedCount++

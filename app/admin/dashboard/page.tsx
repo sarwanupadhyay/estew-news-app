@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import {
-  getAdminStats,
-  type AdminStats,
-} from "@/lib/admin-service"
+import type { AdminStats } from "@/app/api/admin/stats/route"
 import { NewsletterEditor } from "@/components/admin/newsletter-editor"
 import {
   Users,
@@ -53,7 +50,8 @@ export default function AdminDashboard() {
   const loadStats = async () => {
     setLoading(true)
     try {
-      const data = await getAdminStats()
+      const res = await fetch("/api/admin/stats")
+      const data = await res.json()
       setStats(data)
     } catch (error) {
       console.error("Failed to load stats:", error)
@@ -73,7 +71,8 @@ export default function AdminDashboard() {
     router.push("/admin")
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateInput: Date | string) => {
+    const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
