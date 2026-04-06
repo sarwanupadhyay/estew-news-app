@@ -54,7 +54,6 @@ export interface AdminStats {
 export async function GET() {
   const adminDb = getAdminDb()
   if (!adminDb) {
-    console.error("[v0] Firebase Admin not configured for stats GET")
     return NextResponse.json({
       totalUsers: 0,
       totalArticles: 0,

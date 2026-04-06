@@ -6,7 +6,6 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore"
 export async function GET(request: Request) {
   const adminDb = getAdminDb()
   if (!adminDb) {
-    console.error("[v0] Firebase Admin not configured for newsletter-subscribers GET")
     return NextResponse.json({ 
       subscribers: [],
       users: [],

@@ -18,7 +18,6 @@ export interface AITool {
 export async function GET() {
   const adminDb = getAdminDb()
   if (!adminDb) {
-    console.error("[v0] Firebase Admin not configured for ai-tools GET")
     return NextResponse.json({ tools: [], error: "Firebase Admin not configured" })
   }
   
