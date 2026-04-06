@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/firebase"
-import {
-  collection,
-  getDocs,
+import { 
+  collection, 
+  getDocs, 
+  query, 
+  where,
   doc,
   setDoc,
   serverTimestamp,
@@ -16,7 +18,16 @@ export async function GET(request: Request) {
     const fetchAll = searchParams.get("all") === "true"
     
     const usersRef = collection(db, "users")
-    const snapshot = await getDocs(usersRef)
+    let snapshot
+    
+    if (fetchAll) {
+      // Fetch ALL users (for audience selection)
+      snapshot = await getDocs(usersRef)
+    } else {
+      // Fetch only subscribers
+      const q = query(usersRef, where("newsletterSubscribed", "==", true))
+      snapshot = await getDocs(q)
+    }
     
     const users = snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
@@ -41,17 +52,14 @@ export async function GET(request: Request) {
       })
     }
 
-    // Filter for subscribers only
-    const subscribers = users.filter(u => u.newsletterSubscribed)
-
     return NextResponse.json({ 
-      subscribers,
-      count: subscribers.length,
+      subscribers: users,
+      count: users.length,
     })
   } catch (error) {
     console.error("Error fetching newsletter subscribers:", error)
     return NextResponse.json(
-      { subscribers: [], users: [], count: 0, error: "Failed to fetch newsletter subscribers" },
+      { error: "Failed to fetch newsletter subscribers" },
       { status: 500 }
     )
   }
@@ -61,12 +69,12 @@ export async function GET(request: Request) {
 export async function POST() {
   try {
     const usersRef = collection(db, "users")
-    const snapshot = await getDocs(usersRef)
-    const subscribedUsers = snapshot.docs.filter(d => d.data().newsletterSubscribed === true)
+    const q = query(usersRef, where("newsletterSubscribed", "==", true))
+    const snapshot = await getDocs(q)
     
     let syncedCount = 0
     
-    for (const userDoc of subscribedUsers) {
+    for (const userDoc of snapshot.docs) {
       const data = userDoc.data()
       const subscriberRef = doc(db, "newsletter_subscribers", userDoc.id)
       

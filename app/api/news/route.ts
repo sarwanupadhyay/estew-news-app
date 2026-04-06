@@ -1,20 +1,8 @@
 import { NextResponse } from "next/server"
 import type { Article, Category } from "@/lib/types"
 import { mockArticles } from "@/lib/mock-data"
+import { persistArticle, clearPersistenceCache } from "@/lib/article-storage"
 import { getCachedFeed } from "@/lib/redis-cache"
-
-// Generate a stable, deterministic ID from URL using a hash function
-// This ensures the same article always gets the same ID regardless of when it's fetched
-function generateStableArticleId(url: string): string {
-  let hash = 0
-  for (let i = 0; i < url.length; i++) {
-    const char = url.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash // Convert to 32bit integer
-  }
-  const positiveHash = Math.abs(hash).toString(16)
-  return `art_${positiveHash}`
-}
 
 const CATEGORY_QUERIES: Record<string, string> = {
   AI: "artificial intelligence OR GPT OR LLM OR machine learning",
@@ -40,11 +28,11 @@ export async function GET(request: Request) {
 async function fetchFeedData(category: string) {
   const apiKey = process.env.NEWS_API_KEY
 
-  // If no API key, return mock data with stable IDs based on URL hash
+  // If no API key, return mock data with stable IDs
   if (!apiKey) {
-    let articles = mockArticles.map((a) => ({
+    let articles = mockArticles.map((a, i) => ({
       ...a,
-      id: generateStableArticleId(a.originalUrl),
+      id: `mock_${a.originalUrl.replace(/[^a-z0-9]/gi, "_").substring(0, 30)}_${i}`,
     }))
     if (category !== "All") {
       articles = articles.filter((a) => a.category === category)
@@ -73,10 +61,12 @@ async function fetchFeedData(category: string) {
     const data = await res.json()
     const categoryList: Category[] = ["AI", "Market", "Launches", "Apps", "Startups", "Products"]
 
-    // Build articles with STABLE IDs based on URL hash
-    // This ensures the same article always gets the same ID, enabling proper save/unsave functionality
+    // Clear cache before batch processing
+    clearPersistenceCache()
+
+    // Build articles with temporary IDs first
     // Filter out PyPI.org and other unwanted sources
-    const articles: Article[] = (data.articles || [])
+    const rawArticles: Article[] = (data.articles || [])
       .filter((item: { url?: string; source?: { name?: string } }) => {
         if (!item.url || item.url === "#") return false
         // Exclude PyPI.org articles
@@ -95,8 +85,7 @@ async function fetchFeedData(category: string) {
       }, i: number) => {
         const originalUrl = item.url || `https://example.com/article/${Date.now()}_${i}`
         return {
-          // Use stable, URL-based ID - this is critical for saved articles to work
-          id: generateStableArticleId(originalUrl),
+          id: `temp_${i}`, // Temporary ID, will be replaced
           title: item.title || "Untitled",
           summary: item.description || "",
           originalUrl,
@@ -115,15 +104,32 @@ async function fetchFeedData(category: string) {
         }
       })
 
-    // No need to persist to global articles collection anymore
-    // Saved articles are stored in user's subcollection with full article data
-    return { articles, source: "live" }
+    // Persist articles SEQUENTIALLY to prevent race conditions and overwrites
+    const articlesWithIds: Article[] = []
+    for (const article of rawArticles) {
+      try {
+        const persistedId = await persistArticle(article)
+        articlesWithIds.push({
+          ...article,
+          id: persistedId,
+        })
+      } catch (error) {
+        console.error("Failed to persist article:", article.title, error)
+        // Still include the article with a unique fallback ID
+        articlesWithIds.push({
+          ...article,
+          id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+        })
+      }
+    }
+
+    return { articles: articlesWithIds, source: "live" }
   } catch (error) {
     console.error("NewsAPI error:", error)
-    // Fallback to mock data with stable URL-based IDs
-    let articles = mockArticles.map((a) => ({
+    // Fallback to mock data with stable IDs
+    let articles = mockArticles.map((a, i) => ({
       ...a,
-      id: generateStableArticleId(a.originalUrl),
+      id: `mock_${a.originalUrl.replace(/[^a-z0-9]/gi, "_").substring(0, 30)}_${i}`,
     }))
     if (category !== "All") {
       articles = articles.filter((a) => a.category === category)

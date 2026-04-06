@@ -421,11 +421,11 @@ export function NewsletterEditor() {
 
   const getStatusBadge = (status: string) => {
     const configs: Record<string, { icon: React.ReactNode; text: string; className: string }> = {
-      sent: { icon: <CheckCircle size={12} />, text: "Delivered", className: "bg-success/20 text-success" },
-      sending: { icon: <Loader2 size={12} className="animate-spin" />, text: "Sending", className: "bg-info/20 text-info" },
-      scheduled: { icon: <Clock size={12} />, text: "Scheduled", className: "bg-primary/20 text-primary" },
-      failed: { icon: <XCircle size={12} />, text: "Failed", className: "bg-destructive/20 text-destructive" },
-      draft: { icon: <FileText size={12} />, text: "Draft", className: "bg-muted text-muted-foreground" },
+      sent: { icon: <CheckCircle size={12} />, text: "Delivered", className: "bg-emerald-500/20 text-emerald-400" },
+      sending: { icon: <Loader2 size={12} className="animate-spin" />, text: "Sending", className: "bg-blue-500/20 text-blue-400" },
+      scheduled: { icon: <Clock size={12} />, text: "Scheduled", className: "bg-purple-500/20 text-purple-400" },
+      failed: { icon: <XCircle size={12} />, text: "Failed", className: "bg-red-500/20 text-red-400" },
+      draft: { icon: <FileText size={12} />, text: "Draft", className: "bg-gray-500/20 text-gray-400" },
     }
     const config = configs[status] || configs.draft
     return (
@@ -457,20 +457,20 @@ export function NewsletterEditor() {
     <div className="space-y-6">
       {/* Notifications */}
       {error && (
-        <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4">
-          <AlertCircle size={18} className="mt-0.5 shrink-0 text-destructive" />
-          <p className="flex-1 text-sm text-destructive">{error}</p>
-          <button onClick={() => setError(null)} className="text-destructive hover:text-destructive/80">
+        <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+          <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-400" />
+          <p className="flex-1 text-sm text-red-300">{error}</p>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300">
             <X size={16} />
           </button>
         </div>
       )}
       
       {success && (
-        <div className="flex items-start gap-3 rounded-xl border border-success/20 bg-success/10 p-4">
-          <CheckCircle size={18} className="mt-0.5 shrink-0 text-success" />
-          <p className="flex-1 text-sm text-success">{success}</p>
-          <button onClick={() => setSuccess(null)} className="text-success hover:text-success/80">
+        <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+          <CheckCircle size={18} className="mt-0.5 shrink-0 text-emerald-400" />
+          <p className="flex-1 text-sm text-emerald-300">{success}</p>
+          <button onClick={() => setSuccess(null)} className="text-emerald-400 hover:text-emerald-300">
             <X size={16} />
           </button>
         </div>
@@ -479,13 +479,13 @@ export function NewsletterEditor() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Newsletter Intelligence</h3>
-          <p className="text-sm text-muted-foreground">Generate, edit, and send AI-powered newsletters</p>
+          <h3 className="text-lg font-semibold text-white">Newsletter Intelligence</h3>
+          <p className="text-sm text-gray-400">Generate, edit, and send AI-powered newsletters</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setShowToolManager(!showToolManager)}
-            className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-white/10"
           >
             <Wrench size={14} />
             AI Tools
@@ -493,7 +493,7 @@ export function NewsletterEditor() {
           <button
             onClick={loadNewsletters}
             disabled={loading}
-            className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Refresh
@@ -503,42 +503,42 @@ export function NewsletterEditor() {
 
       {/* AI Tools Manager */}
       {showToolManager && (
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h4 className="font-medium text-foreground">AI Tool Library</h4>
-            <button onClick={() => setShowToolManager(false)} className="text-muted-foreground hover:text-foreground">
+            <h4 className="font-medium text-white">AI Tool Library</h4>
+            <button onClick={() => setShowToolManager(false)} className="text-gray-400 hover:text-white">
               <X size={16} />
             </button>
           </div>
-          <div className="mb-4 space-y-3 rounded-lg bg-muted/50 p-3">
+          <div className="mb-4 space-y-3 rounded-lg bg-black/30 p-3">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <input
                 type="text"
                 placeholder="Tool name *"
                 value={newTool.name}
                 onChange={(e) => setNewTool({ ...newTool, name: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="Category"
                 value={newTool.category}
                 onChange={(e) => setNewTool({ ...newTool, category: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
               />
               <input
                 type="url"
                 placeholder="Tool URL *"
                 value={newTool.url}
                 onChange={(e) => setNewTool({ ...newTool, url: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
               />
               <input
                 type="url"
                 placeholder="Image URL"
                 value={newTool.imageUrl}
                 onChange={(e) => setNewTool({ ...newTool, imageUrl: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -547,12 +547,12 @@ export function NewsletterEditor() {
                 placeholder="Description *"
                 value={newTool.description}
                 onChange={(e) => setNewTool({ ...newTool, description: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
               />
               <button
                 onClick={addAiTool}
                 disabled={addingTool}
-                className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
               >
                 {addingTool ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                 Add Tool
@@ -561,24 +561,24 @@ export function NewsletterEditor() {
           </div>
           <div className="max-h-48 space-y-2 overflow-y-auto">
             {aiTools.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">No AI tools added yet</p>
+              <p className="py-4 text-center text-sm text-gray-500">No AI tools added yet</p>
             ) : (
               aiTools.map((tool) => (
-                <div key={tool.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                <div key={tool.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/5 p-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                       <Wrench size={14} className="text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{tool.name}</p>
-                      <p className="text-xs text-muted-foreground">{tool.category || "Uncategorized"}</p>
+                      <p className="text-sm font-medium text-white">{tool.name}</p>
+                      <p className="text-xs text-gray-500">{tool.category || "Uncategorized"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <a href={tool.url} target="_blank" rel="noopener noreferrer" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <a href={tool.url} target="_blank" rel="noopener noreferrer" className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 hover:text-white">
                       <ExternalLink size={14} />
                     </a>
-                    <button onClick={() => deleteAiTool(tool.id)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                    <button onClick={() => deleteAiTool(tool.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-500/10 hover:text-red-400">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -590,15 +590,15 @@ export function NewsletterEditor() {
       )}
 
       {/* Generate newsletter section */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <h4 className="mb-3 font-medium text-foreground">Generate New Newsletter</h4>
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+        <h4 className="mb-3 font-medium text-white">Generate New Newsletter</h4>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="mb-1.5 block text-xs text-muted-foreground">AI Tool of the Day (Optional)</label>
+            <label className="mb-1.5 block text-xs text-gray-400">AI Tool of the Day (Optional)</label>
             <select
               value={selectedToolForNewsletter || ""}
               onChange={(e) => setSelectedToolForNewsletter(e.target.value || null)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary/50 focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-primary/50 focus:outline-none"
             >
               <option value="">Auto-select from articles</option>
               {aiTools.map((tool) => (
@@ -611,7 +611,7 @@ export function NewsletterEditor() {
           <button
             onClick={generateNewsletter}
             disabled={generating}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
           >
             {generating ? (
               <>
@@ -632,16 +632,16 @@ export function NewsletterEditor() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Newsletter list */}
         <div className="lg:col-span-1">
-          <h4 className="mb-3 font-medium text-foreground">Newsletters</h4>
-          <div className="max-h-[600px] space-y-2 overflow-y-auto rounded-xl border border-border bg-card p-3">
+          <h4 className="mb-3 font-medium text-white">Newsletters</h4>
+          <div className="max-h-[600px] space-y-2 overflow-y-auto rounded-xl border border-white/10 bg-white/5 p-3">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 size={24} className="animate-spin text-primary" />
               </div>
             ) : newsletters.length === 0 ? (
               <div className="py-8 text-center">
-                <FileText size={24} className="mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No newsletters yet</p>
+                <FileText size={24} className="mx-auto mb-2 text-gray-500" />
+                <p className="text-sm text-gray-400">No newsletters yet</p>
               </div>
             ) : (
               newsletters.map((newsletter) => (
@@ -654,18 +654,18 @@ export function NewsletterEditor() {
                   className={`w-full rounded-lg border p-3 text-left transition-all ${
                     selectedNewsletter?.id === newsletter.id
                       ? "border-primary/50 bg-primary/10"
-                      : "border-border bg-muted/30 hover:border-border hover:bg-muted/50"
+                      : "border-white/5 bg-white/5 hover:border-white/10 hover:bg-white/10"
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{newsletter.newsletterId}</p>
-                      <p className="truncate text-xs text-muted-foreground">{newsletter.date}</p>
+                      <p className="truncate text-sm font-medium text-white">{newsletter.newsletterId}</p>
+                      <p className="truncate text-xs text-gray-500">{newsletter.date}</p>
                     </div>
                     {getStatusBadge(newsletter.status)}
                   </div>
                   {newsletter.deliveryHistory?.length > 0 && (
-                    <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
                       <History size={10} />
                       {newsletter.deliveryHistory.length} send{newsletter.deliveryHistory.length > 1 ? "s" : ""}
                     </div>
@@ -679,19 +679,19 @@ export function NewsletterEditor() {
         {/* Newsletter detail panel */}
         <div className="lg:col-span-2">
           {selectedNewsletter ? (
-            <div className="rounded-xl border border-border bg-card">
+            <div className="rounded-xl border border-white/10 bg-white/5">
               {/* Newsletter header */}
-              <div className="border-b border-border p-4">
+              <div className="border-b border-white/10 p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h4 className="font-semibold text-foreground">{selectedNewsletter.newsletterId}</h4>
-                    <p className="text-sm text-muted-foreground">{selectedNewsletter.date}</p>
+                    <h4 className="font-semibold text-white">{selectedNewsletter.newsletterId}</h4>
+                    <p className="text-sm text-gray-400">{selectedNewsletter.date}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {getStatusBadge(selectedNewsletter.status)}
                     <button
                       onClick={() => setSelectedNewsletter(null)}
-                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
                     >
                       <X size={16} />
                     </button>
@@ -700,13 +700,13 @@ export function NewsletterEditor() {
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-border">
+              <div className="flex border-b border-white/10">
                 <button
                   onClick={() => setActiveTab("edit")}
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
                     activeTab === "edit"
                       ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <Edit3 size={14} />
@@ -717,7 +717,7 @@ export function NewsletterEditor() {
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
                     activeTab === "send"
                       ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <Send size={14} />
@@ -730,16 +730,16 @@ export function NewsletterEditor() {
                 {activeTab === "edit" ? (
                   <div className="space-y-4">
                     {/* Subject editor */}
-                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Subject</label>
+                        <label className="text-xs font-medium uppercase tracking-wider text-gray-500">Subject</label>
                         {!editingSubject && (
                           <button
                             onClick={() => {
                               setEditingSubject(true)
                               setSubjectDraft(selectedNewsletter.subject)
                             }}
-                            className="text-xs text-muted-foreground hover:text-primary"
+                            className="text-xs text-gray-500 hover:text-primary"
                           >
                             <Edit3 size={12} />
                           </button>
@@ -751,12 +751,12 @@ export function NewsletterEditor() {
                             type="text"
                             value={subjectDraft}
                             onChange={(e) => setSubjectDraft(e.target.value)}
-                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary/50 focus:outline-none"
+                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-primary/50 focus:outline-none"
                           />
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => setEditingSubject(false)}
-                              className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+                              className="rounded-lg px-3 py-1.5 text-xs text-gray-400 hover:bg-white/10"
                             >
                               Cancel
                             </button>
@@ -766,7 +766,7 @@ export function NewsletterEditor() {
                                 setEditingSubject(false)
                               }}
                               disabled={saving}
-                              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-50"
+                              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50"
                             >
                               {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                               Save
@@ -774,14 +774,14 @@ export function NewsletterEditor() {
                           </div>
                         </div>
                       ) : (
-                        <p className="mt-1 text-sm text-foreground">{selectedNewsletter.subject}</p>
+                        <p className="mt-1 text-sm text-white">{selectedNewsletter.subject}</p>
                       )}
                     </div>
 
                     {/* AI Tool display */}
                     {selectedNewsletter.aiToolOfTheDay && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/10 p-3">
-                        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-primary">
+                      <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 p-3">
+                        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-purple-400">
                           <Wrench size={12} />
                           AI Tool of the Day
                         </div>
@@ -795,14 +795,14 @@ export function NewsletterEditor() {
                             />
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-foreground">{selectedNewsletter.aiToolOfTheDay.name}</p>
-                            <p className="truncate text-xs text-muted-foreground">{selectedNewsletter.aiToolOfTheDay.description}</p>
+                            <p className="font-medium text-white">{selectedNewsletter.aiToolOfTheDay.name}</p>
+                            <p className="truncate text-xs text-gray-400">{selectedNewsletter.aiToolOfTheDay.description}</p>
                           </div>
                           <a
                             href={selectedNewsletter.aiToolOfTheDay.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-lg bg-primary/20 p-2 text-primary hover:bg-primary/30"
+                            className="rounded-lg bg-purple-500/20 p-2 text-purple-400 hover:bg-purple-500/30"
                           >
                             <ExternalLink size={14} />
                           </a>
@@ -812,43 +812,43 @@ export function NewsletterEditor() {
 
                     {/* Sections editor */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Sections</h5>
+                      <h5 className="text-xs font-medium uppercase tracking-wider text-gray-500">Sections</h5>
                       {selectedNewsletter.sections?.filter(s => s.id !== "ai_tool" && s.type !== "ai_tool").map((section) => {
                         const Icon = SECTION_ICONS[section.id] || SECTION_ICONS[section.type] || FileText
                         const isExpanded = expandedSections.has(section.id)
                         const isEditing = editingSection === section.id
 
                         return (
-                          <div key={section.id} className="rounded-lg border border-border bg-muted/30">
+                          <div key={section.id} className="rounded-lg border border-white/5 bg-black/20">
                             <button
                               onClick={() => toggleSection(section.id)}
                               className="flex w-full items-center justify-between p-3 text-left"
                             >
                               <div className="flex items-center gap-2">
                                 <Icon size={14} className="text-primary" />
-                                <span className="text-sm font-medium text-foreground">
+                                <span className="text-sm font-medium text-white">
                                   {SECTION_LABELS[section.id] || SECTION_LABELS[section.type] || section.title}
                                 </span>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-gray-500">
                                   ({section.articles?.length || 0} articles)
                                 </span>
                               </div>
-                              {isExpanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
+                              {isExpanded ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
                             </button>
 
                             {isExpanded && (
-                              <div className="border-t border-border p-3">
+                              <div className="border-t border-white/5 p-3">
                                 {isEditing ? (
                                   <div className="space-y-2">
                                     <textarea
                                       value={sectionDraft}
                                       onChange={(e) => setSectionDraft(e.target.value)}
-                                      className="min-h-[120px] w-full rounded-lg border border-border bg-background p-3 font-mono text-sm text-foreground focus:border-primary/50 focus:outline-none"
+                                      className="min-h-[120px] w-full rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-white focus:border-primary/50 focus:outline-none"
                                     />
                                     <div className="flex justify-end gap-2">
                                       <button
                                         onClick={() => setEditingSection(null)}
-                                        className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+                                        className="rounded-lg px-3 py-1.5 text-xs text-gray-400 hover:bg-white/10"
                                       >
                                         Cancel
                                       </button>
@@ -861,7 +861,7 @@ export function NewsletterEditor() {
                                           setEditingSection(null)
                                         }}
                                         disabled={saving}
-                                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-50"
+                                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50"
                                       >
                                         {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                                         Save
@@ -870,7 +870,7 @@ export function NewsletterEditor() {
                                   </div>
                                 ) : (
                                   <div>
-                                    <pre className="mb-2 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-xs text-muted-foreground">
+                                    <pre className="mb-2 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-xs text-gray-400">
                                       {section.content}
                                     </pre>
                                     <button
@@ -878,7 +878,7 @@ export function NewsletterEditor() {
                                         setEditingSection(section.id)
                                         setSectionDraft(section.content)
                                       }}
-                                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary"
+                                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary"
                                     >
                                       <Edit3 size={12} />
                                       Edit section
@@ -896,7 +896,7 @@ export function NewsletterEditor() {
                   <div className="space-y-6">
                     {/* Audience selection */}
                     <div>
-                      <h5 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Select Audience</h5>
+                      <h5 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-500">Select Audience</h5>
                       <div className="space-y-2">
                         {AUDIENCE_OPTIONS.map((option) => (
                           <button
@@ -905,25 +905,25 @@ export function NewsletterEditor() {
                             className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all ${
                               audienceType === option.value
                                 ? "border-primary/50 bg-primary/10"
-                                : "border-border bg-muted/30 hover:border-border"
+                                : "border-white/10 bg-black/20 hover:border-white/20"
                             }`}
                           >
                             <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                              audienceType === option.value ? "bg-primary/20" : "bg-muted"
+                              audienceType === option.value ? "bg-primary/20" : "bg-white/10"
                             }`}>
-                              <option.icon size={16} className={audienceType === option.value ? "text-primary" : "text-muted-foreground"} />
+                              <option.icon size={16} className={audienceType === option.value ? "text-primary" : "text-gray-400"} />
                             </div>
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-foreground">{option.label}</p>
-                              <p className="text-xs text-muted-foreground">{option.description}</p>
+                              <p className="text-sm font-medium text-white">{option.label}</p>
+                              <p className="text-xs text-gray-500">{option.description}</p>
                             </div>
                             <div className={`h-4 w-4 rounded-full border-2 ${
                               audienceType === option.value
                                 ? "border-primary bg-primary"
-                                : "border-muted-foreground"
+                                : "border-gray-600"
                             }`}>
                               {audienceType === option.value && (
-                                <Check size={10} className="text-primary-foreground" />
+                                <Check size={10} className="text-white" />
                               )}
                             </div>
                           </button>
@@ -933,21 +933,21 @@ export function NewsletterEditor() {
 
                     {/* User selector for SELECTED audience */}
                     {audienceType === "SELECTED" && (
-                      <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                         <div className="mb-3 flex items-center justify-between">
-                          <h5 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Select Users</h5>
+                          <h5 className="text-xs font-medium uppercase tracking-wider text-gray-500">Select Users</h5>
                           <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
                             {selectedUserEmails.length} selected
                           </span>
                         </div>
                         <div className="relative mb-3">
-                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                           <input
                             type="text"
                             placeholder="Search users..."
                             value={userSearchQuery}
                             onChange={(e) => setUserSearchQuery(e.target.value)}
-                            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                            className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-gray-500 focus:border-primary/50 focus:outline-none"
                           />
                         </div>
                         <div className="max-h-48 space-y-1 overflow-y-auto">
@@ -958,19 +958,19 @@ export function NewsletterEditor() {
                               className={`flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors ${
                                 selectedUserEmails.includes(user.email)
                                   ? "bg-primary/10"
-                                  : "hover:bg-muted"
+                                  : "hover:bg-white/5"
                               }`}
                             >
                               <div className={`flex h-5 w-5 items-center justify-center rounded border ${
                                 selectedUserEmails.includes(user.email)
                                   ? "border-primary bg-primary"
-                                  : "border-muted-foreground"
+                                  : "border-gray-600"
                               }`}>
-                                {selectedUserEmails.includes(user.email) && <Check size={12} className="text-primary-foreground" />}
+                                {selectedUserEmails.includes(user.email) && <Check size={12} className="text-white" />}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm text-foreground">{user.displayName || user.email}</p>
-                                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                                <p className="truncate text-sm text-white">{user.displayName || user.email}</p>
+                                <p className="truncate text-xs text-gray-500">{user.email}</p>
                               </div>
                             </button>
                           ))}
@@ -979,10 +979,10 @@ export function NewsletterEditor() {
                     )}
 
                     {/* Estimated recipients */}
-                    <div className="rounded-lg border border-border bg-muted/30 p-4">
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Estimated Recipients</span>
-                        <span className="text-2xl font-bold text-foreground">{getEstimatedRecipients()}</span>
+                        <span className="text-sm text-gray-400">Estimated Recipients</span>
+                        <span className="text-2xl font-bold text-white">{getEstimatedRecipients()}</span>
                       </div>
                     </div>
 
@@ -991,7 +991,7 @@ export function NewsletterEditor() {
                       <button
                         onClick={sendNewsletter}
                         disabled={sending || getEstimatedRecipients() === 0}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-50"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
                       >
                         {sending ? (
                           <>
@@ -1008,7 +1008,7 @@ export function NewsletterEditor() {
                       {!scheduling ? (
                         <button
                           onClick={() => setScheduling(true)}
-                          className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
+                          className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300 transition-colors hover:bg-white/10"
                         >
                           <Calendar size={16} />
                           Schedule
@@ -1019,11 +1019,11 @@ export function NewsletterEditor() {
                             type="datetime-local"
                             value={scheduleTime}
                             onChange={(e) => setScheduleTime(e.target.value)}
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary/50 focus:outline-none"
+                            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-primary/50 focus:outline-none"
                           />
                           <button
                             onClick={scheduleNewsletter}
-                            className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+                            className="rounded-lg bg-purple-500 px-3 py-2 text-sm font-medium text-white hover:bg-purple-600"
                           >
                             Confirm
                           </button>
@@ -1032,7 +1032,7 @@ export function NewsletterEditor() {
                               setScheduling(false)
                               setScheduleTime("")
                             }}
-                            className="rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+                            className="rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-400 hover:bg-white/10"
                           >
                             Cancel
                           </button>
@@ -1043,36 +1043,36 @@ export function NewsletterEditor() {
                     {/* Delivery history */}
                     {selectedNewsletter.deliveryHistory?.length > 0 && (
                       <div>
-                        <h5 className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        <h5 className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500">
                           <History size={12} />
                           Delivery History
                         </h5>
                         <div className="space-y-2">
                           {selectedNewsletter.deliveryHistory.map((entry, index) => (
-                            <div key={index} className="rounded-lg border border-border bg-muted/30 p-3">
+                            <div key={index} className="rounded-lg border border-white/10 bg-black/20 p-3">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <CheckCircle size={14} className="text-success" />
-                                  <span className="text-sm text-foreground">
+                                  <CheckCircle size={14} className="text-emerald-400" />
+                                  <span className="text-sm text-white">
                                     {entry.audienceType === "ALL_USERS" ? "All Users" : entry.audienceType === "SELECTED" ? "Selected Users" : "Subscribers"}
                                   </span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-gray-500">
                                   {new Date(entry.sentAt).toLocaleString()}
                                 </span>
                               </div>
                               <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
                                 <div>
-                                  <p className="font-bold text-foreground">{entry.totalRecipients}</p>
-                                  <p className="text-muted-foreground">Total</p>
+                                  <p className="font-bold text-white">{entry.totalRecipients}</p>
+                                  <p className="text-gray-500">Total</p>
                                 </div>
                                 <div>
-                                  <p className="font-bold text-success">{entry.delivered}</p>
-                                  <p className="text-muted-foreground">Delivered</p>
+                                  <p className="font-bold text-emerald-400">{entry.delivered}</p>
+                                  <p className="text-gray-500">Delivered</p>
                                 </div>
                                 <div>
-                                  <p className="font-bold text-destructive">{entry.failed}</p>
-                                  <p className="text-muted-foreground">Failed</p>
+                                  <p className="font-bold text-red-400">{entry.failed}</p>
+                                  <p className="text-gray-500">Failed</p>
                                 </div>
                               </div>
                             </div>
@@ -1083,24 +1083,24 @@ export function NewsletterEditor() {
 
                     {/* Current delivery stats */}
                     {selectedNewsletter.deliveryStats && selectedNewsletter.deliveryStats.totalRecipients > 0 && (
-                      <div className="rounded-lg border border-border bg-muted/30 p-4">
-                        <h5 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Latest Delivery Stats</h5>
+                      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                        <h5 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-500">Latest Delivery Stats</h5>
                         <div className="grid grid-cols-4 gap-3 text-center">
                           <div>
-                            <p className="text-xl font-bold text-foreground">{selectedNewsletter.deliveryStats.totalRecipients}</p>
-                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="text-xl font-bold text-white">{selectedNewsletter.deliveryStats.totalRecipients}</p>
+                            <p className="text-xs text-gray-500">Total</p>
                           </div>
                           <div>
-                            <p className="text-xl font-bold text-success">{selectedNewsletter.deliveryStats.delivered}</p>
-                            <p className="text-xs text-muted-foreground">Delivered</p>
+                            <p className="text-xl font-bold text-emerald-400">{selectedNewsletter.deliveryStats.delivered}</p>
+                            <p className="text-xs text-gray-500">Delivered</p>
                           </div>
                           <div>
-                            <p className="text-xl font-bold text-destructive">{selectedNewsletter.deliveryStats.failed}</p>
-                            <p className="text-xs text-muted-foreground">Failed</p>
+                            <p className="text-xl font-bold text-red-400">{selectedNewsletter.deliveryStats.failed}</p>
+                            <p className="text-xs text-gray-500">Failed</p>
                           </div>
                           <div>
-                            <p className="text-xl font-bold text-info">{selectedNewsletter.deliveryStats.pending}</p>
-                            <p className="text-xs text-muted-foreground">Pending</p>
+                            <p className="text-xl font-bold text-blue-400">{selectedNewsletter.deliveryStats.pending}</p>
+                            <p className="text-xs text-gray-500">Pending</p>
                           </div>
                         </div>
                       </div>
@@ -1110,10 +1110,10 @@ export function NewsletterEditor() {
               </div>
             </div>
           ) : (
-            <div className="flex h-[500px] items-center justify-center rounded-xl border border-border bg-card">
+            <div className="flex h-[500px] items-center justify-center rounded-xl border border-white/10 bg-white/5">
               <div className="text-center">
-                <Eye size={32} className="mx-auto mb-3 text-muted-foreground" />
-                <p className="text-muted-foreground">Select a newsletter to view details</p>
+                <Eye size={32} className="mx-auto mb-3 text-gray-500" />
+                <p className="text-gray-400">Select a newsletter to view details</p>
               </div>
             </div>
           )}
