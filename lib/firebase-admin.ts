@@ -14,6 +14,10 @@ function initializeFirebaseAdmin(): Firestore | null {
     return null
   }
 
+  // Debug: Check what the key looks like
+  console.log("[v0] Service account key length:", serviceAccountKey.length)
+  console.log("[v0] Key starts with:", serviceAccountKey.substring(0, 30))
+
   try {
     let cleanedKey = serviceAccountKey.trim()
     
@@ -41,11 +45,13 @@ function initializeFirebaseAdmin(): Firestore | null {
     }
     
     const serviceAccount = JSON.parse(cleanedKey) as ServiceAccount
+    console.log("[v0] Parsed service account for project:", (serviceAccount as any).project_id)
     
     const app = initializeApp({
       credential: cert(serviceAccount),
     })
     
+    console.log("[v0] Firebase Admin initialized successfully!")
     return getFirestore(app)
   } catch (error) {
     console.error("Failed to initialize Firebase Admin:", error)
