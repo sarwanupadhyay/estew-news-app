@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server"
-import { getAdminDb } from "@/lib/firebase-admin"
-import { FieldValue, Timestamp } from "firebase-admin/firestore"
+import { db } from "@/lib/firebase"
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  Timestamp,
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore"
 
 // Newsletter section types
 export interface NewsletterSection {
@@ -222,36 +234,38 @@ async function getArticlesForNewsletter() {
     console.error("Failed to fetch from News API:", error)
   }
 
-  // Fallback: try Firebase articles collection with Admin SDK
-  const adminDb = getAdminDb()
-  if (adminDb) {
-    try {
-      const articlesRef = adminDb.collection("articles")
-      const snapshot = await articlesRef.orderBy("createdAt", "desc").limit(50).get()
+  // Fallback: try Firebase articles collection
+  try {
+    const articlesRef = collection(db, "articles")
+    const recentQuery = query(
+      articlesRef,
+      orderBy("createdAt", "desc"),
+      limit(50)
+    )
+    const snapshot = await getDocs(recentQuery)
 
-      if (!snapshot.empty) {
-        return snapshot.docs.map((docSnap) => {
-          const data = docSnap.data()
-          const createdAt = data.createdAt instanceof Timestamp
-            ? data.createdAt.toDate()
-            : new Date()
+    if (!snapshot.empty) {
+      return snapshot.docs.map((docSnap) => {
+        const data = docSnap.data()
+        const createdAt = data.createdAt instanceof Timestamp
+          ? data.createdAt.toDate()
+          : new Date()
 
-          return {
-            id: docSnap.id,
-            title: data.title || "",
-            description: data.description || "",
-            sourceName: data.sourceName || "",
-            category: data.category || "",
-            url: data.url || data.originalUrl || "",
-            imageUrl: data.imageUrl || data.urlToImage || "",
-            publishedAt: data.publishedAt || createdAt.toISOString(),
-            createdAt: createdAt,
-          }
-        })
-      }
-    } catch (error) {
-      console.error("Fallback Firebase query failed:", error)
+        return {
+          id: docSnap.id,
+          title: data.title || "",
+          description: data.description || "",
+          sourceName: data.sourceName || "",
+          category: data.category || "",
+          url: data.url || data.originalUrl || "",
+          imageUrl: data.imageUrl || data.urlToImage || "",
+          publishedAt: data.publishedAt || createdAt.toISOString(),
+          createdAt: createdAt,
+        }
+      })
     }
+  } catch (error) {
+    console.error("Fallback Firebase query failed:", error)
   }
 
   return []
@@ -259,20 +273,17 @@ async function getArticlesForNewsletter() {
 
 // Get next newsletter number
 async function getNextNewsletterNumber(): Promise<number> {
-  const adminDb = getAdminDb()
-  if (!adminDb) return Date.now()
-  
   try {
-    const counterRef = adminDb.collection("system").doc("newsletter_counter")
-    const counterSnap = await counterRef.get()
+    const counterRef = doc(db, "system", "newsletter_counter")
+    const counterSnap = await getDoc(counterRef)
 
-    if (counterSnap.exists) {
-      const currentCount = counterSnap.data()?.count || 0
+    if (counterSnap.exists()) {
+      const currentCount = counterSnap.data().count || 0
       const newCount = currentCount + 1
-      await counterRef.set({ count: newCount })
+      await setDoc(counterRef, { count: newCount })
       return newCount
     } else {
-      await counterRef.set({ count: 1 })
+      await setDoc(counterRef, { count: 1 })
       return 1
     }
   } catch (error) {
@@ -312,9 +323,6 @@ async function saveNewsletter(
   subject: string,
   aiToolOfTheDay?: Newsletter["aiToolOfTheDay"]
 ) {
-  const adminDb = getAdminDb()
-  if (!adminDb) throw new Error("Firebase Admin not configured")
-  
   try {
     const today = new Date()
     const dateStr = today.toISOString().split("T")[0]
@@ -323,8 +331,8 @@ async function saveNewsletter(
     const newsletterId = formatNewsletterId(newsletterNum)
     const rawContent = sectionsToPlainText(sections, dateStr)
 
-    const newsletterRef = adminDb.collection("newsletters").doc(newsletterId)
-    await newsletterRef.set({
+    const newsletterRef = doc(db, "newsletters", newsletterId)
+    await setDoc(newsletterRef, {
       newsletterId,
       newsletterNumber: newsletterNum,
       subject,
@@ -344,10 +352,10 @@ async function saveNewsletter(
         pending: 0,
       },
       deliveryHistory: [],
-      generatedAt: FieldValue.serverTimestamp(),
+      generatedAt: serverTimestamp(),
       sentAt: null,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     })
 
     return newsletterId
@@ -359,14 +367,10 @@ async function saveNewsletter(
 
 // Get all saved newsletters
 async function getSavedNewsletters() {
-  const adminDb = getAdminDb()
-  if (!adminDb) return []
-  
   try {
-    const snapshot = await adminDb.collection("newsletters")
-      .orderBy("createdAt", "desc")
-      .limit(30)
-      .get()
+    const newslettersRef = collection(db, "newsletters")
+    const q = query(newslettersRef, orderBy("createdAt", "desc"), limit(30))
+    const snapshot = await getDocs(q)
 
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
@@ -442,22 +446,22 @@ export async function POST(request: Request) {
 
     // Check for optional AI tool selection from request body
     let selectedAiTool: { name: string; description: string; url: string; imageUrl?: string } | null = null
-    const adminDbForTool = getAdminDb()
     try {
       const body = await request.json()
       // Support both direct aiToolOfTheDay object and aiToolId for lookup
       if (body.aiToolOfTheDay) {
         selectedAiTool = body.aiToolOfTheDay
-      } else if (body.aiToolId && adminDbForTool) {
+      } else if (body.aiToolId) {
         // Look up the tool from the ai_tools collection
-        const toolSnap = await adminDbForTool.collection("ai_tools").doc(body.aiToolId).get()
-        if (toolSnap.exists) {
+        const toolRef = doc(db, "ai_tools", body.aiToolId)
+        const toolSnap = await getDoc(toolRef)
+        if (toolSnap.exists()) {
           const toolData = toolSnap.data()
           selectedAiTool = {
-            name: toolData?.name,
-            description: toolData?.description,
-            url: toolData?.url,
-            imageUrl: toolData?.imageUrl || undefined,
+            name: toolData.name,
+            description: toolData.description,
+            url: toolData.url,
+            imageUrl: toolData.imageUrl || undefined,
           }
         }
       }
@@ -636,11 +640,6 @@ Generate the newsletter JSON following the system instructions. Remember to:
 
 // PATCH - Update newsletter (sections, schedule, AI tool, audience, etc.)
 export async function PATCH(request: Request) {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
-  }
-  
   try {
     const body = await request.json()
     const { 
@@ -661,9 +660,9 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const newsletterRef = adminDb.collection("newsletters").doc(newsletterId)
+    const newsletterRef = doc(db, "newsletters", newsletterId)
     const updateData: Record<string, any> = {
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: serverTimestamp(),
     }
 
     if (sections) {
@@ -680,10 +679,10 @@ export async function PATCH(request: Request) {
     if (audienceType) updateData.audienceType = audienceType
     if (selectedUsers !== undefined) updateData.selectedUsers = selectedUsers
 
-    await newsletterRef.update(updateData)
+    await updateDoc(newsletterRef, updateData)
 
     // Fetch updated newsletter to return
-    const updatedSnap = await newsletterRef.get()
+    const updatedSnap = await getDoc(newsletterRef)
     const data = updatedSnap.data()
 
     return NextResponse.json({ 

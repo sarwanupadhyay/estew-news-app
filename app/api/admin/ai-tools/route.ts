@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server"
-import { getAdminDb } from "@/lib/firebase-admin"
-import { FieldValue, Timestamp } from "firebase-admin/firestore"
+import { db } from "@/lib/firebase"
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  doc,
+  setDoc,
+  deleteDoc,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore"
 
 export interface AITool {
   id: string
@@ -16,16 +27,10 @@ export interface AITool {
 
 // GET - Fetch all AI tools
 export async function GET() {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ tools: [], error: "Firebase Admin not configured" })
-  }
-  
   try {
-    const snapshot = await adminDb.collection("ai_tools")
-      .orderBy("createdAt", "desc")
-      .limit(100)
-      .get()
+    const aiToolsRef = collection(db, "ai_tools")
+    const q = query(aiToolsRef, orderBy("createdAt", "desc"), limit(100))
+    const snapshot = await getDocs(q)
 
     const tools: AITool[] = snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
@@ -58,11 +63,6 @@ export async function GET() {
 
 // POST - Create new AI tool
 export async function POST(request: Request) {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
-  }
-  
   try {
     const body = await request.json()
     const { name, description, url, imageUrl, category, featured } = body
@@ -75,17 +75,17 @@ export async function POST(request: Request) {
     }
 
     const toolId = `tool_${Date.now()}`
-    const toolRef = adminDb.collection("ai_tools").doc(toolId)
+    const toolRef = doc(db, "ai_tools", toolId)
 
-    await toolRef.set({
+    await setDoc(toolRef, {
       name,
       description,
       url,
       imageUrl: imageUrl || "",
       category: category || "other",
       featured: featured || false,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     })
 
     return NextResponse.json({
@@ -104,11 +104,6 @@ export async function POST(request: Request) {
 
 // PATCH - Update AI tool
 export async function PATCH(request: Request) {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
-  }
-  
   try {
     const body = await request.json()
     const { id, name, description, url, imageUrl, category, featured } = body
@@ -120,9 +115,9 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const toolRef = adminDb.collection("ai_tools").doc(id)
+    const toolRef = doc(db, "ai_tools", id)
     const updateData: Record<string, any> = {
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: serverTimestamp(),
     }
 
     if (name !== undefined) updateData.name = name
@@ -132,7 +127,7 @@ export async function PATCH(request: Request) {
     if (category !== undefined) updateData.category = category
     if (featured !== undefined) updateData.featured = featured
 
-    await toolRef.set(updateData, { merge: true })
+    await setDoc(toolRef, updateData, { merge: true })
 
     return NextResponse.json({
       success: true,
@@ -149,11 +144,6 @@ export async function PATCH(request: Request) {
 
 // DELETE - Remove AI tool
 export async function DELETE(request: Request) {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
-  }
-  
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
@@ -165,8 +155,8 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const toolRef = adminDb.collection("ai_tools").doc(id)
-    await toolRef.delete()
+    const toolRef = doc(db, "ai_tools", id)
+    await deleteDoc(toolRef)
 
     return NextResponse.json({
       success: true,

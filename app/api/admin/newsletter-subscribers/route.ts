@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server"
-import { getAdminDb } from "@/lib/firebase-admin"
-import { FieldValue, Timestamp } from "firebase-admin/firestore"
+import { db } from "@/lib/firebase"
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore"
 
 // GET - Fetch newsletter subscribers or all users
 export async function GET(request: Request) {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ 
-      subscribers: [],
-      users: [],
-      count: 0,
-      error: "Firebase Admin not configured"
-    })
-  }
-  
   try {
     const { searchParams } = new URL(request.url)
     const fetchAll = searchParams.get("all") === "true"
     
-    const snapshot = await adminDb.collection("users").get()
+    const usersRef = collection(db, "users")
+    const snapshot = await getDocs(usersRef)
     
     const users = snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
@@ -61,28 +59,24 @@ export async function GET(request: Request) {
 
 // POST - Sync newsletter subscribers to separate collection
 export async function POST() {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
-  }
-  
   try {
-    const snapshot = await adminDb.collection("users").get()
+    const usersRef = collection(db, "users")
+    const snapshot = await getDocs(usersRef)
     const subscribedUsers = snapshot.docs.filter(d => d.data().newsletterSubscribed === true)
     
     let syncedCount = 0
     
     for (const userDoc of subscribedUsers) {
       const data = userDoc.data()
-      const subscriberRef = adminDb.collection("newsletter_subscribers").doc(userDoc.id)
+      const subscriberRef = doc(db, "newsletter_subscribers", userDoc.id)
       
-      await subscriberRef.set({
+      await setDoc(subscriberRef, {
         userId: userDoc.id,
         email: data.email || "",
         displayName: data.displayName || data.name || "",
-        subscribedAt: data.createdAt || FieldValue.serverTimestamp(),
+        subscribedAt: data.createdAt || serverTimestamp(),
         status: "active",
-        syncedAt: FieldValue.serverTimestamp(),
+        syncedAt: serverTimestamp(),
       }, { merge: true })
       
       syncedCount++
