@@ -18,9 +18,29 @@ function initializeFirebaseAdmin(): Firestore | null {
   }
 
   console.log("[v0] Found FIREBASE_SERVICE_ACCOUNT_KEY, length:", serviceAccountKey.length)
+  console.log("[v0] Key starts with:", serviceAccountKey.substring(0, 20))
 
   try {
-    const serviceAccount = JSON.parse(serviceAccountKey) as ServiceAccount
+    // Try to clean up the key - handle potential issues with encoding
+    let cleanedKey = serviceAccountKey.trim()
+    
+    // If the key is base64 encoded, decode it
+    if (!cleanedKey.startsWith("{")) {
+      try {
+        const decoded = Buffer.from(cleanedKey, "base64").toString("utf-8")
+        if (decoded.startsWith("{")) {
+          console.log("[v0] Decoded base64 encoded service account key")
+          cleanedKey = decoded
+        }
+      } catch {
+        // Not base64, continue with original
+      }
+    }
+    
+    // Handle escaped newlines in the private key
+    cleanedKey = cleanedKey.replace(/\\n/g, "\n")
+    
+    const serviceAccount = JSON.parse(cleanedKey) as ServiceAccount
     console.log("[v0] Parsed service account for project:", (serviceAccount as any).project_id)
     
     const app = initializeApp({
@@ -31,6 +51,7 @@ function initializeFirebaseAdmin(): Firestore | null {
     return getFirestore(app)
   } catch (error) {
     console.error("[v0] Failed to initialize Firebase Admin:", error)
+    console.error("[v0] Make sure FIREBASE_SERVICE_ACCOUNT_KEY contains valid JSON starting with {")
     return null
   }
 }
