@@ -220,13 +220,11 @@ export function ProfileScreen() {
   }
 
   const handleToggleNewsletter = async () => {
-    if (savingNewsletter) return // Prevent double-clicks
-    const newValue = !profile?.newsletterSubscribed
     setSavingNewsletter(true)
     try {
-      await saveProfile({ newsletterSubscribed: newValue })
+      await saveProfile({ newsletterSubscribed: !profile?.newsletterSubscribed })
     } catch (err) {
-      console.error("[v0] Error toggling newsletter:", err)
+      console.error("Error toggling newsletter:", err)
     } finally {
       setSavingNewsletter(false)
     }
@@ -729,27 +727,21 @@ export function ProfileScreen() {
                     <div>
                       <p className="font-sans text-[14px] font-semibold text-foreground">Daily Newsletter</p>
                       <p className="font-sans text-[12px] text-muted-foreground">
-                        {savingNewsletter 
-                          ? "Updating..." 
-                          : profile?.newsletterSubscribed 
-                            ? "You're subscribed" 
-                            : "You're not subscribed"
-                        }
+                        {profile?.newsletterSubscribed ? "You're subscribed" : "You're not subscribed"}
                       </p>
                     </div>
-                    <button 
-                      onClick={handleToggleNewsletter}
-                      disabled={savingNewsletter}
-                      className={`relative h-6 w-11 rounded-full p-0.5 transition-colors disabled:opacity-50 ${
+                    <div 
+                      className={`h-6 w-11 rounded-full p-0.5 cursor-pointer transition-colors ${
                         profile?.newsletterSubscribed ? "bg-primary" : "bg-muted"
                       }`}
+                      onClick={handleToggleNewsletter}
                     >
                       <div 
                         className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
                           profile?.newsletterSubscribed ? "translate-x-5" : "translate-x-0"
                         }`}
                       />
-                    </button>
+                    </div>
                   </div>
                 </div>
 

@@ -116,9 +116,8 @@ export function clearPersistenceCache(): void {
   persistenceCache.clear()
 }
 
-// Save article for user - stores full article data in user's subcollection
-// This avoids permission issues with the global articles collection
-export async function saveArticleForUser(userId: string, articleId: string, articleData?: Article): Promise<void> {
+// Save article reference for user (not duplicate content)
+export async function saveArticleForUser(userId: string, articleId: string): Promise<void> {
   try {
     const userRef = doc(db, "users", userId)
     await updateDoc(userRef, {
@@ -126,14 +125,12 @@ export async function saveArticleForUser(userId: string, articleId: string, arti
       updatedAt: serverTimestamp(),
     })
 
-    // Store full article data in user's saved_articles subcollection
-    // This ensures we can retrieve the article even if global storage fails
+    // Also create a reference doc in a subcollection for faster queries
     const savedRef = doc(db, `users/${userId}/saved_articles`, articleId)
     await setDoc(
       savedRef,
       {
         articleId,
-        ...(articleData ? { articleData } : {}),
         savedAt: serverTimestamp(),
       },
       { merge: true }
@@ -177,36 +174,25 @@ export async function getArticle(articleId: string): Promise<Article | null> {
 // Get user's saved articles with full article data
 export async function getUserSavedArticles(userId: string): Promise<Article[]> {
   try {
-    // Get articles from user's saved_articles subcollection
-    // This is the primary source as it doesn't have permission issues
-    const savedArticlesRef = collection(db, `users/${userId}/saved_articles`)
-    const savedSnapshot = await getDocs(savedArticlesRef)
-    
-    const articles: Article[] = []
-    
-    for (const docSnap of savedSnapshot.docs) {
-      const data = docSnap.data()
-      
-      // If article data is stored in the subcollection, use it directly
-      if (data.articleData) {
-        articles.push(data.articleData as Article)
-      } else {
-        // Fallback: try to get from global articles collection
-        const article = await getArticle(data.articleId)
-        if (article) {
-          articles.push(article)
-        }
-      }
+    const userRef = doc(db, "users", userId)
+    const userSnap = await getDoc(userRef)
+
+    if (!userSnap.exists() || !userSnap.data().savedArticles) {
+      return []
     }
+
+    const savedArticleIds = userSnap.data().savedArticles as string[]
     
-    // Sort by savedAt timestamp (newest first)
-    articles.sort((a, b) => {
-      const aIndex = savedSnapshot.docs.findIndex(d => d.data().articleId === a.id)
-      const bIndex = savedSnapshot.docs.findIndex(d => d.data().articleId === b.id)
-      return bIndex - aIndex // Reverse order
-    })
-    
-    return articles
+    if (savedArticleIds.length === 0) {
+      return []
+    }
+
+    // Fetch each article in parallel
+    const promises = savedArticleIds.map((id) => getArticle(id))
+    const results = await Promise.all(promises)
+
+    // Filter out null results (deleted articles)
+    return results.filter((article): article is Article => article !== null)
   } catch (error) {
     console.error("Error getting user saved articles:", error)
     return []

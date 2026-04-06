@@ -160,26 +160,13 @@ export function LandingScreen() {
                 </button>
               </div>
               {isSignUp && (
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <div className="relative mt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={subscribeNewsletter}
-                      onChange={(e) => setSubscribeNewsletter(e.target.checked)}
-                      className="peer sr-only"
-                    />
-                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
-                      subscribeNewsletter 
-                        ? "bg-primary border-primary" 
-                        : "bg-transparent border-muted-foreground/50"
-                    }`}>
-                      {subscribeNewsletter && (
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </div>
-                  </div>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={subscribeNewsletter}
+                    onChange={(e) => setSubscribeNewsletter(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                  />
                   <span className="text-xs text-muted-foreground leading-relaxed">
                     Subscribe to our daily newsletter with AI-curated tech news
                   </span>
