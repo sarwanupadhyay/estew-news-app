@@ -10,6 +10,9 @@ import {
   getCountFromServer,
 } from "firebase/firestore"
 
+// Debug: Check if Firebase is properly initialized
+console.log("[v0] admin-service loaded, db:", db ? "initialized" : "null")
+
 // Admin credentials (in production, use environment variables)
 const ADMIN_EMAIL = "sarwanupadhyay19@gmail.com"
 const ADMIN_PASSWORD = "sarwan@1908"
@@ -70,11 +73,14 @@ export function verifyAdminCredentials(email: string, password: string): boolean
 // Get all users count
 export async function getTotalUsersCount(): Promise<number> {
   try {
+    console.log("[v0] Getting total users count...")
     const usersRef = collection(db, "users")
     const snapshot = await getCountFromServer(usersRef)
-    return snapshot.data().count
+    const count = snapshot.data().count
+    console.log("[v0] Total users count:", count)
+    return count
   } catch (error) {
-    console.error("Error getting users count:", error)
+    console.error("[v0] Error getting users count:", error)
     return 0
   }
 }
@@ -106,6 +112,7 @@ export async function getTotalSubscribersCount(): Promise<number> {
 // Get recent users
 export async function getRecentUsers(limitCount: number = 10): Promise<AdminUser[]> {
   try {
+    console.log("[v0] Getting recent users...")
     const usersRef = collection(db, "users")
     let docs: typeof import("firebase/firestore").QueryDocumentSnapshot[] = []
     
@@ -114,10 +121,13 @@ export async function getRecentUsers(limitCount: number = 10): Promise<AdminUser
       const q = query(usersRef, orderBy("createdAt", "desc"), limit(limitCount))
       const snapshot = await getDocs(q)
       docs = snapshot.docs
+      console.log("[v0] Got users with ordered query:", docs.length)
     } catch (queryError) {
+      console.log("[v0] Ordered query failed, trying fallback:", queryError)
       // Fallback to simple query without ordering
       const snapshot = await getDocs(query(usersRef, limit(limitCount)))
       docs = snapshot.docs
+      console.log("[v0] Got users with fallback query:", docs.length)
     }
     
     return docs.map((doc) => {
@@ -135,7 +145,7 @@ export async function getRecentUsers(limitCount: number = 10): Promise<AdminUser
       }
     })
   } catch (error) {
-    console.error("Error getting recent users:", error)
+    console.error("[v0] Error getting recent users:", error)
     return []
   }
 }
@@ -254,6 +264,8 @@ export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]
 
 // Get all admin stats
 export async function getAdminStats(): Promise<AdminStats> {
+  console.log("[v0] Starting getAdminStats...")
+  
   const [totalUsers, totalArticles, totalSubscribers, totalNewsletterSubscribers, recentUsers, recentArticles, subscribers, newsletterSubscribers] = 
     await Promise.all([
       getTotalUsersCount(),
@@ -265,6 +277,15 @@ export async function getAdminStats(): Promise<AdminStats> {
       getAllSubscribers(),
       getNewsletterSubscribers(),
     ])
+
+  console.log("[v0] Admin stats results:", {
+    totalUsers,
+    totalArticles,
+    totalSubscribers,
+    totalNewsletterSubscribers,
+    recentUsersCount: recentUsers.length,
+    recentArticlesCount: recentArticles.length,
+  })
 
   return {
     totalUsers,
