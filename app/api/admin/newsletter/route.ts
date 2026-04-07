@@ -191,8 +191,12 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no explanatory t
 
 // Get articles for newsletter using Admin SDK
 async function getArticlesForNewsletter() {
+  console.log("[v0] getArticlesForNewsletter called")
   const adminDb = getAdminDb()
-  if (!adminDb) return []
+  if (!adminDb) {
+    console.error("[v0] getArticlesForNewsletter: adminDb is null")
+    return []
+  }
 
   const twentyFourHoursAgo = new Date()
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
@@ -357,15 +361,21 @@ async function saveNewsletter(
 
 // Get all saved newsletters
 async function getSavedNewsletters() {
+  console.log("[v0] getSavedNewsletters called")
   const adminDb = getAdminDb()
-  if (!adminDb) return []
+  if (!adminDb) {
+    console.error("[v0] getSavedNewsletters: adminDb is null")
+    return []
+  }
 
   try {
+    console.log("[v0] Fetching newsletters collection...")
     const snapshot = await adminDb.collection("newsletters")
       .orderBy("createdAt", "desc")
       .limit(30)
       .get()
 
+    console.log("[v0] Found", snapshot.docs.length, "newsletters")
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
       return {
@@ -415,11 +425,13 @@ async function getSavedNewsletters() {
 
 // GET - Fetch saved newsletters
 export async function GET() {
+  console.log("[v0] Newsletter GET API called")
   try {
     const newsletters = await getSavedNewsletters()
+    console.log("[v0] Returning", newsletters.length, "newsletters")
     return NextResponse.json({ newsletters })
   } catch (error) {
-    console.error("Error fetching newsletters:", error)
+    console.error("[v0] Error fetching newsletters:", error)
     return NextResponse.json(
       { newsletters: [], error: "Failed to fetch newsletters" },
       { status: 500 }

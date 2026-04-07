@@ -5,11 +5,15 @@ let adminDb: Firestore | null = null
 
 // Initialize Firebase Admin SDK
 function initializeFirebaseAdmin(): Firestore | null {
+  console.log("[v0] initializeFirebaseAdmin called")
+  
   if (adminDb) {
+    console.log("[v0] Returning cached adminDb")
     return adminDb
   }
 
   if (getApps().length > 0) {
+    console.log("[v0] Reusing existing Firebase Admin app")
     adminDb = getFirestore(getApps()[0])
     return adminDb
   }
@@ -17,9 +21,12 @@ function initializeFirebaseAdmin(): Firestore | null {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
 
   if (!serviceAccountKey) {
-    console.error("FIREBASE_SERVICE_ACCOUNT_KEY is not set")
+    console.error("[v0] FIREBASE_SERVICE_ACCOUNT_KEY is not set")
     return null
   }
+
+  console.log("[v0] Service account key length:", serviceAccountKey.length)
+  console.log("[v0] Key starts with:", serviceAccountKey.substring(0, 20))
 
   try {
     let cleanedKey = serviceAccountKey.trim()
@@ -43,20 +50,24 @@ function initializeFirebaseAdmin(): Firestore | null {
     }
     
     if (!cleanedKey.startsWith("{")) {
-      console.error("FIREBASE_SERVICE_ACCOUNT_KEY must be valid JSON starting with {")
+      console.error("[v0] FIREBASE_SERVICE_ACCOUNT_KEY must be valid JSON starting with {")
+      console.error("[v0] Key starts with char code:", cleanedKey.charCodeAt(0))
       return null
     }
     
+    console.log("[v0] Parsing service account JSON...")
     const serviceAccount = JSON.parse(cleanedKey) as ServiceAccount
+    console.log("[v0] Parsed service account for project:", (serviceAccount as any).project_id)
     
     const app = initializeApp({
       credential: cert(serviceAccount),
     })
     
+    console.log("[v0] Firebase Admin app initialized successfully")
     adminDb = getFirestore(app)
     return adminDb
   } catch (error) {
-    console.error("Failed to initialize Firebase Admin:", error)
+    console.error("[v0] Failed to initialize Firebase Admin:", error)
     return null
   }
 }

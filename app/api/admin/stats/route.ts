@@ -37,9 +37,12 @@ export interface AdminStats {
 }
 
 export async function GET() {
+  console.log("[v0] Admin stats API called")
+  
   const adminDb = getAdminDb()
   
   if (!adminDb) {
+    console.error("[v0] Firebase Admin not configured - adminDb is null")
     return NextResponse.json({
       totalUsers: 0,
       totalArticles: 0,
@@ -53,8 +56,11 @@ export async function GET() {
     })
   }
 
+  console.log("[v0] Firebase Admin configured, fetching stats...")
+
   try {
     // Get counts
+    console.log("[v0] Fetching counts...")
     const [usersSnapshot, articlesSnapshot, subscribersSnapshot] = await Promise.all([
       adminDb.collection("users").count().get(),
       adminDb.collection("articles").count().get(),
@@ -64,6 +70,8 @@ export async function GET() {
     const totalUsers = usersSnapshot.data().count
     const totalArticles = articlesSnapshot.data().count
     const totalSubscribers = subscribersSnapshot.data().count
+
+    console.log("[v0] Counts fetched - Users:", totalUsers, "Articles:", totalArticles, "Subscribers:", totalSubscribers)
 
     // Get newsletter subscribers count from users who have newsletterSubscribed = true
     const newsletterQuery = adminDb.collection("users").where("newsletterSubscribed", "==", true)
@@ -157,7 +165,8 @@ export async function GET() {
       newsletterSubscribers,
     })
   } catch (error) {
-    console.error("Error fetching admin stats:", error)
+    console.error("[v0] Error fetching admin stats:", error)
+    console.error("[v0] Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)))
     return NextResponse.json({
       totalUsers: 0,
       totalArticles: 0,
