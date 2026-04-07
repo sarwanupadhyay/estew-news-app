@@ -28,8 +28,8 @@ export interface AITool {
 // GET - Fetch all AI tools
 export async function GET() {
   try {
-    const toolsRef = collection(db, "ai_tools")
-    const q = query(toolsRef, orderBy("createdAt", "desc"), limit(100))
+    const aiToolsRef = collection(db, "ai_tools")
+    const q = query(aiToolsRef, orderBy("createdAt", "desc"), limit(100))
     const snapshot = await getDocs(q)
 
     const tools: AITool[] = snapshot.docs.map((docSnap) => {
@@ -55,7 +55,7 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching AI tools:", error)
     return NextResponse.json(
-      { error: "Failed to fetch AI tools" },
+      { tools: [], error: "Failed to fetch AI tools" },
       { status: 500 }
     )
   }

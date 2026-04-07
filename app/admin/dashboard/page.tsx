@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import {
-  getAdminStats,
-  type AdminStats,
-} from "@/lib/admin-service"
+import { getAdminStats, type AdminStats } from "@/lib/admin-service"
 import { NewsletterEditor } from "@/components/admin/newsletter-editor"
 import {
   Users,
@@ -39,6 +36,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("home")
   const [refreshing, setRefreshing] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const auth = sessionStorage.getItem("estew_admin_auth")
@@ -52,11 +50,28 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     setLoading(true)
+    setError(null)
+    console.log("[v0] loadStats called, starting to fetch admin stats...")
     try {
       const data = await getAdminStats()
+      console.log("[v0] getAdminStats returned:", JSON.stringify({
+        totalUsers: data.totalUsers,
+        totalArticles: data.totalArticles,
+        totalSubscribers: data.totalSubscribers,
+        totalNewsletterSubscribers: data.totalNewsletterSubscribers,
+        recentUsersCount: data.recentUsers?.length,
+        recentArticlesCount: data.recentArticles?.length,
+      }))
       setStats(data)
-    } catch (error) {
-      console.error("Failed to load stats:", error)
+      
+      // If all values are 0, show a warning
+      if (data.totalUsers === 0 && data.totalArticles === 0 && data.recentUsers.length === 0) {
+        console.log("[v0] All stats are 0 - possible Firebase permission issue")
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error("[v0] Failed to load stats:", errorMessage)
+      setError(errorMessage)
     }
     setLoading(false)
   }
@@ -198,6 +213,11 @@ export default function AdminDashboard() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          {error && (
+            <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-4">
+              <p className="text-sm text-destructive font-medium">Error loading data: {error}</p>
+            </div>
+          )}
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />

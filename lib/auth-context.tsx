@@ -100,15 +100,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const data = await getUserProfile(firebaseUser.uid)
           if (data) {
+            // Get the plan directly from Firebase - this preserves Pro status
             const plan = data.plan || "free"
+            const topics = data.topics || []
+            const companies = data.companies || []
+            
+            // Determine if user has completed onboarding:
+            // 1. If hasOnboarded is explicitly set (true or false), use that value
+            // 2. Only for LEGACY users (hasOnboarded === undefined): check if they have topics/companies
+            // 3. NEW users will have hasOnboarded explicitly set to false by createUserProfile
+            let hasOnboarded: boolean
+            if (typeof data.hasOnboarded === "boolean") {
+              // Explicit value - use it directly
+              hasOnboarded = data.hasOnboarded
+            } else {
+              // Legacy user detection: only consider them onboarded if they have preferences set
+              // This protects existing users who were created before hasOnboarded field existed
+              hasOnboarded = topics.length > 0 || companies.length > 0
+            }
+            
+            
             setProfile({
               plan,
-              topics: data.topics || [],
-              companies: data.companies || [],
+              topics,
+              companies,
               savedArticles: data.savedArticles || [],
               displayName: data.displayName || firebaseUser.displayName || "",
               photoURL: data.photoURL || firebaseUser.photoURL || undefined,
-              hasOnboarded: data.hasOnboarded ?? true,
+              hasOnboarded,
               newsletterSubscribed: data.newsletterSubscribed ?? false,
             })
             // Load usage stats
@@ -119,8 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile({ ...defaultProfile, displayName: firebaseUser.displayName || "", photoURL: firebaseUser.photoURL || undefined })
           }
         } catch (err) {
-          console.error("[v0] Error loading profile:", err)
-          setProfile(defaultProfile)
+          console.error("Error loading profile:", err)
+          // On Firebase permission error, we cannot determine if user is new or existing
+          // Default to showing them the app (hasOnboarded: true) to avoid breaking existing users
+          // New users who hit this error will need to set preferences in their profile later
+          setProfile({
+            ...defaultProfile,
+            displayName: firebaseUser.displayName || "",
+            photoURL: firebaseUser.photoURL || undefined,
+            hasOnboarded: true, // Assume existing user on error to avoid accidental plan downgrade
+          })
         }
       } else {
         setProfile(null)
@@ -135,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user exists in Firestore
     const existing = await getUserProfile(result.user.uid)
     if (!existing) {
-      // Create initial profile for new Google users
+      // Create initial profile for new Google users - they need to complete onboarding
       await createUserProfile(result.user.uid, {
         email: result.user.email || "",
         displayName: result.user.displayName || "",
@@ -144,8 +171,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         topics: [],
         companies: [],
         savedArticles: [],
+        hasOnboarded: false, // New users need onboarding
       })
     }
+    // If existing user, their hasOnboarded status is preserved from Firestore
   }
 
   const signInWithEmailFn = async (email: string, password: string) => {
@@ -154,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmailFn = async (email: string, password: string, newsletterSubscribed: boolean = false) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
-    // Create initial profile
+    // Create initial profile - new users need onboarding
     await createUserProfile(result.user.uid, {
       email: result.user.email || "",
       displayName: email.split("@")[0],
@@ -163,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       companies: [],
       savedArticles: [],
       newsletterSubscribed,
+      hasOnboarded: false, // New users need onboarding
     })
   }
 
@@ -173,24 +203,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const saveProfile = async (data: Partial<UserProfile>) => {
     if (!user) return
-    await updateUserProfile(user.uid, data)
-    setProfile((prev) => prev ? { ...prev, ...data } : null)
+    try {
+      await updateUserProfile(user.uid, data)
+      setProfile((prev) => prev ? { ...prev, ...data } : null)
+    } catch (err) {
+      console.error("Error saving profile:", err)
+      // Still update local state optimistically
+      setProfile((prev) => prev ? { ...prev, ...data } : null)
+      throw err // Re-throw so caller knows it failed
+    }
   }
 
+  // Toggle saved article in local state only
+  // Firebase update is handled separately by saveArticleForUser/removeSavedArticle
   const toggleSaveArticle = async (articleId: string) => {
     if (!user || !profile) return
     const newSaved = profile.savedArticles.includes(articleId)
       ? profile.savedArticles.filter((id) => id !== articleId)
       : [...profile.savedArticles, articleId]
-    await updateUserProfile(user.uid, { savedArticles: newSaved })
+    // Only update local state - Firebase is already updated by the caller
     setProfile((prev) => prev ? { ...prev, savedArticles: newSaved } : null)
   }
 
   const completeOnboarding = async (topics: string[], companies: string[], plan: "free" | "pro") => {
     if (!user) return
-    const data = { topics, companies, plan, hasOnboarded: true }
-    await updateUserProfile(user.uid, data)
-    setProfile((prev) => prev ? { ...prev, ...data } : null)
+    try {
+      // Check if user already has a profile with a plan - don't overwrite existing paid plan
+      const existingProfile = await getUserProfile(user.uid)
+      const existingPlan = existingProfile?.plan
+      
+      
+      // Only set the new plan if user doesn't have an existing plan (truly new user)
+      // If they already have a plan (returning user), preserve it
+      // IMPORTANT: "pro" plan should never be downgraded to "free"
+      let finalPlan: "free" | "pro"
+      if (existingPlan === "pro") {
+        // Never downgrade pro users
+        finalPlan = "pro"
+      } else if (existingPlan) {
+        // User has a plan, use it
+        finalPlan = existingPlan
+      } else {
+        // New user, use the requested plan
+        finalPlan = plan
+      }
+      
+      
+      const data = { topics, companies, plan: finalPlan, hasOnboarded: true }
+      await updateUserProfile(user.uid, data)
+      setProfile((prev) => prev ? { ...prev, ...data } : null)
+    } catch (err) {
+      console.error("Error completing onboarding:", err)
+      // Still update local state to unblock user, preserve existing plan if available
+      setProfile((prev) => {
+        if (!prev) return null
+        return { ...prev, topics, companies, hasOnboarded: true }
+        // Note: NOT updating plan here to avoid accidentally downgrading
+      })
+    }
   }
 
   const updateDisplayName = async (name: string) => {

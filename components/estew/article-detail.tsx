@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react"
 
 export function ArticleDetail() {
   const { selectedArticleId, setSelectedArticleId, getArticleById, selectedArticle, setSelectedArticle } = useAppStore()
-  const { profile, user } = useAuth()
+  const { profile, user, toggleSaveArticle } = useAuth()
   const [isSavingArticle, setIsSavingArticle] = useState(false)
   const hasRecordedActivity = useRef(false)
   
@@ -50,6 +50,7 @@ export function ArticleDetail() {
     setIsSavingArticle(true)
     try {
       if (isSaved) {
+        // Unsave article - remove from both Firebase and local state
         await removeSavedArticle(user.uid, article.id)
         await recordActivity(user.uid, {
           type: "article_unsaved",
@@ -59,7 +60,8 @@ export function ArticleDetail() {
           articleCategory: article.category,
         })
       } else {
-        await saveArticleForUser(user.uid, article.id)
+        // Save article - store full article data in user's subcollection
+        await saveArticleForUser(user.uid, article.id, article)
         await recordActivity(user.uid, {
           type: "article_saved",
           articleId: article.id,
@@ -68,7 +70,8 @@ export function ArticleDetail() {
           articleCategory: article.category,
         })
       }
-      window.location.reload()
+      // Update local state to reflect the change
+      await toggleSaveArticle(article.id)
     } catch (error) {
       console.error("Error saving article:", error)
     } finally {
