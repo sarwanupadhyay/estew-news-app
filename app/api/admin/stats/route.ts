@@ -2,47 +2,58 @@ import { NextResponse } from "next/server"
 import { getAdminDb } from "@/lib/firebase-admin"
 import { Timestamp } from "firebase-admin/firestore"
 
+export interface AdminUser {
+  id: string
+  email: string
+  displayName: string
+  plan: "free" | "pro"
+  createdAt: string
+  hasOnboarded: boolean
+  topics?: string[]
+}
+
+export interface AdminArticle {
+  id: string
+  title: string
+  sourceName: string
+  category: string
+  publishedAt: string
+  imageUrl?: string
+}
+
+export interface AdminSubscriber {
+  id: string
+  displayName: string
+  email: string
+  plan: string
+  status: string
+  subscribedAt: string
+  renewalDate: string
+}
+
+export interface NewsletterSubscriber {
+  id: string
+  email: string
+  displayName: string
+  subscribedAt: string
+  status: "active" | "unsubscribed"
+}
+
 export interface AdminStats {
   totalUsers: number
   totalArticles: number
   totalSubscribers: number
   totalNewsletterSubscribers: number
-  recentUsers: {
-    id: string
-    email: string
-    displayName: string
-    plan: string
-    createdAt: Date
-  }[]
-  recentArticles: {
-    id: string
-    title: string
-    sourceName: string
-    category: string
-    publishedAt: Date
-    imageUrl?: string
-  }[]
-  subscribers: {
-    id: string
-    userId: string
-    plan: string
-    status: string
-    createdAt: Date
-  }[]
-  newsletterSubscribers: {
-    id: string
-    email: string
-    subscribedAt: Date
-  }[]
+  recentUsers: AdminUser[]
+  recentArticles: AdminArticle[]
+  subscribers: AdminSubscriber[]
+  newsletterSubscribers: NewsletterSubscriber[]
 }
 
+// GET - Fetch admin stats
 export async function GET() {
-  console.log("[v0] Admin stats API called")
-  
   const adminDb = getAdminDb()
-  
   if (!adminDb) {
-    console.error("[v0] Firebase Admin not configured - adminDb is null")
     return NextResponse.json({
       totalUsers: 0,
       totalArticles: 0,
@@ -56,101 +67,90 @@ export async function GET() {
     })
   }
 
-  console.log("[v0] Firebase Admin configured, fetching stats...")
-
   try {
-    // Get counts
-    console.log("[v0] Fetching counts...")
-    const [usersSnapshot, articlesSnapshot, subscribersSnapshot] = await Promise.all([
-      adminDb.collection("users").count().get(),
-      adminDb.collection("articles").count().get(),
-      adminDb.collection("subscriptions").count().get(),
+    // Fetch all data in parallel
+    const [usersSnapshot, articlesSnapshot, subscriptionsSnapshot] = await Promise.all([
+      adminDb.collection("users").get(),
+      adminDb.collection("articles").orderBy("publishedAt", "desc").limit(20).get().catch(() => ({ docs: [] })),
+      adminDb.collection("subscriptions").get().catch(() => ({ docs: [] })),
     ])
 
-    const totalUsers = usersSnapshot.data().count
-    const totalArticles = articlesSnapshot.data().count
-    const totalSubscribers = subscribersSnapshot.data().count
+    // Process users
+    const allUsers = usersSnapshot.docs
+    const totalUsers = allUsers.length
+    
+    // Sort users by createdAt for recent users
+    const recentUsers: AdminUser[] = allUsers
+      .map(doc => {
+        const data = doc.data()
+        const createdAt = data.createdAt instanceof Timestamp 
+          ? data.createdAt.toDate() 
+          : new Date(data.createdAt || Date.now())
+        return {
+          id: doc.id,
+          email: data.email || "",
+          displayName: data.displayName || data.name || "",
+          plan: data.plan || "free",
+          createdAt: createdAt.toISOString(),
+          hasOnboarded: data.hasOnboarded || false,
+          topics: data.topics || [],
+          _sortDate: createdAt.getTime(),
+        }
+      })
+      .sort((a, b) => b._sortDate - a._sortDate)
+      .slice(0, 20)
+      .map(({ _sortDate, ...user }) => user)
 
-    console.log("[v0] Counts fetched - Users:", totalUsers, "Articles:", totalArticles, "Subscribers:", totalSubscribers)
+    // Count newsletter subscribers
+    const newsletterSubscribers: NewsletterSubscriber[] = allUsers
+      .filter(doc => doc.data().newsletterSubscribed === true)
+      .map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          email: data.email || "",
+          displayName: data.displayName || data.name || data.email?.split("@")[0] || "",
+          subscribedAt: data.createdAt instanceof Timestamp 
+            ? data.createdAt.toDate().toISOString()
+            : new Date(data.createdAt || Date.now()).toISOString(),
+          status: "active" as const,
+        }
+      })
 
-    // Get newsletter subscribers count from users who have newsletterSubscribed = true
-    const newsletterQuery = adminDb.collection("users").where("newsletterSubscribed", "==", true)
-    const newsletterSnapshot = await newsletterQuery.count().get()
-    const totalNewsletterSubscribers = newsletterSnapshot.data().count
-
-    // Get recent users
-    const recentUsersSnapshot = await adminDb.collection("users")
-      .orderBy("createdAt", "desc")
-      .limit(20)
-      .get()
-
-    const recentUsers = recentUsersSnapshot.docs.map((doc) => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        email: data.email || "",
-        displayName: data.displayName || data.name || "",
-        plan: data.plan || "free",
-        createdAt: data.createdAt instanceof Timestamp 
-          ? data.createdAt.toDate().toISOString()
-          : new Date().toISOString(),
-      }
-    })
-
-    // Get recent articles - ordered by createdAt (when stored in Firebase)
-    const recentArticlesSnapshot = await adminDb.collection("articles")
-      .orderBy("createdAt", "desc")
-      .limit(50)
-      .get()
-
-    const recentArticles = recentArticlesSnapshot.docs.map((doc) => {
+    // Process articles
+    const totalArticles = articlesSnapshot.docs.length
+    const recentArticles: AdminArticle[] = articlesSnapshot.docs.map(doc => {
       const data = doc.data()
       return {
         id: doc.id,
         title: data.title || "",
         sourceName: data.sourceName || "",
         category: data.category || "",
-        publishedAt: data.publishedAt || new Date().toISOString(),
-        createdAt: data.createdAt instanceof Timestamp 
-          ? data.createdAt.toDate().toISOString()
-          : new Date().toISOString(),
+        publishedAt: data.publishedAt instanceof Timestamp 
+          ? data.publishedAt.toDate().toISOString()
+          : new Date(data.publishedAt || Date.now()).toISOString(),
         imageUrl: data.imageUrl,
       }
     })
 
-    // Get subscribers
-    const subscribersDocSnapshot = await adminDb.collection("subscriptions")
-      .orderBy("createdAt", "desc")
-      .limit(50)
-      .get()
-
-    const subscribers = subscribersDocSnapshot.docs.map((doc) => {
+    // Process subscriptions
+    const totalSubscribers = subscriptionsSnapshot.docs.length
+    const subscribers: AdminSubscriber[] = subscriptionsSnapshot.docs.map(doc => {
       const data = doc.data()
       return {
         id: doc.id,
-        userId: data.userId || "",
+        displayName: data.displayName || doc.id,
+        email: data.email || "",
         plan: data.plan || "pro",
         status: data.status || "active",
-        createdAt: data.createdAt instanceof Timestamp 
+        subscribedAt: data.startDate instanceof Timestamp 
+          ? data.startDate.toDate().toISOString()
+          : data.createdAt instanceof Timestamp
           ? data.createdAt.toDate().toISOString()
-          : new Date().toISOString(),
-      }
-    })
-
-    // Get newsletter subscribers (users with newsletterSubscribed = true)
-    const newsletterSubsSnapshot = await adminDb.collection("users")
-      .where("newsletterSubscribed", "==", true)
-      .limit(100)
-      .get()
-
-    const newsletterSubscribers = newsletterSubsSnapshot.docs.map((doc) => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        email: data.email || "",
-        subscribedAt: data.createdAt instanceof Timestamp 
-          ? data.createdAt.toDate().toISOString()
-          : new Date().toISOString(),
+          : new Date(data.startDate || data.createdAt || Date.now()).toISOString(),
+        renewalDate: data.renewalDate instanceof Timestamp 
+          ? data.renewalDate.toDate().toISOString()
+          : new Date(data.renewalDate || Date.now()).toISOString(),
       }
     })
 
@@ -158,25 +158,27 @@ export async function GET() {
       totalUsers,
       totalArticles,
       totalSubscribers,
-      totalNewsletterSubscribers,
+      totalNewsletterSubscribers: newsletterSubscribers.length,
       recentUsers,
       recentArticles,
       subscribers,
       newsletterSubscribers,
     })
   } catch (error) {
-    console.error("[v0] Error fetching admin stats:", error)
-    console.error("[v0] Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)))
-    return NextResponse.json({
-      totalUsers: 0,
-      totalArticles: 0,
-      totalSubscribers: 0,
-      totalNewsletterSubscribers: 0,
-      recentUsers: [],
-      recentArticles: [],
-      subscribers: [],
-      newsletterSubscribers: [],
-      error: String(error)
-    }, { status: 500 })
+    console.error("Error fetching admin stats:", error)
+    return NextResponse.json(
+      { 
+        totalUsers: 0,
+        totalArticles: 0,
+        totalSubscribers: 0,
+        totalNewsletterSubscribers: 0,
+        recentUsers: [],
+        recentArticles: [],
+        subscribers: [],
+        newsletterSubscribers: [],
+        error: "Failed to fetch admin stats" 
+      },
+      { status: 500 }
+    )
   }
 }

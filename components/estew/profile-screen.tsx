@@ -220,9 +220,11 @@ export function ProfileScreen() {
   }
 
   const handleToggleNewsletter = async () => {
+    if (savingNewsletter) return // Prevent double-clicks
+    const newValue = !profile?.newsletterSubscribed
     setSavingNewsletter(true)
     try {
-      await saveProfile({ newsletterSubscribed: !profile?.newsletterSubscribed })
+      await saveProfile({ newsletterSubscribed: newValue })
     } catch (err) {
       console.error("Error toggling newsletter:", err)
     } finally {
@@ -574,64 +576,41 @@ export function ProfileScreen() {
                 </p>
 
                 {/* Pro Subscription Details */}
-                {isPro && (
+                {isPro && subscriptionDetails && (
                   <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
                     <h3 className="mb-3 font-sans text-[14px] font-semibold text-foreground">Subscription Details</h3>
-                    {subscriptionDetails ? (
-                      <div className="space-y-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-sans text-[13px] text-muted-foreground">Status</span>
+                        <span className={`rounded-full px-2 py-0.5 font-sans text-[11px] font-medium ${
+                          subscriptionDetails.subscriptionStatus === "active" 
+                            ? "bg-green-500/10 text-green-500" 
+                            : "bg-amber-500/10 text-amber-500"
+                        }`}>
+                          {subscriptionDetails.subscriptionStatus || "Active"}
+                        </span>
+                      </div>
+                      {subscriptionDetails.renewalDate && (
                         <div className="flex items-center justify-between">
-                          <span className="font-sans text-[13px] text-muted-foreground">Status</span>
-                          <span className={`rounded-full px-2 py-0.5 font-sans text-[11px] font-medium ${
-                            subscriptionDetails.subscriptionStatus === "active" 
-                              ? "bg-green-500/10 text-green-500" 
-                              : "bg-amber-500/10 text-amber-500"
-                          }`}>
-                            {subscriptionDetails.subscriptionStatus === "active" ? "Active" : subscriptionDetails.subscriptionStatus || "Active"}
+                          <span className="font-sans text-[13px] text-muted-foreground">Next Renewal</span>
+                          <span className="font-sans text-[13px] text-foreground">
+                            {new Date(subscriptionDetails.renewalDate).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
                           </span>
                         </div>
-                        {subscriptionDetails.renewalDate && (
-                          <div className="flex items-center justify-between">
-                            <span className="font-sans text-[13px] text-muted-foreground">Next Renewal</span>
-                            <span className="font-sans text-[13px] text-foreground">
-                              {new Date(subscriptionDetails.renewalDate).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </span>
-                          </div>
-                        )}
-                        {subscriptionDetails.daysRemaining !== undefined && (
-                          <div className="flex items-center justify-between">
-                            <span className="font-sans text-[13px] text-muted-foreground">Days Remaining</span>
-                            <span className={`font-sans text-[13px] font-medium ${
-                              subscriptionDetails.daysRemaining <= 7 
-                                ? "text-warning" 
-                                : "text-primary"
-                            }`}>
-                              {subscriptionDetails.daysRemaining} {subscriptionDetails.daysRemaining === 1 ? "day" : "days"}
-                            </span>
-                          </div>
-                        )}
-                        {subscriptionDetails.subscriptionStartDate && (
-                          <div className="flex items-center justify-between">
-                            <span className="font-sans text-[13px] text-muted-foreground">Subscribed Since</span>
-                            <span className="font-sans text-[13px] text-foreground">
-                              {new Date(subscriptionDetails.subscriptionStartDate).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center py-2">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                        <span className="ml-2 font-sans text-[13px] text-muted-foreground">Loading details...</span>
-                      </div>
-                    )}
+                      )}
+                      {subscriptionDetails.daysRemaining !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="font-sans text-[13px] text-muted-foreground">Days Remaining</span>
+                          <span className="font-sans text-[13px] font-medium text-primary">
+                            {subscriptionDetails.daysRemaining} days
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -750,21 +729,27 @@ export function ProfileScreen() {
                     <div>
                       <p className="font-sans text-[14px] font-semibold text-foreground">Daily Newsletter</p>
                       <p className="font-sans text-[12px] text-muted-foreground">
-                        {profile?.newsletterSubscribed ? "You're subscribed" : "You're not subscribed"}
+                        {savingNewsletter 
+                          ? "Updating..." 
+                          : profile?.newsletterSubscribed 
+                            ? "You're subscribed" 
+                            : "You're not subscribed"
+                        }
                       </p>
                     </div>
-                    <div 
-                      className={`h-6 w-11 rounded-full p-0.5 cursor-pointer transition-colors ${
+                    <button 
+                      onClick={handleToggleNewsletter}
+                      disabled={savingNewsletter}
+                      className={`relative h-6 w-11 rounded-full p-0.5 transition-colors disabled:opacity-50 ${
                         profile?.newsletterSubscribed ? "bg-primary" : "bg-muted"
                       }`}
-                      onClick={handleToggleNewsletter}
                     >
                       <div 
                         className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
                           profile?.newsletterSubscribed ? "translate-x-5" : "translate-x-0"
                         }`}
                       />
-                    </div>
+                    </button>
                   </div>
                 </div>
 

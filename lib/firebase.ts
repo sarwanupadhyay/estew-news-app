@@ -54,6 +54,7 @@ export async function createUserProfile(uid: string, data: {
   const docRef = doc(db, "users", uid)
   await setDoc(docRef, {
     ...data,
+    hasOnboarded: data.hasOnboarded ?? false, // New users should go through onboarding
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })

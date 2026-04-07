@@ -47,11 +47,29 @@ interface RazorpayInstance {
 }
 
 export function OnboardingScreen() {
-  const { user, completeOnboarding } = useAuth()
+  const { user, profile, completeOnboarding } = useAuth()
   const [step, setStep] = useState(0)
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([])
-  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
+  const [selectedTopics, setSelectedTopics] = useState<string[]>(profile?.topics || [])
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>(profile?.companies || [])
   const [processingPayment, setProcessingPayment] = useState(false)
+  const [processingFree, setProcessingFree] = useState(false)
+  
+  // Quick skip for returning users who might have ended up here due to errors
+  const handleQuickSkip = async () => {
+    setProcessingFree(true)
+    try {
+      // Pass existing values - completeOnboarding will preserve the user's existing plan
+      await completeOnboarding(
+        profile?.topics || selectedTopics, 
+        profile?.companies || selectedCompanies, 
+        profile?.plan || "free"
+      )
+    } catch (err) {
+      console.error("Error skipping onboarding:", err)
+    } finally {
+      setProcessingFree(false)
+    }
+  }
 
   const toggleTopic = (topic: string) => {
     setSelectedTopics((prev) =>
@@ -66,7 +84,14 @@ export function OnboardingScreen() {
   }
 
   const handleFreePlan = async () => {
-    await completeOnboarding(selectedTopics, selectedCompanies, "free")
+    setProcessingFree(true)
+    try {
+      await completeOnboarding(selectedTopics, selectedCompanies, "free")
+    } catch (err) {
+      console.error("Error selecting free plan:", err)
+    } finally {
+      setProcessingFree(false)
+    }
   }
 
   const handleProPlan = async () => {
@@ -279,10 +304,10 @@ export function OnboardingScreen() {
                 </ul>
                 <button
                   onClick={handleFreePlan}
-                  disabled={processingPayment}
+                  disabled={processingPayment || processingFree}
                   className="w-full rounded-xl border border-border bg-card py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                 >
-                  Start Free
+                  {processingFree ? "Setting up..." : "Start Free"}
                 </button>
               </div>
 
@@ -334,6 +359,14 @@ export function OnboardingScreen() {
             className="mt-3 w-full text-center text-sm text-muted-foreground"
           >
             Skip for now
+          </button>
+          {/* Show "I already have an account" for users who might be returning */}
+          <button
+            onClick={handleQuickSkip}
+            disabled={processingFree}
+            className="mt-2 w-full text-center text-xs text-muted-foreground/70 hover:text-primary"
+          >
+            {processingFree ? "Loading..." : "I already have an account"}
           </button>
         </div>
       )}

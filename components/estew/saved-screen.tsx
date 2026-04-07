@@ -12,12 +12,12 @@ import type { Article } from "@/lib/types"
 
 export function SavedScreen() {
   const { setSelectedArticle } = useAppStore()
-  const { user, profile } = useAuth()
+  const { user, profile, toggleSaveArticle } = useAuth()
   const [saved, setSaved] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("All")
 
-  // Load saved articles from Firestore on component mount or when user changes
+  // Load saved articles from Firestore on component mount or when user/profile changes
   useEffect(() => {
     if (!user) {
       setSaved([])
@@ -39,7 +39,7 @@ export function SavedScreen() {
     }
 
     loadSavedArticles()
-  }, [user])
+  }, [user, profile?.savedArticles])
 
   const filtered = filter === "All" ? saved : saved.filter((a) => a.category === filter)
   const filterCats = ["All", "AI", "Launches", "Market"]
@@ -48,7 +48,10 @@ export function SavedScreen() {
     if (!user) return
     try {
       await removeSavedArticle(user.uid, articleId)
+      // Update local component state
       setSaved((prev) => prev.filter((a) => a.id !== articleId))
+      // Update profile state so the bookmark icon syncs everywhere
+      await toggleSaveArticle(articleId)
     } catch (error) {
       console.error("Error removing saved article:", error)
     }

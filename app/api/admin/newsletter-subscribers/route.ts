@@ -1,29 +1,22 @@
 import { NextResponse } from "next/server"
-import { getAdminDb } from "@/lib/firebase-admin"
-import { Timestamp, FieldValue } from "firebase-admin/firestore"
+import { db } from "@/lib/firebase"
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore"
 
 // GET - Fetch newsletter subscribers or all users
 export async function GET(request: Request) {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ users: [], subscribers: [], count: 0 })
-  }
-  
   try {
     const { searchParams } = new URL(request.url)
     const fetchAll = searchParams.get("all") === "true"
     
-    let snapshot
-    
-    if (fetchAll) {
-      // Fetch ALL users (for audience selection)
-      snapshot = await adminDb.collection("users").get()
-    } else {
-      // Fetch only subscribers
-      snapshot = await adminDb.collection("users")
-        .where("newsletterSubscribed", "==", true)
-        .get()
-    }
+    const usersRef = collection(db, "users")
+    const snapshot = await getDocs(usersRef)
     
     const users = snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
@@ -48,14 +41,17 @@ export async function GET(request: Request) {
       })
     }
 
+    // Filter for subscribers only
+    const subscribers = users.filter(u => u.newsletterSubscribed)
+
     return NextResponse.json({ 
-      subscribers: users,
-      count: users.length,
+      subscribers,
+      count: subscribers.length,
     })
   } catch (error) {
     console.error("Error fetching newsletter subscribers:", error)
     return NextResponse.json(
-      { error: "Failed to fetch newsletter subscribers", users: [], subscribers: [], count: 0 },
+      { subscribers: [], users: [], count: 0, error: "Failed to fetch newsletter subscribers" },
       { status: 500 }
     )
   }
@@ -63,29 +59,24 @@ export async function GET(request: Request) {
 
 // POST - Sync newsletter subscribers to separate collection
 export async function POST() {
-  const adminDb = getAdminDb()
-  if (!adminDb) {
-    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
-  }
-  
   try {
-    const snapshot = await adminDb.collection("users")
-      .where("newsletterSubscribed", "==", true)
-      .get()
+    const usersRef = collection(db, "users")
+    const snapshot = await getDocs(usersRef)
+    const subscribedUsers = snapshot.docs.filter(d => d.data().newsletterSubscribed === true)
     
     let syncedCount = 0
     
-    for (const userDoc of snapshot.docs) {
+    for (const userDoc of subscribedUsers) {
       const data = userDoc.data()
-      const subscriberRef = adminDb.collection("newsletter_subscribers").doc(userDoc.id)
+      const subscriberRef = doc(db, "newsletter_subscribers", userDoc.id)
       
-      await subscriberRef.set({
+      await setDoc(subscriberRef, {
         userId: userDoc.id,
         email: data.email || "",
         displayName: data.displayName || data.name || "",
-        subscribedAt: data.createdAt || FieldValue.serverTimestamp(),
+        subscribedAt: data.createdAt || serverTimestamp(),
         status: "active",
-        syncedAt: FieldValue.serverTimestamp(),
+        syncedAt: serverTimestamp(),
       }, { merge: true })
       
       syncedCount++
