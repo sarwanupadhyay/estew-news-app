@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user exists in Firestore
     const existing = await getUserProfile(result.user.uid)
     if (!existing) {
-      // Create initial profile for new Google users
+      // Create initial profile for new Google users - hasOnboarded: false to show onboarding
       await createUserProfile(result.user.uid, {
         email: result.user.email || "",
         displayName: result.user.displayName || "",
@@ -144,6 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         topics: [],
         companies: [],
         savedArticles: [],
+        newsletterSubscribed: false,
+        hasOnboarded: false, // New users must complete onboarding
       })
     }
   }
@@ -154,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmailFn = async (email: string, password: string, newsletterSubscribed: boolean = false) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
-    // Create initial profile
+    // Create initial profile - hasOnboarded: false to show onboarding
     await createUserProfile(result.user.uid, {
       email: result.user.email || "",
       displayName: email.split("@")[0],
@@ -163,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       companies: [],
       savedArticles: [],
       newsletterSubscribed,
+      hasOnboarded: false, // New users must complete onboarding
     })
   }
 

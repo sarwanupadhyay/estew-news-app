@@ -34,7 +34,9 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
   const [limitMessage, setLimitMessage] = useState("")
 
   const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault()
     e.stopPropagation()
+    if (!profile) return // Ensure user is logged in
     await toggleSaveArticle(article.id)
   }
 
@@ -110,6 +112,7 @@ export function ArticleCard({ article, index }: { article: Article; index: numbe
           {/* Actions */}
           <div className="flex flex-col items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <button
+              type="button"
               onClick={handleSave}
               className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"
               aria-label={isSaved ? "Unsave" : "Save"}

@@ -1,18 +1,6 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/firebase"
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  Timestamp,
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore"
+import { getAdminDb } from "@/lib/firebase-admin"
+import { Timestamp, FieldValue } from "firebase-admin/firestore"
 
 // Newsletter section types
 export interface NewsletterSection {
@@ -38,7 +26,7 @@ export interface Newsletter {
   newsletterNumber: number
   subject: string
   sections: NewsletterSection[]
-  rawContent: string // Legacy plain text format
+  rawContent: string
   aiToolOfTheDay?: {
     name: string
     description: string
@@ -49,7 +37,7 @@ export interface Newsletter {
   date: string
   status: "draft" | "generated" | "scheduled" | "sending" | "sent" | "failed"
   audienceType: AudienceType
-  selectedUsers: string[] // Array of emails for SELECTED audience
+  selectedUsers: string[]
   scheduledTime?: string | null
   deliveryStats: {
     totalRecipients: number
@@ -201,14 +189,15 @@ Writing Rules:
 
 IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no explanatory text.`
 
-// Get articles for newsletter - uses createdAt (Firestore Timestamp) for reliable ordering
+// Get articles for newsletter using Admin SDK
 async function getArticlesForNewsletter() {
-  const articlesRef = collection(db, "articles")
+  const adminDb = getAdminDb()
+  if (!adminDb) return []
+
   const twentyFourHoursAgo = new Date()
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
 
-  // Helper to map docs to articles
-  const mapDocsToArticles = (docs: any[]) => {
+  const mapDocsToArticles = (docs: FirebaseFirestore.QueryDocumentSnapshot[]) => {
     return docs.map((docSnap) => {
       const data = docSnap.data()
       const createdAt = data.createdAt instanceof Timestamp
@@ -218,7 +207,7 @@ async function getArticlesForNewsletter() {
       return {
         id: docSnap.id,
         title: data.title || "",
-        description: data.description || "",
+        description: data.summary || data.description || "",
         sourceName: data.sourceName || "",
         category: data.category || "",
         url: data.url || data.originalUrl || "",
@@ -231,12 +220,10 @@ async function getArticlesForNewsletter() {
 
   // Primary strategy: Use createdAt
   try {
-    const recentQuery = query(
-      articlesRef,
-      orderBy("createdAt", "desc"),
-      limit(50)
-    )
-    const snapshot = await getDocs(recentQuery)
+    const snapshot = await adminDb.collection("articles")
+      .orderBy("createdAt", "desc")
+      .limit(50)
+      .get()
 
     if (!snapshot.empty) {
       const allArticles = mapDocsToArticles(snapshot.docs)
@@ -255,8 +242,9 @@ async function getArticlesForNewsletter() {
 
   // Fallback
   try {
-    const simpleQuery = query(articlesRef, limit(30))
-    const snapshot = await getDocs(simpleQuery)
+    const snapshot = await adminDb.collection("articles")
+      .limit(30)
+      .get()
     if (!snapshot.empty) {
       return mapDocsToArticles(snapshot.docs)
     }
@@ -269,17 +257,20 @@ async function getArticlesForNewsletter() {
 
 // Get next newsletter number
 async function getNextNewsletterNumber(): Promise<number> {
-  try {
-    const counterRef = doc(db, "system", "newsletter_counter")
-    const counterSnap = await getDoc(counterRef)
+  const adminDb = getAdminDb()
+  if (!adminDb) return Date.now()
 
-    if (counterSnap.exists()) {
-      const currentCount = counterSnap.data().count || 0
+  try {
+    const counterRef = adminDb.collection("system").doc("newsletter_counter")
+    const counterSnap = await counterRef.get()
+
+    if (counterSnap.exists) {
+      const currentCount = counterSnap.data()?.count || 0
       const newCount = currentCount + 1
-      await setDoc(counterRef, { count: newCount })
+      await counterRef.set({ count: newCount })
       return newCount
     } else {
-      await setDoc(counterRef, { count: 1 })
+      await counterRef.set({ count: 1 })
       return 1
     }
   } catch (error) {
@@ -292,7 +283,7 @@ function formatNewsletterId(num: number): string {
   return `newsletter_${num.toString().padStart(5, "0")}`
 }
 
-// Convert sections to plain text for backward compatibility
+// Convert sections to plain text
 function sectionsToPlainText(sections: NewsletterSection[], date: string): string {
   let text = `ESTEW DAILY TECH BRIEFING\nDate: ${date}\n\n`
 
@@ -319,6 +310,9 @@ async function saveNewsletter(
   subject: string,
   aiToolOfTheDay?: Newsletter["aiToolOfTheDay"]
 ) {
+  const adminDb = getAdminDb()
+  if (!adminDb) throw new Error("Firebase Admin not configured")
+
   try {
     const today = new Date()
     const dateStr = today.toISOString().split("T")[0]
@@ -327,8 +321,8 @@ async function saveNewsletter(
     const newsletterId = formatNewsletterId(newsletterNum)
     const rawContent = sectionsToPlainText(sections, dateStr)
 
-    const newsletterRef = doc(db, "newsletters", newsletterId)
-    await setDoc(newsletterRef, {
+    const newsletterRef = adminDb.collection("newsletters").doc(newsletterId)
+    await newsletterRef.set({
       newsletterId,
       newsletterNumber: newsletterNum,
       subject,
@@ -338,7 +332,7 @@ async function saveNewsletter(
       articlesUsed: articlesCount,
       date: dateStr,
       status: "draft",
-      audienceType: "SUBSCRIBERS", // Default to subscribers
+      audienceType: "SUBSCRIBERS",
       selectedUsers: [],
       scheduledTime: null,
       deliveryStats: {
@@ -348,10 +342,10 @@ async function saveNewsletter(
         pending: 0,
       },
       deliveryHistory: [],
-      generatedAt: serverTimestamp(),
+      generatedAt: FieldValue.serverTimestamp(),
       sentAt: null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     })
 
     return newsletterId
@@ -363,10 +357,14 @@ async function saveNewsletter(
 
 // Get all saved newsletters
 async function getSavedNewsletters() {
+  const adminDb = getAdminDb()
+  if (!adminDb) return []
+
   try {
-    const newslettersRef = collection(db, "newsletters")
-    const q = query(newslettersRef, orderBy("createdAt", "desc"), limit(30))
-    const snapshot = await getDocs(q)
+    const snapshot = await adminDb.collection("newsletters")
+      .orderBy("createdAt", "desc")
+      .limit(30)
+      .get()
 
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data()
@@ -423,7 +421,7 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching newsletters:", error)
     return NextResponse.json(
-      { error: "Failed to fetch newsletters" },
+      { newsletters: [], error: "Failed to fetch newsletters" },
       { status: 500 }
     )
   }
@@ -431,6 +429,14 @@ export async function GET() {
 
 // POST - Generate new newsletter
 export async function POST(request: Request) {
+  const adminDb = getAdminDb()
+  if (!adminDb) {
+    return NextResponse.json(
+      { error: "Firebase Admin not configured" },
+      { status: 500 }
+    )
+  }
+
   try {
     const geminiApiKey = process.env.GEMINI_API_KEY
     if (!geminiApiKey) {
@@ -440,24 +446,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check for optional AI tool selection from request body
+    // Check for optional AI tool selection
     let selectedAiTool: { name: string; description: string; url: string; imageUrl?: string } | null = null
     try {
       const body = await request.json()
-      // Support both direct aiToolOfTheDay object and aiToolId for lookup
       if (body.aiToolOfTheDay) {
         selectedAiTool = body.aiToolOfTheDay
       } else if (body.aiToolId) {
-        // Look up the tool from the ai_tools collection
-        const toolRef = doc(db, "ai_tools", body.aiToolId)
-        const toolSnap = await getDoc(toolRef)
-        if (toolSnap.exists()) {
+        const toolSnap = await adminDb.collection("ai_tools").doc(body.aiToolId).get()
+        if (toolSnap.exists) {
           const toolData = toolSnap.data()
           selectedAiTool = {
-            name: toolData.name,
-            description: toolData.description,
-            url: toolData.url,
-            imageUrl: toolData.imageUrl || undefined,
+            name: toolData?.name,
+            description: toolData?.description,
+            url: toolData?.url,
+            imageUrl: toolData?.imageUrl || undefined,
           }
         }
       }
@@ -504,9 +507,9 @@ Generate the newsletter JSON following the system instructions. Remember to:
 4. Leave ai_tool section articles empty (admin will fill)
 5. Make the subject line compelling and include today's date`
 
-    // Retry logic for Gemini API with exponential backoff
+    // Retry logic for Gemini API
     const MAX_RETRIES = 3
-    const RETRY_DELAYS = [1000, 2000, 4000] // ms
+    const RETRY_DELAYS = [1000, 2000, 4000]
 
     let geminiResponse: Response | null = null
     let lastError: string = ""
@@ -538,10 +541,9 @@ Generate the newsletter JSON following the system instructions. Remember to:
         )
 
         if (geminiResponse.ok) {
-          break // Success, exit retry loop
+          break
         }
 
-        // Check for retryable errors (503, 429, 500)
         if ([503, 429, 500].includes(geminiResponse.status)) {
           lastError = await geminiResponse.text()
           console.log(`Gemini API attempt ${attempt + 1} failed with ${geminiResponse.status}, retrying...`)
@@ -551,7 +553,6 @@ Generate the newsletter JSON following the system instructions. Remember to:
             continue
           }
         } else {
-          // Non-retryable error
           lastError = await geminiResponse.text()
           break
         }
@@ -583,10 +584,9 @@ Generate the newsletter JSON following the system instructions. Remember to:
       )
     }
 
-    // Parse the JSON response
+    // Parse JSON response
     let parsedNewsletter
     try {
-      // Clean potential markdown code blocks
       newsletterJson = newsletterJson.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
       parsedNewsletter = JSON.parse(newsletterJson)
     } catch (parseError) {
@@ -634,8 +634,13 @@ Generate the newsletter JSON following the system instructions. Remember to:
   }
 }
 
-// PATCH - Update newsletter (sections, schedule, AI tool, audience, etc.)
+// PATCH - Update newsletter
 export async function PATCH(request: Request) {
+  const adminDb = getAdminDb()
+  if (!adminDb) {
+    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
+  }
+
   try {
     const body = await request.json()
     const { 
@@ -656,9 +661,9 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const newsletterRef = doc(db, "newsletters", newsletterId)
+    const newsletterRef = adminDb.collection("newsletters").doc(newsletterId)
     const updateData: Record<string, any> = {
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     }
 
     if (sections) {
@@ -675,10 +680,10 @@ export async function PATCH(request: Request) {
     if (audienceType) updateData.audienceType = audienceType
     if (selectedUsers !== undefined) updateData.selectedUsers = selectedUsers
 
-    await updateDoc(newsletterRef, updateData)
+    await newsletterRef.update(updateData)
 
     // Fetch updated newsletter to return
-    const updatedSnap = await getDoc(newsletterRef)
+    const updatedSnap = await newsletterRef.get()
     const data = updatedSnap.data()
 
     return NextResponse.json({ 

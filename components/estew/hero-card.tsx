@@ -33,7 +33,9 @@ export function HeroCard({ article }: { article: Article }) {
   const [limitMessage, setLimitMessage] = useState("")
 
   const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault()
     e.stopPropagation()
+    if (!profile) return // Ensure user is logged in
     await toggleSaveArticle(article.id)
   }
 
@@ -114,6 +116,7 @@ export function HeroCard({ article }: { article: Article }) {
 
           {/* Bookmark */}
           <button
+            type="button"
             onClick={handleSave}
             className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm transition-transform active:scale-90"
             aria-label={isSaved ? "Unsave" : "Save"}

@@ -1,32 +1,28 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/firebase"
-import { 
-  collection, 
-  getDocs, 
-  query, 
-  where,
-  doc,
-  setDoc,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore"
+import { getAdminDb } from "@/lib/firebase-admin"
+import { Timestamp, FieldValue } from "firebase-admin/firestore"
 
 // GET - Fetch newsletter subscribers or all users
 export async function GET(request: Request) {
+  const adminDb = getAdminDb()
+  if (!adminDb) {
+    return NextResponse.json({ users: [], subscribers: [], count: 0 })
+  }
+  
   try {
     const { searchParams } = new URL(request.url)
     const fetchAll = searchParams.get("all") === "true"
     
-    const usersRef = collection(db, "users")
     let snapshot
     
     if (fetchAll) {
       // Fetch ALL users (for audience selection)
-      snapshot = await getDocs(usersRef)
+      snapshot = await adminDb.collection("users").get()
     } else {
       // Fetch only subscribers
-      const q = query(usersRef, where("newsletterSubscribed", "==", true))
-      snapshot = await getDocs(q)
+      snapshot = await adminDb.collection("users")
+        .where("newsletterSubscribed", "==", true)
+        .get()
     }
     
     const users = snapshot.docs.map((docSnap) => {
@@ -59,7 +55,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching newsletter subscribers:", error)
     return NextResponse.json(
-      { error: "Failed to fetch newsletter subscribers" },
+      { error: "Failed to fetch newsletter subscribers", users: [], subscribers: [], count: 0 },
       { status: 500 }
     )
   }
@@ -67,24 +63,29 @@ export async function GET(request: Request) {
 
 // POST - Sync newsletter subscribers to separate collection
 export async function POST() {
+  const adminDb = getAdminDb()
+  if (!adminDb) {
+    return NextResponse.json({ error: "Firebase Admin not configured" }, { status: 500 })
+  }
+  
   try {
-    const usersRef = collection(db, "users")
-    const q = query(usersRef, where("newsletterSubscribed", "==", true))
-    const snapshot = await getDocs(q)
+    const snapshot = await adminDb.collection("users")
+      .where("newsletterSubscribed", "==", true)
+      .get()
     
     let syncedCount = 0
     
     for (const userDoc of snapshot.docs) {
       const data = userDoc.data()
-      const subscriberRef = doc(db, "newsletter_subscribers", userDoc.id)
+      const subscriberRef = adminDb.collection("newsletter_subscribers").doc(userDoc.id)
       
-      await setDoc(subscriberRef, {
+      await subscriberRef.set({
         userId: userDoc.id,
         email: data.email || "",
         displayName: data.displayName || data.name || "",
-        subscribedAt: data.createdAt || serverTimestamp(),
+        subscribedAt: data.createdAt || FieldValue.serverTimestamp(),
         status: "active",
-        syncedAt: serverTimestamp(),
+        syncedAt: FieldValue.serverTimestamp(),
       }, { merge: true })
       
       syncedCount++
