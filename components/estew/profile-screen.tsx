@@ -788,6 +788,14 @@ export function ProfileScreen() {
                   }
                 </button>
 
+                <a
+                  href="/newsletter"
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-foreground transition-colors active:bg-muted/40"
+                >
+                  Browse newsletter archive
+                  <ChevronRight size={14} strokeWidth={1.5} className="text-muted-foreground" />
+                </a>
+
                 <button
                   onClick={() => setShowNewsletterModal(false)}
                   className="mt-3 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
