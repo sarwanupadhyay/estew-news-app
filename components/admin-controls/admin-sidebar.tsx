@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   X,
+  Activity,
 } from "lucide-react"
 
 const NAV_ITEMS = [
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/admin-controls/newsletter", label: "Newsletter", icon: Send },
   { href: "/admin-controls/newsletter-subscribers", label: "Newsletter Subscribers", icon: Mail },
   { href: "/admin-controls/pro-subscribers", label: "Pro Subscribers", icon: Star },
+  { href: "/admin-controls/diagnostics", label: "Diagnostics", icon: Activity },
 ]
 
 export function AdminSidebar() {
