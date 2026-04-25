@@ -53,7 +53,7 @@ export function UsersView({ defaultFilter = "all", hideFilters = false }: Props)
   params.set("filter", filter)
   if (search) params.set("search", search)
 
-  const { data, isLoading } = useSWR<UsersResponse>(
+  const { data, isLoading, mutate } = useSWR<UsersResponse>(
     `/api/admin-controls/users?${params.toString()}`,
     fetcher
   )
@@ -178,7 +178,14 @@ export function UsersView({ defaultFilter = "all", hideFilters = false }: Props)
       </section>
 
       {selectedUser && (
-        <UserDetailDialog user={selectedUser} onClose={() => setSelectedUser(null)} />
+        <UserDetailDialog
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onChanged={() => {
+            mutate()
+            setSelectedUser(null)
+          }}
+        />
       )}
     </div>
   )

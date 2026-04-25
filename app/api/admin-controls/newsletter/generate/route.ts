@@ -46,80 +46,56 @@ interface RawArticle {
   publishedAt: string
 }
 
-async function fetchRecentArticles(): Promise<RawArticle[]> {
+async function fetchRecentArticles(): Promise<{ articles: RawArticle[]; error?: string }> {
   const dayAgoMs = Date.now() - 24 * 60 * 60 * 1000
 
-  // 1) Try Firestore first
-  try {
-    const db = getAdminDb()
-    if (!db) {
-      console.error("[v0] Firestore unavailable, will fall back to NewsAPI")
-      throw new Error("Firestore unavailable")
+  const db = getAdminDb()
+  if (!db) {
+    return {
+      articles: [],
+      error:
+        "Firestore is not configured. Please check your FIREBASE_SERVICE_ACCOUNT_KEY environment variable.",
     }
+  }
+
+  try {
     const snap = await db
       .collection("articles")
       .orderBy("publishedAt", "desc")
-      .limit(60)
+      .limit(80)
       .get()
 
     const fromDb: RawArticle[] = snap.docs
       .map((d) => {
         const x = d.data()
+        const publishedAt =
+          typeof x.publishedAt === "string"
+            ? x.publishedAt
+            : x.publishedAt?.toDate?.()?.toISOString() ?? ""
         return {
           title: x.title || "",
-          summary: x.summary || "",
-          url: x.originalUrl || "",
-          source: x.sourceName || "Unknown",
+          summary: x.summary || x.description || "",
+          url: x.originalUrl || x.url || "",
+          source: x.sourceName || x.source || "Unknown",
           category: x.category || "Other",
-          publishedAt: x.publishedAt || "",
+          publishedAt,
         }
       })
-      .filter(
-        (a) => a.title && a.url && new Date(a.publishedAt).getTime() >= dayAgoMs
-      )
+      .filter((a) => a.title && a.url)
 
-    if (fromDb.length >= 8) return fromDb
+    const recent = fromDb.filter(
+      (a) => a.publishedAt && new Date(a.publishedAt).getTime() >= dayAgoMs,
+    )
+
+    // Prefer last-24h, but fall back to most recent stored articles if DB is sparse
+    const articles = recent.length >= 8 ? recent : fromDb.slice(0, 30)
+    return { articles }
   } catch (err) {
     console.error("[v0] Firestore fetch error:", err)
-  }
-
-  // 2) Fallback to live NewsAPI
-  const apiKey = process.env.NEWS_API_KEY
-  if (!apiKey) return []
-
-  try {
-    const res = await fetch(
-      `https://newsapi.org/v2/everything?q=${encodeURIComponent(
-        "technology OR AI OR startup OR product launch"
-      )}&sortBy=publishedAt&pageSize=40&language=en`,
-      { headers: { "X-Api-Key": apiKey }, cache: "no-store" }
-    )
-    if (!res.ok) return []
-    const data = await res.json()
-    const articles: RawArticle[] = (data.articles || [])
-      .filter((a: { url?: string; title?: string }) => a.url && a.title && a.url !== "[Removed]")
-      .map(
-        (a: {
-          title: string
-          description?: string
-          url: string
-          source?: { name?: string }
-          publishedAt?: string
-        }) => ({
-          title: a.title,
-          summary: a.description || "",
-          url: a.url,
-          source: a.source?.name || "Unknown",
-          category: "Tech",
-          publishedAt: a.publishedAt || new Date().toISOString(),
-        })
-      )
-      .filter((a: RawArticle) => new Date(a.publishedAt).getTime() >= dayAgoMs)
-
-    return articles
-  } catch (err) {
-    console.error("[v0] NewsAPI fetch error:", err)
-    return []
+    return {
+      articles: [],
+      error: "Failed to read articles from Firestore: " + (err as Error).message,
+    }
   }
 }
 
@@ -128,12 +104,19 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const articles = await fetchRecentArticles()
+  const { articles, error: fetchError } = await fetchRecentArticles()
+
+  if (fetchError) {
+    return NextResponse.json({ error: fetchError }, { status: 503 })
+  }
 
   if (articles.length === 0) {
     return NextResponse.json(
-      { error: "No articles available from the last 24 hours. Check your NewsAPI key or article feed." },
-      { status: 503 }
+      {
+        error:
+          "No articles found in Firestore. Please ingest fresh articles into the 'articles' collection before generating a newsletter.",
+      },
+      { status: 503 },
     )
   }
 

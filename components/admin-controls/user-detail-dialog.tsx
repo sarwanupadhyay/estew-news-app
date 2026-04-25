@@ -1,15 +1,47 @@
 "use client"
 
-import { X } from "lucide-react"
+import { useState } from "react"
+import { X, AlertCircle, CheckCircle2 } from "lucide-react"
 import type { AdminUser } from "./users-view"
 
 export function UserDetailDialog({
   user,
   onClose,
+  onChanged,
 }: {
   user: AdminUser
   onClose: () => void
+  onChanged?: () => void
 }) {
+  const [busy, setBusy] = useState<null | "extend" | "cancel" | "activate">(null)
+  const [extendDays, setExtendDays] = useState(30)
+  const [feedback, setFeedback] = useState<{ type: "ok" | "err"; text: string } | null>(null)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+
+  const callApi = async (
+    action: "extend" | "cancel" | "activate",
+    body: Record<string, unknown> = {},
+  ) => {
+    setBusy(action)
+    setFeedback(null)
+    try {
+      const res = await fetch(`/api/admin-controls/users/${user.uid}/subscription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...body }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Request failed")
+      setFeedback({ type: "ok", text: json.message || "Updated successfully" })
+      onChanged?.()
+    } catch (e) {
+      setFeedback({ type: "err", text: (e as Error).message })
+    } finally {
+      setBusy(null)
+      setConfirmCancel(false)
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -18,7 +50,7 @@ export function UserDetailDialog({
       aria-modal="true"
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-border p-5">
@@ -122,6 +154,126 @@ export function UserDetailDialog({
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Subscription management */}
+        <div className="border-t border-border bg-secondary/30 p-5">
+          <h3 className="mb-3 font-serif text-sm font-semibold text-foreground">
+            Subscription management
+          </h3>
+
+          {feedback && (
+            <div
+              className={`mb-3 flex items-start gap-2 rounded-lg border p-3 text-xs ${
+                feedback.type === "ok"
+                  ? "border-success/30 bg-success/10 text-success"
+                  : "border-destructive/30 bg-destructive/10 text-destructive"
+              }`}
+            >
+              {feedback.type === "ok" ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              )}
+              <span>{feedback.text}</span>
+            </div>
+          )}
+
+          {user.plan === "pro" ? (
+            <div className="space-y-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label
+                    htmlFor="extend-days"
+                    className="mb-1 block text-xs font-medium text-muted-foreground"
+                  >
+                    Extend by (days)
+                  </label>
+                  <input
+                    id="extend-days"
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={extendDays}
+                    onChange={(e) => setExtendDays(Number(e.target.value) || 30)}
+                    className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => callApi("extend", { days: extendDays })}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {busy === "extend" ? "Extending..." : "Extend"}
+                </button>
+              </div>
+
+              {!confirmCancel ? (
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => setConfirmCancel(true)}
+                  className="w-full rounded-lg border border-destructive/30 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+                >
+                  Cancel Pro plan
+                </button>
+              ) : (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  <p className="mb-3 text-xs text-foreground">
+                    This will immediately downgrade {user.email} to the Free plan and clear their
+                    renewal date. They will lose Pro access right away.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => callApi("cancel")}
+                      className="flex-1 rounded-lg bg-destructive px-3 py-2 text-xs font-medium text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      {busy === "cancel" ? "Cancelling..." : "Yes, cancel now"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmCancel(false)}
+                      disabled={busy !== null}
+                      className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+                    >
+                      Keep Pro
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label
+                  htmlFor="activate-days"
+                  className="mb-1 block text-xs font-medium text-muted-foreground"
+                >
+                  Activate Pro for (days)
+                </label>
+                <input
+                  id="activate-days"
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={extendDays}
+                  onChange={(e) => setExtendDays(Number(e.target.value) || 30)}
+                  className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() => callApi("activate", { days: extendDays })}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {busy === "activate" ? "Activating..." : "Activate Pro"}
+              </button>
             </div>
           )}
         </div>
