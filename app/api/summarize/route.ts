@@ -23,7 +23,7 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 const MODEL_CHAIN = [
   // Primary model requested by the operator. If OpenRouter returns 404
   // (model not found) or any other failure, the chain falls through.
-  "google/gemma-4-31b-it:free",
+  "openrouter/free",
   // Known-good free fallbacks (latest first) so summaries always get
   // generated even when the primary is unavailable or rate-limited.
   "google/gemma-3-27b-it:free",
@@ -266,8 +266,8 @@ function normalizeBullets(raw: string): string | null {
     lines.length >= 2
       ? lines
       : (cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned])
-          .map((s) => s.trim())
-          .filter(Boolean)
+        .map((s) => s.trim())
+        .filter(Boolean)
 
   bullets = bullets.filter((b) => b.length >= 8 && b.length <= 240).slice(0, 3)
 
