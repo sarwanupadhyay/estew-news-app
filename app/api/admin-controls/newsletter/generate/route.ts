@@ -259,7 +259,7 @@ ${articleListText}`
     const googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey })
 
     const { output } = await generateText({
-      model: googleProvider("gemini-2.0-flash"),
+      model: googleProvider("gemini-2.5-flash-lite"),
       output: Output.object({ schema: newsletterSchema }),
       system: systemPrompt,
       prompt: userPrompt,
