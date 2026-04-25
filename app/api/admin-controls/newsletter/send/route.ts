@@ -3,6 +3,7 @@ import { Resend } from "resend"
 import { isAdminAuthenticated } from "@/lib/admin-auth"
 import { getAdminDb, getAdminInitError } from "@/lib/firebase-admin"
 import { buildNewsletterHtml, type Newsletter } from "@/lib/newsletter-html"
+import { buildUnsubscribeUrl } from "@/lib/unsubscribe-token"
 
 export const maxDuration = 300
 
@@ -19,10 +20,22 @@ function buildFromEmail(): string {
 
 const FROM_EMAIL = buildFromEmail()
 
+// Public site URL used to build per-recipient unsubscribe + view-online links.
+// Falls back to the production domain if the env var isn't set.
+function getSiteUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+    "https://estew.xyz"
+  return raw.replace(/\/$/, "")
+}
+
 interface SendBody {
   newsletter: Newsletter
   audience: "all" | "newsletter" | "pro" | "single"
   singleEmail?: string
+  /** Optional id of the saved newsletter (for "View online" links). */
+  newsletterId?: string
 }
 
 interface Recipient {
@@ -74,12 +87,34 @@ export async function POST(request: Request) {
         queryRef = queryRef.where("plan", "==", "pro")
       }
       const snap = await queryRef.get()
+
+      // Always exclude users who explicitly opted out, regardless of audience.
+      // Also load the unsubscribed_emails list so one-off recipients who
+      // unsubscribed earlier are blocked too.
+      const unsubSnap = await db.collection("unsubscribed_emails").get()
+      const unsubscribed = new Set(
+        unsubSnap.docs
+          .map((d) => ((d.data().email || "") as string).toLowerCase().trim())
+          .filter(Boolean),
+      )
+
       recipients = snap.docs
         .map((doc) => {
           const d = doc.data()
-          return { email: (d.email || "").trim(), name: d.displayName || "" }
+          return {
+            email: (d.email || "").trim(),
+            name: d.displayName || "",
+            newsletterSubscribed: d.newsletterSubscribed,
+          }
         })
-        .filter((r) => r.email && r.email.includes("@"))
+        .filter(
+          (r) =>
+            r.email &&
+            r.email.includes("@") &&
+            r.newsletterSubscribed !== false &&
+            !unsubscribed.has(r.email.toLowerCase()),
+        )
+        .map(({ email, name }) => ({ email, name }))
     } catch (err) {
       console.error("[v0] Recipient fetch error:", err)
       return NextResponse.json(
@@ -95,6 +130,10 @@ export async function POST(request: Request) {
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const subject = body.newsletter.subject || "Your daily Estew briefing"
+  const siteUrl = getSiteUrl()
+  const webUrl = body.newsletterId
+    ? `${siteUrl}/newsletter/${body.newsletterId}`
+    : undefined
 
   let sent = 0
   let failed = 0
@@ -102,13 +141,24 @@ export async function POST(request: Request) {
 
   // Send sequentially to respect Resend rate limits (2 req/sec free tier)
   for (const recipient of recipients) {
-    const html = buildNewsletterHtml(body.newsletter, recipient.name)
+    const unsubscribeUrl = buildUnsubscribeUrl(recipient.email, siteUrl)
+    const html = buildNewsletterHtml(body.newsletter, {
+      recipientName: recipient.name,
+      unsubscribeUrl,
+      webUrl,
+    })
     try {
       const { error } = await resend.emails.send({
         from: FROM_EMAIL,
         to: [recipient.email],
         subject,
         html,
+        // RFC 8058 one-click unsubscribe support — Gmail and most major
+        // clients show a native "Unsubscribe" affordance when these are present.
+        headers: {
+          "List-Unsubscribe": `<${unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
       })
       if (error) {
         failed++

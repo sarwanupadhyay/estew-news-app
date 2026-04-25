@@ -74,7 +74,14 @@ export function NewsletterStudio() {
       const res = await fetch("/api/admin-controls/newsletter/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newsletter, audience, singleEmail }),
+        body: JSON.stringify({
+          newsletter,
+          audience,
+          singleEmail,
+          // Pass the saved id (when present) so the email's "View online" link
+          // and the unsubscribe URL can point at the right resource.
+          newsletterId: activeId || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
