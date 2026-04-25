@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import type { Article, Category } from "@/lib/types"
 import { mockArticles } from "@/lib/mock-data"
 import { getCachedFeed } from "@/lib/redis-cache"
+import { persistArticlesAdmin } from "@/lib/article-storage-admin"
 
 // Generate a stable, deterministic ID from URL using a hash function
 // This ensures the same article always gets the same ID regardless of when it's fetched
@@ -115,8 +116,20 @@ async function fetchFeedData(category: string) {
         }
       })
 
-    // No need to persist to global articles collection anymore
-    // Saved articles are stored in user's subcollection with full article data
+    // Persist live articles to Firestore so the admin panel and newsletter
+    // generator can read them. Uses Firebase Admin SDK with batched writes.
+    // Stable IDs ensure re-fetches deduplicate instead of creating new docs.
+    try {
+      const result = await persistArticlesAdmin(articles)
+      console.log(
+        `[v0] Persisted ${result.written}/${articles.length} articles to Firestore` +
+          (result.error ? ` (warning: ${result.error})` : ""),
+      )
+    } catch (err) {
+      // Never let persistence errors break the user-facing feed.
+      console.error("[v0] Article persistence failed (non-fatal):", err)
+    }
+
     return { articles, source: "live" }
   } catch (error) {
     console.error("NewsAPI error:", error)
