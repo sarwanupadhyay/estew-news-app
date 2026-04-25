@@ -6,7 +6,18 @@ import { buildNewsletterHtml, type Newsletter } from "@/lib/newsletter-html"
 
 export const maxDuration = 300
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "Estew <newsletter@estew.app>"
+// Always send as "Estew" — extract just the email address from the env var
+// (in case it was set as "Some Name <foo@bar.com>") and re-wrap it with the
+// "Estew" display name so the recipient always sees "Estew" in their inbox.
+function buildFromEmail(): string {
+  const raw = (process.env.RESEND_FROM_EMAIL || "newsletter@estew.app").trim()
+  // Extract "foo@bar.com" out of "Whatever <foo@bar.com>"
+  const match = raw.match(/<([^>]+)>/)
+  const email = (match ? match[1] : raw).trim()
+  return `Estew <${email}>`
+}
+
+const FROM_EMAIL = buildFromEmail()
 
 interface SendBody {
   newsletter: Newsletter

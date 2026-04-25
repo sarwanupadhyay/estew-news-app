@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server"
 import { generateText, Output } from "ai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import * as z from "zod"
 import { isAdminAuthenticated } from "@/lib/admin-auth"
 import { getAdminDb } from "@/lib/firebase-admin"
 
 export const maxDuration = 60
+
+// Use the user's own Gemini API key directly so we bypass the AI Gateway
+// (which requires a credit card). Falls back to GOOGLE_GENERATIVE_AI_API_KEY
+// if that's the variable name they happen to be using.
+const googleApiKey =
+  process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
 
 const newsletterSchema = z.object({
   subject: z.string().describe("An engaging email subject line for today's newsletter, under 70 chars"),
@@ -22,7 +29,11 @@ const newsletterSchema = z.object({
               summary: z
                 .string()
                 .describe("A polished 2-3 sentence editorial summary written for the reader"),
-              link: z.string().describe("The original article URL"),
+              link: z
+                .string()
+                .describe(
+                  "MUST be the EXACT original article URL from the provided list — never invent or modify it",
+                ),
               source: z.string().describe("The source publication name"),
             })
           )
@@ -44,6 +55,7 @@ interface RawArticle {
   source: string
   category: string
   publishedAt: string
+  imageUrl?: string
 }
 
 async function fetchRecentArticles(): Promise<{ articles: RawArticle[]; error?: string }> {
@@ -79,6 +91,7 @@ async function fetchRecentArticles(): Promise<{ articles: RawArticle[]; error?: 
           source: x.sourceName || x.source || "Unknown",
           category: x.category || "Other",
           publishedAt,
+          imageUrl: x.imageUrl || "",
         }
       })
       .filter((a) => a.title && a.url)
@@ -99,9 +112,50 @@ async function fetchRecentArticles(): Promise<{ articles: RawArticle[]; error?: 
   }
 }
 
+/**
+ * After Gemini generates the newsletter, walk every section.article and
+ * attach the imageUrl from the matching raw article (matched by URL).
+ * This keeps the LLM focused on writing prose and prevents image-URL hallucination.
+ */
+function attachImagesToSections(
+  sections: {
+    title: string
+    emoji: string
+    description: string
+    articles: { headline: string; summary: string; link: string; source: string }[]
+  }[],
+  rawArticles: RawArticle[],
+) {
+  const byUrl = new Map<string, RawArticle>()
+  for (const a of rawArticles) {
+    if (a.url) byUrl.set(a.url, a)
+  }
+
+  return sections.map((section) => ({
+    ...section,
+    articles: section.articles.map((art) => {
+      const match = byUrl.get(art.link)
+      return {
+        ...art,
+        imageUrl: match?.imageUrl || "",
+      }
+    }),
+  }))
+}
+
 export async function POST(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (!googleApiKey) {
+    return NextResponse.json(
+      {
+        error:
+          "Gemini API key is not configured. Please set GEMINI_API_KEY in your environment variables.",
+      },
+      { status: 500 },
+    )
   }
 
   // Optional: client may send an AI tool id to attach as Tool of the Day
@@ -150,7 +204,8 @@ export async function POST(req: Request) {
 Your tone is sharp, intelligent, and conversational - never corporate or clickbait.
 You distill the day's tech news into a focused, beautifully written briefing.
 Always rewrite headlines and summaries in your own voice. Never copy verbatim from the source.
-Use only the articles provided - never fabricate news or URLs.`
+Use only the articles provided - never fabricate news or URLs.
+For the "link" field, copy the URL EXACTLY as given - do not modify, shorten, or invent URLs.`
 
   const userPrompt = `Date: ${today}
 
@@ -160,7 +215,7 @@ REQUIREMENTS:
 - Pick 5-7 sections from: Top Story, AI Breakthroughs, Startup Radar, Product Launches, Market Pulse, Quick Bytes, Developer Insight
 - "Top Story" must contain exactly 1 article (the single most important story of the day)
 - Other sections should contain 2-4 articles each
-- Use only articles from the list below - reference their exact URL in the link field
+- Use only articles from the list below - copy their EXACT URL into the link field
 - Rewrite every headline and summary in a polished editorial voice
 - Use single, relevant emojis for each section (e.g. 🤖 for AI, 🚀 for launches, 💸 for market, 🛠 for developer)
 - Subject line should be punchy and reference the day's biggest theme
@@ -201,15 +256,22 @@ ${articleListText}`
   }
 
   try {
+    const googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey })
+
     const { output } = await generateText({
-      model: "google/gemini-3-flash",
+      model: googleProvider("gemini-2.0-flash"),
       output: Output.object({ schema: newsletterSchema }),
       system: systemPrompt,
       prompt: userPrompt,
     })
 
+    // Inject imageUrl into each generated article from the source raw articles.
+    const sectionsWithImages = attachImagesToSections(output.sections, articles)
+
     const newsletter = {
-      ...output,
+      subject: output.subject,
+      intro: output.intro,
+      sections: sectionsWithImages,
       date: new Date().toISOString(),
       aiToolOfDay,
     }

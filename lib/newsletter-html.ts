@@ -3,6 +3,7 @@ export interface NewsletterArticle {
   summary: string
   link: string
   source: string
+  imageUrl?: string
 }
 
 export interface NewsletterSection {
@@ -63,18 +64,27 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
         ${section.articles
           .map(
             (article, idx) => `
-          <div style="padding:${idx === 0 ? "0" : "16px"} 0 16px;${
+          <div style="padding:${idx === 0 ? "0" : "20px"} 0 20px;${
               idx > 0 ? "border-top:1px solid #E2E8F0;" : ""
             }">
+            ${
+              article.imageUrl
+                ? `<a href="${escapeAttr(article.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;margin-bottom:14px;">
+                    <img src="${escapeAttr(article.imageUrl)}" alt="${escapeAttr(
+                    article.headline,
+                  )}" width="576" style="display:block;width:100%;max-width:576px;height:auto;border-radius:12px;border:0;outline:none;text-decoration:none;" />
+                  </a>`
+                : ""
+            }
             <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;">
               <h3 style="margin:0 0 8px;font-family:'Fraunces','Georgia',serif;font-size:18px;font-weight:600;line-height:1.35;color:#0F172A;">
                 ${escapeHtml(article.headline)}
               </h3>
-              <p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#475569;">
+              <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#475569;">
                 ${escapeHtml(article.summary)}
               </p>
               <span style="display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#7C3AED;">
-                ${escapeHtml(article.source)} →
+                ${escapeHtml(article.source)} — Read more →
               </span>
             </a>
           </div>`
@@ -87,9 +97,16 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
   const aiToolHtml = newsletter.aiToolOfDay
     ? `
     <div style="margin:32px 0;padding:24px;background:linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%);border:1px solid #DDD6FE;border-radius:16px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7C3AED;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7C3AED;margin-bottom:12px;">
         ✨ AI Tool of the Day
       </div>
+      ${
+        newsletter.aiToolOfDay.imageUrl
+          ? `<img src="${escapeAttr(newsletter.aiToolOfDay.imageUrl)}" alt="${escapeAttr(
+              newsletter.aiToolOfDay.name,
+            )}" width="576" style="display:block;width:100%;max-width:576px;height:auto;border-radius:12px;border:0;margin-bottom:14px;" />`
+          : ""
+      }
       <h3 style="margin:0 0 8px;font-family:'Fraunces','Georgia',serif;font-size:22px;font-weight:700;color:#0F172A;">
         ${escapeHtml(newsletter.aiToolOfDay.name)}
       </h3>
@@ -148,7 +165,8 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
 
     <!-- Footer -->
     <div style="text-align:center;margin-top:24px;font-size:12px;color:#94A3B8;line-height:1.6;">
-      <p style="margin:0;">You're receiving this because you subscribed to Estew Daily.</p>
+      <p style="margin:0;">You&apos;re receiving this because you subscribed to Estew Daily.</p>
+      <p style="margin:6px 0 0;">Sent with love by <strong style="color:#475569;">Estew</strong></p>
       <p style="margin:6px 0 0;">
         <a href="https://estew.app/profile" style="color:#7C3AED;text-decoration:none;">Manage preferences</a>
         &nbsp;·&nbsp;

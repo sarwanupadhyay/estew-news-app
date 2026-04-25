@@ -49,15 +49,11 @@ export function NewsletterPreview({ newsletter }: { newsletter: Newsletter }) {
                 {section.description && (
                   <p className="mb-3 text-[13px] italic text-[#64748B]">{section.description}</p>
                 )}
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {section.articles.map((article, aIdx) => (
                     <div
                       key={aIdx}
-                      className={
-                        aIdx > 0
-                          ? "border-t border-[#E2E8F0] pt-4"
-                          : ""
-                      }
+                      className={aIdx > 0 ? "border-t border-[#E2E8F0] pt-5" : ""}
                     >
                       <a
                         href={article.link}
@@ -65,6 +61,15 @@ export function NewsletterPreview({ newsletter }: { newsletter: Newsletter }) {
                         rel="noopener noreferrer"
                         className="group block"
                       >
+                        {article.imageUrl && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={article.imageUrl || "/placeholder.svg"}
+                            alt={article.headline}
+                            className="mb-3 block aspect-[16/9] w-full rounded-xl object-cover"
+                            loading="lazy"
+                          />
+                        )}
                         <h3 className="mb-2 font-serif text-lg font-semibold leading-snug text-[#0F172A] group-hover:text-[#7C3AED]">
                           {article.headline}
                         </h3>
@@ -72,7 +77,7 @@ export function NewsletterPreview({ newsletter }: { newsletter: Newsletter }) {
                           {article.summary}
                         </p>
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-[#7C3AED]">
-                          {article.source}
+                          {article.source} — Read more
                           <ExternalLink className="h-3 w-3" />
                         </span>
                       </a>
@@ -84,10 +89,19 @@ export function NewsletterPreview({ newsletter }: { newsletter: Newsletter }) {
 
             {newsletter.aiToolOfDay && (
               <div className="my-8 rounded-2xl border border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] p-6">
-                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#7C3AED]">
+                <div className="mb-3 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#7C3AED]">
                   <Sparkles className="h-3 w-3" />
                   AI Tool of the Day
                 </div>
+                {newsletter.aiToolOfDay.imageUrl && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={newsletter.aiToolOfDay.imageUrl || "/placeholder.svg"}
+                    alt={newsletter.aiToolOfDay.name}
+                    className="mb-4 block aspect-[16/9] w-full rounded-xl object-cover"
+                    loading="lazy"
+                  />
+                )}
                 <h3 className="mb-2 font-serif text-xl font-bold text-[#0F172A]">
                   {newsletter.aiToolOfDay.name}
                 </h3>
@@ -119,6 +133,9 @@ export function NewsletterPreview({ newsletter }: { newsletter: Newsletter }) {
 
           <div className="mt-6 text-center text-xs text-[#94A3B8]">
             <p>You&apos;re receiving this because you subscribed to Estew Daily.</p>
+            <p className="mt-1">
+              Sent with love by <strong className="text-[#475569]">Estew</strong>
+            </p>
           </div>
         </div>
       </div>
