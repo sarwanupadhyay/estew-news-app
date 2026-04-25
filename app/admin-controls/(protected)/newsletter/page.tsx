@@ -1,9 +1,10 @@
 import { NewsletterStudio } from "@/components/admin-controls/newsletter-studio"
+import { NewsletterHistory } from "@/components/admin-controls/newsletter-history"
 
 export default function NewsletterPage() {
   return (
-    <div className="px-4 py-6 lg:px-8 lg:py-8">
-      <header className="mb-6">
+    <div className="space-y-8 px-4 py-6 lg:px-8 lg:py-8">
+      <header>
         <h1 className="font-serif text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
           Newsletter
         </h1>
@@ -12,6 +13,7 @@ export default function NewsletterPage() {
         </p>
       </header>
       <NewsletterStudio />
+      <NewsletterHistory />
     </div>
   )
 }
