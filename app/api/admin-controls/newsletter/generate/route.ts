@@ -99,9 +99,20 @@ async function fetchRecentArticles(): Promise<{ articles: RawArticle[]; error?: 
   }
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Optional: client may send an AI tool id to attach as Tool of the Day
+  let aiToolId: string | undefined
+  try {
+    const body = await req.json().catch(() => ({}))
+    if (body && typeof body.aiToolId === "string" && body.aiToolId.trim()) {
+      aiToolId = body.aiToolId.trim()
+    }
+  } catch {
+    // body is optional, ignore parse errors
   }
 
   const { articles, error: fetchError } = await fetchRecentArticles()
@@ -157,6 +168,38 @@ REQUIREMENTS:
 ARTICLES:
 ${articleListText}`
 
+  // Look up the selected AI tool (if any) so we can attach it to the newsletter
+  let aiToolOfDay: {
+    name: string
+    url: string
+    description: string
+    imageUrl?: string
+  } | null = null
+  if (aiToolId) {
+    try {
+      const db = getAdminDb()
+      if (db) {
+        const toolDoc = await db.collection("ai_tools").doc(aiToolId).get()
+        if (toolDoc.exists) {
+          const t = toolDoc.data() as {
+            name?: string
+            url?: string
+            description?: string
+            imageUrl?: string
+          }
+          aiToolOfDay = {
+            name: t.name || "",
+            url: t.url || "",
+            description: t.description || "",
+            imageUrl: t.imageUrl || "",
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[v0] Failed to load AI tool, continuing without it:", err)
+    }
+  }
+
   try {
     const { output } = await generateText({
       model: "google/gemini-3-flash",
@@ -165,12 +208,35 @@ ${articleListText}`
       prompt: userPrompt,
     })
 
+    const newsletter = {
+      ...output,
+      date: new Date().toISOString(),
+      aiToolOfDay,
+    }
+
+    // Persist the generated newsletter so it appears in the saved list and
+    // can be re-opened, previewed, or sent later.
+    let savedId: string | null = null
+    try {
+      const db = getAdminDb()
+      if (db) {
+        const ref = await db.collection("newsletters").add({
+          ...newsletter,
+          createdAt: new Date().toISOString(),
+          articleCount: articles.length,
+          aiToolId: aiToolId || null,
+        })
+        savedId = ref.id
+      } else {
+        console.warn("[v0] Newsletter generated but Firestore unavailable; skipping save")
+      }
+    } catch (err) {
+      console.error("[v0] Failed to save generated newsletter:", err)
+    }
+
     return NextResponse.json({
-      newsletter: {
-        ...output,
-        date: new Date().toISOString(),
-        articleCount: articles.length,
-      },
+      id: savedId,
+      newsletter: { ...newsletter, articleCount: articles.length },
     })
   } catch (err) {
     console.error("[v0] Newsletter generation error:", err)
