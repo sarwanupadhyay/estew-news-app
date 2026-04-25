@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
@@ -26,6 +27,33 @@ const NAV_ITEMS = [
   { href: "/admin-controls/diagnostics", label: "Diagnostics", icon: Activity },
 ]
 
+function EstewBrand({ size = "md" }: { size?: "sm" | "md" }) {
+  const dimensions = size === "sm" ? "h-7 w-7" : "h-8 w-8"
+  const wordmarkSize = size === "sm" ? "text-[15px]" : "text-[17px]"
+  const taglineSize = size === "sm" ? "text-[10px]" : "text-[11px]"
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className={`relative shrink-0 ${dimensions}`}>
+        <Image
+          src="/images/logo.svg"
+          alt="Estew"
+          fill
+          className="object-contain dark:invert"
+        />
+      </div>
+      <div className="flex flex-col leading-none">
+        <span className={`font-sans font-semibold tracking-tight text-foreground ${wordmarkSize}`}>
+          estew
+        </span>
+        <span className={`mt-1 font-sans font-medium uppercase tracking-[0.14em] text-muted-foreground ${taglineSize}`}>
+          Admin Controls
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -39,18 +67,12 @@ export function AdminSidebar() {
 
   const navContent = (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <span className="font-serif text-base font-bold">E</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="font-serif text-base font-semibold leading-none text-foreground">Estew</span>
-          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Admin Controls</span>
-        </div>
+      <div className="flex h-16 items-center border-b border-border px-5">
+        <EstewBrand />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="space-y-1">
+        <ul className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const isActive =
               pathname === item.href || (item.href !== "/admin-controls/dashboard" && pathname.startsWith(item.href))
@@ -60,13 +82,13 @@ export function AdminSidebar() {
                 <Link
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 font-sans text-[13px] transition-colors ${
                     isActive
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-primary/10 font-medium text-primary"
+                      : "font-normal text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                   <span>{item.label}</span>
                 </Link>
               </li>
@@ -79,9 +101,9 @@ export function AdminSidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 font-sans text-[13px] font-normal text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         >
-          <LogOut className="h-4 w-4 shrink-0" />
+          <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.75} />
           <span>Sign out</span>
         </button>
       </div>
@@ -92,19 +114,14 @@ export function AdminSidebar() {
     <>
       {/* Mobile top bar */}
       <div className="flex h-14 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="font-serif text-sm font-bold">E</span>
-          </div>
-          <span className="font-serif text-sm font-semibold text-foreground">Admin Controls</span>
-        </div>
+        <EstewBrand size="sm" />
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
           className="rounded-md p-2 text-foreground hover:bg-secondary"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" strokeWidth={1.75} />
         </button>
       </div>
 
@@ -128,7 +145,7 @@ export function AdminSidebar() {
               aria-label="Close menu"
               className="absolute right-3 top-3 rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5" strokeWidth={1.75} />
             </button>
             {navContent}
           </div>

@@ -561,15 +561,26 @@ export function ProfileScreen() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-[428px] rounded-t-3xl bg-background"
+              className="flex w-full max-w-[428px] flex-col overflow-hidden rounded-t-3xl bg-background"
+              style={{ height: "92vh", maxHeight: "92vh" }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+              {/* Sticky header: drag handle + persistent close button */}
+              <div className="flex flex-none items-center justify-between border-b border-border/50 bg-background px-5 pt-3 pb-2">
+                <span className="h-1 w-10 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+                <button
+                  onClick={() => setShowBillingModal(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted"
+                  aria-label="Close"
+                >
+                  <X size={18} strokeWidth={2} />
+                </button>
               </div>
 
-              <div className="max-h-[80vh] overflow-y-auto px-5 pb-8">
+              <div
+                className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4"
+                style={{ paddingBottom: "max(env(safe-area-inset-bottom), 32px)" }}
+              >
                 <h2 className="mb-1 font-serif text-2xl font-bold text-foreground">Plan & Billing</h2>
                 <p className="mb-6 font-sans text-[14px] text-muted-foreground">
                   {isPro ? "You're currently on the Pro plan" : "Choose the plan that's right for you"}
@@ -704,15 +715,26 @@ export function ProfileScreen() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-[428px] rounded-t-3xl bg-background"
+              className="flex w-full max-w-[428px] flex-col overflow-hidden rounded-t-3xl bg-background"
+              style={{ maxHeight: "92vh" }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+              {/* Sticky header: drag handle + persistent close button */}
+              <div className="flex flex-none items-center justify-between border-b border-border/50 bg-background px-5 pt-3 pb-2">
+                <span className="h-1 w-10 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+                <button
+                  onClick={() => setShowNewsletterModal(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted"
+                  aria-label="Close"
+                >
+                  <X size={18} strokeWidth={2} />
+                </button>
               </div>
 
-              <div className="px-5 pb-8">
+              <div
+                className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4"
+                style={{ paddingBottom: "max(env(safe-area-inset-bottom), 32px)" }}
+              >
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mx-auto">
                   <Mail size={24} className="text-primary" />
                 </div>
@@ -788,6 +810,14 @@ export function ProfileScreen() {
                   }
                 </button>
 
+                <a
+                  href="/newsletter"
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-foreground transition-colors active:bg-muted/40"
+                >
+                  Browse newsletter archive
+                  <ChevronRight size={14} strokeWidth={1.5} className="text-muted-foreground" />
+                </a>
+
                 <button
                   onClick={() => setShowNewsletterModal(false)}
                   className="mt-3 w-full rounded-xl border border-border py-3 font-sans text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/40"
@@ -815,16 +845,26 @@ export function ProfileScreen() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-[428px] rounded-t-3xl bg-background"
-              style={{ maxHeight: "90vh" }}
+              className="flex w-full max-w-[428px] flex-col overflow-hidden rounded-t-3xl bg-background"
+              style={{ height: "92vh", maxHeight: "92vh" }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+              {/* Sticky header: drag handle + persistent close button */}
+              <div className="flex flex-none items-center justify-between border-b border-border/50 bg-background px-5 pt-3 pb-2">
+                <span className="h-1 w-10 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+                <button
+                  onClick={() => setShowActivityModal(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted"
+                  aria-label="Close"
+                >
+                  <X size={18} strokeWidth={2} />
+                </button>
               </div>
 
-              <div className="px-5 pb-8 overflow-y-auto" style={{ maxHeight: "calc(90vh - 40px)" }}>
+              <div
+                className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4"
+                style={{ paddingBottom: "max(env(safe-area-inset-bottom), 32px)" }}
+              >
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mx-auto">
                   <Calendar size={24} className="text-primary" />
                 </div>

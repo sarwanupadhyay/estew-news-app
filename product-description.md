@@ -229,14 +229,14 @@ subscribed_users/
 
 ### Domain Configuration
 
-**Primary Domain**: `estew.app`
+**Primary Domain**: `estew.xyz`
 
 - DNS configured through domain registrar
 - Connected to Vercel project
 - SSL/TLS certificate auto-provisioned by Vercel
 - HTTPS enforced on all routes
 
-**Email Domain**: `newsletter@estew.app`
+**Email Domain**: `newsletter@estew.xyz`
 - Configured with Resend for transactional emails
 - SPF, DKIM, and DMARC records set up for deliverability
 
@@ -355,7 +355,7 @@ subscribed_users/
 ## Contact Information
 
 **Product**: Estew  
-**Website**: https://estew.app  
+**Website**: https://estew.xyz  
 **Support Email**: sarwanupadhyay19@gmail.com  
 **Deployment**: Vercel  
 **Repository**: GitHub (estew-news-app)

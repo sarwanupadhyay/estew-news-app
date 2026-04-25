@@ -37,7 +37,7 @@ export async function sendNewsletterEmail(
 
   try {
     const { error } = await resend.emails.send({
-      from: "Estew <newsletter@estew.app>",
+      from: "Estew <newsletter@estew.xyz>",
       to: [to],
       subject: newsletter.subject,
       html: htmlContent,
@@ -124,7 +124,7 @@ function generateNewsletterHTML(newsletter: Newsletter, userName?: string): stri
 
       <!-- CTA -->
       <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
-        <a href="https://estew.app" style="display: inline-block; background: #0066FF; color: #ffffff; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+        <a href="https://estew.xyz" style="display: inline-block; background: #0066FF; color: #ffffff; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
           Read More on Estew
         </a>
       </div>
@@ -136,9 +136,9 @@ function generateNewsletterHTML(newsletter: Newsletter, userName?: string): stri
         You're receiving this because you subscribed to Estew Daily.
       </p>
       <p style="font-size: 12px; color: #9ca3af; margin: 8px 0 0 0;">
-        <a href="https://estew.app/profile" style="color: #0066FF; text-decoration: none;">Manage preferences</a>
+        <a href="https://estew.xyz/profile" style="color: #0066FF; text-decoration: none;">Manage preferences</a>
         &nbsp;|&nbsp;
-        <a href="https://estew.app/unsubscribe" style="color: #0066FF; text-decoration: none;">Unsubscribe</a>
+        <a href="https://estew.xyz/unsubscribe" style="color: #0066FF; text-decoration: none;">Unsubscribe</a>
       </p>
     </div>
   </div>
