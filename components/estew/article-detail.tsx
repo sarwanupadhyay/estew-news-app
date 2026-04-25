@@ -93,32 +93,33 @@ export function ArticleDetail() {
             onClick={handleClose}
           />
 
-          {/* Bottom Sheet */}
+          {/* Bottom Sheet — flex column with sticky header (drag-handle + close)
+              and sticky footer (action buttons), so only the article body
+              actually scrolls. This guarantees the close button is always
+              tappable at the top and "Read Full Article" is always tappable
+              at the bottom regardless of how long the content is. */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
-            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-[428px] overflow-hidden rounded-t-3xl border-t border-border bg-card"
-            style={{ maxHeight: "90vh" }}
+            className="fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-w-[428px] flex-col overflow-hidden rounded-t-3xl border-t border-border bg-card"
+            style={{ height: "92vh", maxHeight: "92vh" }}
           >
-            {/* Handle */}
-            <div className="flex justify-center py-3">
-              <div className="h-1 w-10 rounded-full bg-muted" />
+            {/* Sticky header: drag handle + close button */}
+            <div className="flex flex-none items-center justify-between border-b border-border/50 bg-card px-4 pt-3 pb-2">
+              <span className="h-1 w-10 rounded-full bg-muted" aria-hidden="true" />
+              <button
+                onClick={handleClose}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted"
+                aria-label="Close"
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
             </div>
 
-            <div className="no-scrollbar overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(90vh - 24px)" }}>
-              {/* Close */}
-              <div className="mb-3 flex justify-end">
-                <button
-                  onClick={handleClose}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-muted"
-                  aria-label="Close"
-                >
-                  <X size={18} className="text-muted-foreground" />
-                </button>
-              </div>
-
+            {/* Scrollable content */}
+            <div className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-4 py-4">
               {/* Image */}
               <div className="mb-4 overflow-hidden rounded-xl">
                 <img
@@ -171,31 +172,34 @@ export function ArticleDetail() {
                 url={article.originalUrl} 
                 isPro={isPro} 
               />
+            </div>
 
-              {/* Actions */}
-              <div className="flex gap-3">
-                <a
-                  href={article.originalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground press-effect"
-                >
-                  Read Full Article
-                  <ExternalLink size={16} />
-                </a>
-                <button
-                  onClick={handleSave}
-                  disabled={isSavingArticle}
-                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card transition-colors hover:bg-muted disabled:opacity-50 press-effect"
-                  aria-label={isSaved ? "Unsave" : "Save"}
-                >
-                  {isSaved ? (
-                    <BookmarkCheck size={18} className="text-primary" />
-                  ) : (
-                    <Bookmark size={18} className="text-muted-foreground" />
-                  )}
-                </button>
-              </div>
+            {/* Sticky footer: primary CTA always reachable */}
+            <div
+              className="flex flex-none items-center gap-3 border-t border-border bg-card px-4 pt-3"
+              style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
+            >
+              <a
+                href={article.originalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="press-effect flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground"
+              >
+                Read Full Article
+                <ExternalLink size={16} />
+              </a>
+              <button
+                onClick={handleSave}
+                disabled={isSavingArticle}
+                className="press-effect flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card transition-colors hover:bg-muted disabled:opacity-50"
+                aria-label={isSaved ? "Unsave" : "Save"}
+              >
+                {isSaved ? (
+                  <BookmarkCheck size={18} className="text-primary" />
+                ) : (
+                  <Bookmark size={18} className="text-muted-foreground" />
+                )}
+              </button>
             </div>
           </motion.div>
         </>

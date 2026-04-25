@@ -22,11 +22,15 @@ export const metadata: Metadata = {
   generator: 'v0.app',
   manifest: '/manifest.json',
   icons: {
+    // Modern browsers pick the SVG (which auto-themes via prefers-color-scheme
+    // baked into the file itself) and fall back to the PNG when SVG isn't
+    // supported. The SVG version flips fg/bg automatically for dark vs light
+    // browser chrome so the tab icon is always legible.
     icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/images/logo.png', sizes: '32x32', type: 'image/png' },
-      { url: '/images/logo.svg', type: 'image/svg+xml' },
     ],
-    shortcut: '/images/logo.png',
+    shortcut: '/favicon.svg',
     apple: '/images/logo.png',
   },
 }
