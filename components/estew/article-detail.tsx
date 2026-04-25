@@ -242,15 +242,35 @@ function AiSummarySection({ title, summary, url, isPro }: { title: string; summa
 
   if (!aiSummary) return null
 
+  // Parse the bullet payload from the API. The route now returns either a
+  // newline-separated list of "- bullet" lines, or the literal string
+  // "No summary available." when nothing usable could be generated.
+  const bullets = aiSummary
+    .split(/\r?\n+/)
+    .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+    .filter((line) => line.length > 0)
+
+  const isUnavailable =
+    aiSummary.trim().toLowerCase() === "no summary available." || bullets.length === 0
+
   return (
     <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
       <div className="mb-2 flex items-center gap-2">
         <Sparkles size={14} className="text-primary" />
         <span className="text-xs font-semibold text-primary">AI Summary in News</span>
       </div>
-      <p className="text-sm leading-relaxed text-foreground">
-        {aiSummary}
-      </p>
+      {isUnavailable ? (
+        <p className="text-sm leading-relaxed text-muted-foreground">No summary available.</p>
+      ) : (
+        <ul className="space-y-2">
+          {bullets.map((bullet, i) => (
+            <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground">
+              <span aria-hidden="true" className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>{bullet}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

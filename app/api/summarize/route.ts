@@ -34,8 +34,15 @@ const MODEL_CHAIN = [
 
 const TTL_DAYS = 30
 
+// Bumped whenever the summary FORMAT changes (e.g. switching from prose to
+// bullets). This invalidates older cache entries automatically so users
+// don't keep seeing the previous prose summaries we generated earlier.
+const CACHE_VERSION = "v2-bullets"
+
+const NO_SUMMARY = "No summary available."
+
 function hashUrl(url: string): string {
-  return createHash("sha256").update(url).digest("hex")
+  return createHash("sha256").update(`${CACHE_VERSION}:${url}`).digest("hex")
 }
 
 async function readFromCache(
@@ -91,15 +98,17 @@ export async function POST(request: Request) {
   const safeUrl = (url || "").trim()
 
   if (!safeUrl) {
-    return NextResponse.json({
-      aiSummary: safeSummary || "No summary available.",
-      source: "no_url",
-    })
+    return NextResponse.json({ aiSummary: NO_SUMMARY, source: "no_url" })
   }
+
+  // If we don't have any meaningful source text to summarize, bail out early
+  // rather than asking the model to hallucinate from just a title.
+  const hasUsableContent = safeSummary.length >= 40
 
   const cacheKey = hashUrl(safeUrl)
 
-  // 1) Cache lookup — every Pro user reading the same article shares this
+  // 1) Cache lookup — every Pro user reading the same article shares this.
+  // Cache key includes the format version so old prose summaries are skipped.
   const cached = await readFromCache(cacheKey)
   if (cached) {
     return NextResponse.json({
@@ -109,12 +118,13 @@ export async function POST(request: Request) {
     })
   }
 
+  if (!hasUsableContent) {
+    return NextResponse.json({ aiSummary: NO_SUMMARY, source: "no_content" })
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
-    return NextResponse.json({
-      aiSummary: safeSummary || "No summary available.",
-      source: "no_api_key",
-    })
+    return NextResponse.json({ aiSummary: NO_SUMMARY, source: "no_api_key" })
   }
 
   // Allow overriding the primary model via env, but always preserve the
@@ -124,20 +134,31 @@ export async function POST(request: Request) {
     ? [overrideModel, ...MODEL_CHAIN.filter((m) => m !== overrideModel)]
     : [...MODEL_CHAIN]
 
+  const systemPrompt = [
+    "You are an editor for a tech news app.",
+    "Your only job is to produce a short, scannable bullet-point summary of the article.",
+    "",
+    "Rules:",
+    "- Output 2 or 3 bullet points. Never more, never fewer (2 is acceptable when the article is short).",
+    "- Each bullet must be 1 short, plain-English sentence (max ~20 words).",
+    "- Each bullet must start with the exact prefix '- ' (a hyphen and a space).",
+    "- Do NOT use any other formatting: no markdown headers, no bold, no numbering, no emojis.",
+    "- Do NOT echo the article verbatim. Rewrite it in your own words.",
+    "- Be factual and neutral. No marketing language.",
+    "- Do NOT start any bullet with 'This article', 'The article', 'It says', etc.",
+    "- Cover the key fact, the why-it-matters, and (if space) the next step.",
+  ].join("\n")
+
   const requestBody = {
     messages: [
-      {
-        role: "system",
-        content:
-          "You are a concise tech news editor. Summarize articles in 2-3 crisp sentences. Be factual, neutral, and highlight the key takeaway. No filler words. No marketing tone. Do not start with 'This article'.",
-      },
+      { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: `Summarize this tech article:\n\nTitle: ${safeTitle}\nExcerpt: ${safeSummary}\nSource: ${safeUrl}`,
+        content: `Summarize this article in 2-3 bullet points using the format described.\n\nTitle: ${safeTitle}\n\nArticle excerpt:\n${safeSummary}`,
       },
     ],
-    max_tokens: 200,
-    temperature: 0.3,
+    max_tokens: 220,
+    temperature: 0.2,
   }
 
   const attemptErrors: string[] = []
@@ -169,10 +190,17 @@ export async function POST(request: Request) {
       const data = (await res.json()) as {
         choices?: Array<{ message?: { content?: string } }>
       }
-      const aiSummary = data.choices?.[0]?.message?.content?.trim()
+      const raw = data.choices?.[0]?.message?.content?.trim()
 
-      if (!aiSummary) {
+      if (!raw) {
         attemptErrors.push(`${model} → empty response`)
+        continue
+      }
+
+      // Force every model's response into a clean 2-3 bullet list.
+      const aiSummary = normalizeBullets(raw)
+      if (!aiSummary) {
+        attemptErrors.push(`${model} → no usable bullets`)
         continue
       }
 
@@ -193,12 +221,57 @@ export async function POST(request: Request) {
     }
   }
 
-  // Every free model failed — log every attempt for diagnostics and fall back
-  // to the original article excerpt so the user never sees a broken state.
+  // Every free model failed — log every attempt for diagnostics. We
+  // intentionally do NOT echo the article excerpt back here, because the
+  // whole point of the AI summary is to be different from the source text.
   console.error("[v0] All summary models failed:", attemptErrors.join(" | "))
   return NextResponse.json({
-    aiSummary: safeSummary || "No summary available.",
+    aiSummary: NO_SUMMARY,
     source: "all_models_failed",
     attempts: attemptErrors,
   })
+}
+
+/**
+ * Force any model output into a clean, predictable bullet list.
+ * - Strips markdown bold, numbering, leading asterisks, and stray prose.
+ * - Re-prefixes every line with "- " so the client can render it as a list.
+ * - Caps the result at 3 bullets and drops empties / over-long lines.
+ * - Returns null when nothing usable can be salvaged.
+ */
+function normalizeBullets(raw: string): string | null {
+  const cleaned = raw
+    // Drop common preambles like "Here is the summary:" the model sometimes adds
+    .replace(/^\s*(here(?:'s| is)|summary|sure|okay)[^\n]*:\s*/i, "")
+    .trim()
+
+  const lines = cleaned
+    .split(/\r?\n+/)
+    .map((line) =>
+      line
+        .trim()
+        // Strip markdown bullet/number prefixes so we can re-add a uniform one
+        .replace(/^[-*•·]\s+/, "")
+        .replace(/^\d+[.)]\s+/, "")
+        // Strip surrounding markdown bold/italics
+        .replace(/^\*\*(.*)\*\*$/s, "$1")
+        .replace(/^_(.*)_$/s, "$1")
+        .trim(),
+    )
+    .filter((line) => line.length > 0)
+
+  // If the model returned a single paragraph instead of bullets, split it
+  // into sentences and use the first 2-3 as bullets.
+  let bullets =
+    lines.length >= 2
+      ? lines
+      : (cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned])
+          .map((s) => s.trim())
+          .filter(Boolean)
+
+  bullets = bullets.filter((b) => b.length >= 8 && b.length <= 240).slice(0, 3)
+
+  if (bullets.length < 2) return null
+
+  return bullets.map((b) => `- ${b.replace(/^[-*•]\s*/, "")}`).join("\n")
 }
