@@ -65,56 +65,6 @@ Estew is a premium technology news platform that solves the information overload
 - Billing history access
 - Cancel or modify subscription
 
-### Admin Features
-
-#### 1. Admin Dashboard
-- Real-time statistics:
-  - Total registered users
-  - Total articles in database
-  - Pro subscribers count
-  - Newsletter subscribers count
-- Recent users and articles overview
-- Quick actions for common tasks
-
-#### 2. Newsletter Generation System
-- AI-powered newsletter generation using GPT/Claude
-- Seven structured sections:
-  1. **Top Story** - Most significant tech development
-  2. **AI Breakthroughs** - Latest AI/ML advances
-  3. **Startup Radar** - Funding rounds and emerging players
-  4. **Product Launches** - New products and updates
-  5. **Market Pulse** - Market trends and business insights
-  6. **Quick Bytes** - Rapid-fire news highlights
-  7. **Developer Insight** - Tools and resources for developers
-- AI Tool of the Day feature (manually curated)
-- Newsletter preview and editing capabilities
-
-#### 3. Newsletter Delivery System
-- Audience targeting options:
-  - All users
-  - Newsletter subscribers only
-  - Selected users (custom list)
-- Delivery statistics tracking:
-  - Total recipients
-  - Delivered count
-  - Failed count
-  - Pending count
-- Delivery history for each newsletter
-
-#### 4. AI Tools Management
-- Add, edit, and delete AI tools for newsletter features
-- Track tool metadata (name, description, URL, image)
-
-#### 5. User Management
-- View all registered users
-- Filter by plan type (Free/Pro)
-- View user activity and preferences
-
-#### 6. Article Management
-- View all articles in database
-- Filter by category and date
-- Article statistics and engagement data
-
 ---
 
 ## Business Model
@@ -262,13 +212,6 @@ subscribed_users/
 │   ├── amountPaid: number
 │   └── totalPayments: number
 
-ai_tools/
-├── {toolId}
-│   ├── name: string
-│   ├── description: string
-│   ├── url: string
-│   ├── imageUrl: string
-│   └── createdAt: timestamp
 ```
 
 ---
@@ -302,12 +245,10 @@ ai_tools/
 | Variable | Purpose |
 |----------|---------|
 | `NEXT_PUBLIC_FIREBASE_*` | Firebase client configuration |
-| `FIREBASE_SERVICE_ACCOUNT_KEY` | Firebase Admin SDK credentials |
 | `UPSTASH_REDIS_REST_URL` | Redis connection URL |
 | `UPSTASH_REDIS_REST_TOKEN` | Redis authentication token |
 | `NEWS_API_KEY` | NewsAPI access key |
 | `RESEND_API_KEY` | Email service API key |
-| `OPENAI_API_KEY` | AI newsletter generation |
 | `RAZORPAY_KEY_ID` | Payment gateway public key |
 | `RAZORPAY_KEY_SECRET` | Payment gateway secret |
 
@@ -315,64 +256,22 @@ ai_tools/
 
 ## Newsletter System - Deep Dive
 
-### How Newsletters Are Generated
+### How Newsletters Work
 
-1. **Article Collection**
-   - System queries Firebase for recent articles (last 24-48 hours)
-   - Articles are categorized by topic (AI, Startups, Products, etc.)
+1. **Subscription**
+   - Users can opt-in to newsletter during signup or via profile settings
+   - Subscription preference stored in user profile (`newsletterSubscribed: true`)
 
-2. **AI Processing**
-   - Articles are sent to AI model (GPT-4/Claude)
-   - Custom system prompt instructs AI to:
-     - Select most impactful stories
-     - Generate concise summaries
-     - Organize into 7 structured sections
-     - Maintain professional tone
+2. **Content Curation**
+   - System collects recent articles from Firebase
+   - Articles categorized by topic (AI, Startups, Products, etc.)
+   - AI processing generates curated summaries
 
-3. **Section Structure**
-   ```
-   TOP STORY
-   AI BREAKTHROUGHS
-   STARTUP RADAR
-   PRODUCT LAUNCHES
-   MARKET PULSE
-   QUICK BYTES
-   DEVELOPER INSIGHT
-   ```
-
-4. **Admin Review**
-   - Generated newsletter displayed in editor
-   - Admin can edit sections, headlines, summaries
-   - Add/modify AI Tool of the Day
-   - Preview final output
-
-### How Newsletters Are Sent
-
-1. **Audience Selection**
-   - Admin selects target audience:
-     - ALL_USERS: Every registered user
-     - SUBSCRIBERS: Users with `newsletterSubscribed: true`
-     - SELECTED: Custom email list
-
-2. **Email Generation**
-   - HTML email template generated with:
-     - Responsive design (mobile-friendly)
-     - Brand styling (Estew colors, fonts)
-     - Section headers with emojis
-     - Article cards with source attribution
-     - CTA buttons linking to estew.app
-
-3. **Delivery Process**
-   - Emails sent via Resend API
-   - Batch processing for large lists
-   - Delivery tracking per recipient
-   - Failed deliveries logged
-
-4. **Statistics Tracking**
-   - Total recipients count
-   - Successful deliveries
-   - Failed deliveries
-   - Delivery history maintained
+3. **Email Delivery**
+   - HTML email templates with responsive design
+   - Sent via Resend API for reliable delivery
+   - Brand styling (Estew colors, fonts)
+   - Article cards with source attribution
 
 ---
 
@@ -388,13 +287,6 @@ ai_tools/
   - Firebase Auth tokens
   - Automatic token refresh
   - Secure session persistence
-
-### Admin Authentication
-
-- **Separate Admin Login**: `/admin`
-- **Credentials**: Environment-configured admin email/password
-- **Session**: Stored in sessionStorage with expiration
-- **Protected Routes**: Admin routes check session validity
 
 ### Data Security
 
