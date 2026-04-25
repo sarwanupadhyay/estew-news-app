@@ -121,7 +121,7 @@ export function NewsletterPreview({ newsletter }: { newsletter: Newsletter }) {
 
             <div className="mt-8 border-t border-[#E2E8F0] pt-6 text-center">
               <a
-                href="https://estew.app"
+                href="https://estew.xyz"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block rounded-lg bg-[#0F172A] px-7 py-3 text-sm font-semibold text-white"

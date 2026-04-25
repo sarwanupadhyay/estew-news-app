@@ -54,7 +54,7 @@ export function AdminLoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@estew.app"
+              placeholder="admin@estew.xyz"
               className="w-full rounded-lg border border-border bg-input py-2.5 pl-10 pr-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
               autoComplete="email"
             />

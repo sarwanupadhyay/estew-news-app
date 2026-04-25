@@ -213,7 +213,7 @@ export async function GET() {
     status: hasFromEmail ? "ok" : "warn",
     message: hasFromEmail
       ? `RESEND_FROM_EMAIL = ${process.env.RESEND_FROM_EMAIL}`
-      : "RESEND_FROM_EMAIL is not set. Defaulting to 'Estew <newsletter@estew.app>'.",
+      : "RESEND_FROM_EMAIL is not set. Defaulting to 'Estew <newsletter@estew.xyz>'.",
     fix: hasFromEmail
       ? undefined
       : "Set RESEND_FROM_EMAIL to a sender on a domain you have verified in Resend (e.g. 'Estew <newsletter@yourdomain.com>').",

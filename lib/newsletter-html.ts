@@ -39,8 +39,8 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
 
   const intro = newsletter.intro
     ? `<p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#475569;">${escapeHtml(
-        newsletter.intro
-      )}</p>`
+      newsletter.intro
+    )}</p>`
     : ""
 
   const sectionsHtml = newsletter.sections
@@ -54,28 +54,25 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
             ${escapeHtml(section.title)}
           </h2>
         </div>
-        ${
-          section.description
-            ? `<p style="margin:0 0 14px;font-size:13px;color:#64748B;font-style:italic;">${escapeHtml(
-                section.description
-              )}</p>`
-            : ""
+        ${section.description
+          ? `<p style="margin:0 0 14px;font-size:13px;color:#64748B;font-style:italic;">${escapeHtml(
+            section.description
+          )}</p>`
+          : ""
         }
         ${section.articles
           .map(
             (article, idx) => `
-          <div style="padding:${idx === 0 ? "0" : "20px"} 0 20px;${
-              idx > 0 ? "border-top:1px solid #E2E8F0;" : ""
-            }">
-            ${
-              article.imageUrl
+          <div style="padding:${idx === 0 ? "0" : "20px"} 0 20px;${idx > 0 ? "border-top:1px solid #E2E8F0;" : ""
+              }">
+            ${article.imageUrl
                 ? `<a href="${escapeAttr(article.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;margin-bottom:14px;">
                     <img src="${escapeAttr(article.imageUrl)}" alt="${escapeAttr(
-                    article.headline,
-                  )}" width="576" style="display:block;width:100%;max-width:576px;height:auto;border-radius:12px;border:0;outline:none;text-decoration:none;" />
+                  article.headline,
+                )}" width="576" style="display:block;width:100%;max-width:576px;height:auto;border-radius:12px;border:0;outline:none;text-decoration:none;" />
                   </a>`
                 : ""
-            }
+              }
             <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;">
               <h3 style="margin:0 0 8px;font-family:'Fraunces','Georgia',serif;font-size:18px;font-weight:600;line-height:1.35;color:#0F172A;">
                 ${escapeHtml(article.headline)}
@@ -100,13 +97,12 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
       <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7C3AED;margin-bottom:12px;">
         ✨ AI Tool of the Day
       </div>
-      ${
-        newsletter.aiToolOfDay.imageUrl
-          ? `<img src="${escapeAttr(newsletter.aiToolOfDay.imageUrl)}" alt="${escapeAttr(
-              newsletter.aiToolOfDay.name,
-            )}" width="576" style="display:block;width:100%;max-width:576px;height:auto;border-radius:12px;border:0;margin-bottom:14px;" />`
-          : ""
-      }
+      ${newsletter.aiToolOfDay.imageUrl
+      ? `<img src="${escapeAttr(newsletter.aiToolOfDay.imageUrl)}" alt="${escapeAttr(
+        newsletter.aiToolOfDay.name,
+      )}" width="576" style="display:block;width:100%;max-width:576px;height:auto;border-radius:12px;border:0;margin-bottom:14px;" />`
+      : ""
+    }
       <h3 style="margin:0 0 8px;font-family:'Fraunces','Georgia',serif;font-size:22px;font-weight:700;color:#0F172A;">
         ${escapeHtml(newsletter.aiToolOfDay.name)}
       </h3>
@@ -156,7 +152,7 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
 
       <!-- CTA -->
       <div style="margin-top:32px;padding-top:24px;border-top:1px solid #E2E8F0;text-align:center;">
-        <a href="https://estew.app" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0F172A;color:#FFFFFF;padding:12px 28px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;">
+        <a href="https://estew.xyz" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0F172A;color:#FFFFFF;padding:12px 28px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;">
           Read more on Estew
         </a>
       </div>
@@ -168,9 +164,9 @@ export function buildNewsletterHtml(newsletter: Newsletter, recipientName?: stri
       <p style="margin:0;">You&apos;re receiving this because you subscribed to Estew Daily.</p>
       <p style="margin:6px 0 0;">Sent with love by <strong style="color:#475569;">Estew</strong></p>
       <p style="margin:6px 0 0;">
-        <a href="https://estew.app/profile" style="color:#7C3AED;text-decoration:none;">Manage preferences</a>
+        <a href="https://estew.xyz/profile" style="color:#7C3AED;text-decoration:none;">Manage preferences</a>
         &nbsp;·&nbsp;
-        <a href="https://estew.app" style="color:#7C3AED;text-decoration:none;">Visit Estew</a>
+        <a href="https://estew.xyz" style="color:#7C3AED;text-decoration:none;">Visit Estew</a>
       </p>
     </div>
 

@@ -10,7 +10,7 @@ export const maxDuration = 300
 // (in case it was set as "Some Name <foo@bar.com>") and re-wrap it with the
 // "Estew" display name so the recipient always sees "Estew" in their inbox.
 function buildFromEmail(): string {
-  const raw = (process.env.RESEND_FROM_EMAIL || "newsletter@estew.app").trim()
+  const raw = (process.env.RESEND_FROM_EMAIL || "newsletter@estew.xyz").trim()
   // Extract "foo@bar.com" out of "Whatever <foo@bar.com>"
   const match = raw.match(/<([^>]+)>/)
   const email = (match ? match[1] : raw).trim()
