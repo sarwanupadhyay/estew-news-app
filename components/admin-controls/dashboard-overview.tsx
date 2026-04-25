@@ -18,6 +18,7 @@ interface Stats {
   proSubscribers: number
   onboardedUsers: number
   error?: string
+  configError?: string
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())

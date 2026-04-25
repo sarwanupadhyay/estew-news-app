@@ -1,19 +1,22 @@
 import { NextResponse } from "next/server"
 import { isAdminAuthenticated } from "@/lib/admin-auth"
-import { getAdminDb } from "@/lib/firebase-admin"
+import { getAdminDb, getAdminInitError } from "@/lib/firebase-admin"
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const db = getAdminDb()
+  if (!db) {
+    return NextResponse.json({
+      sends: [],
+      configError: getAdminInitError() || "Firebase Admin not configured",
+    })
+  }
+
   try {
-    const db = getAdminDb()
-    const snap = await db
-      .collection("newsletter_sends")
-      .orderBy("sentAt", "desc")
-      .limit(20)
-      .get()
+    const snap = await db.collection("newsletter_sends").orderBy("sentAt", "desc").limit(20).get()
 
     const sends = snap.docs.map((doc) => {
       const d = doc.data()
@@ -35,9 +38,9 @@ export async function GET() {
 
     return NextResponse.json({ sends })
   } catch (err) {
-    return NextResponse.json(
-      { sends: [], error: "Failed to load history: " + (err as Error).message },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      sends: [],
+      error: "Failed to load history: " + (err as Error).message,
+    })
   }
 }

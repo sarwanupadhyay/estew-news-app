@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server"
 import { isAdminAuthenticated } from "@/lib/admin-auth"
-import { getAdminDb } from "@/lib/firebase-admin"
+import { getAdminDb, getAdminInitError } from "@/lib/firebase-admin"
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  try {
-    const db = getAdminDb()
+  const db = getAdminDb()
+  if (!db) {
+    return NextResponse.json({
+      totalUsers: 0,
+      totalArticles: 0,
+      newsletterSubscribers: 0,
+      proSubscribers: 0,
+      onboardedUsers: 0,
+      configError: getAdminInitError() || "Firebase Admin not configured",
+    })
+  }
 
-    // Run counts in parallel
+  try {
     const [usersAgg, articlesAgg, newsletterSubsSnap, proSubsSnap, onboardedSnap] =
       await Promise.all([
         db.collection("users").count().get(),
@@ -28,17 +37,14 @@ export async function GET() {
       onboardedUsers: onboardedSnap.data().count,
     })
   } catch (err) {
-    console.error("Stats error:", err)
-    return NextResponse.json(
-      {
-        totalUsers: 0,
-        totalArticles: 0,
-        newsletterSubscribers: 0,
-        proSubscribers: 0,
-        onboardedUsers: 0,
-        error: (err as Error).message,
-      },
-      { status: 200 }
-    )
+    console.error("[v0] Stats error:", err)
+    return NextResponse.json({
+      totalUsers: 0,
+      totalArticles: 0,
+      newsletterSubscribers: 0,
+      proSubscribers: 0,
+      onboardedUsers: 0,
+      error: (err as Error).message,
+    })
   }
 }

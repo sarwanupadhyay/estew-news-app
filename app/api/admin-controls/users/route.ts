@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server"
 import { isAdminAuthenticated } from "@/lib/admin-auth"
-import { getAdminDb } from "@/lib/firebase-admin"
+import { getAdminDb, getAdminInitError } from "@/lib/firebase-admin"
 
 export async function GET(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const db = getAdminDb()
+  if (!db) {
+    return NextResponse.json({
+      users: [],
+      total: 0,
+      configError: getAdminInitError() || "Firebase Admin not configured",
+    })
   }
 
   try {
@@ -13,7 +22,6 @@ export async function GET(request: Request) {
     const search = searchParams.get("search")?.toLowerCase() || ""
     const limit = Math.min(parseInt(searchParams.get("limit") || "200", 10), 500)
 
-    const db = getAdminDb()
     let queryRef: FirebaseFirestore.Query = db.collection("users")
 
     if (filter === "pro") queryRef = queryRef.where("plan", "==", "pro")
@@ -45,21 +53,15 @@ export async function GET(request: Request) {
 
     if (search) {
       users = users.filter(
-        (u) =>
-          u.email.toLowerCase().includes(search) ||
-          u.displayName.toLowerCase().includes(search)
+        (u) => u.email.toLowerCase().includes(search) || u.displayName.toLowerCase().includes(search),
       )
     }
 
-    // Sort: newest first by createdAt
     users.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
 
     return NextResponse.json({ users, total: users.length })
   } catch (err) {
-    console.error("Users list error:", err)
-    return NextResponse.json(
-      { users: [], total: 0, error: (err as Error).message },
-      { status: 200 }
-    )
+    console.error("[v0] Users list error:", err)
+    return NextResponse.json({ users: [], total: 0, error: (err as Error).message })
   }
 }

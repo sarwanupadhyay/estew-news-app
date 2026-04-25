@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { Resend } from "resend"
 import { isAdminAuthenticated } from "@/lib/admin-auth"
-import { getAdminDb } from "@/lib/firebase-admin"
+import { getAdminDb, getAdminInitError } from "@/lib/firebase-admin"
 import { buildNewsletterHtml, type Newsletter } from "@/lib/newsletter-html"
 
 export const maxDuration = 300
@@ -50,6 +50,12 @@ export async function POST(request: Request) {
   } else {
     try {
       const db = getAdminDb()
+      if (!db) {
+        return NextResponse.json(
+          { error: getAdminInitError() || "Firebase Admin not configured — cannot load recipients" },
+          { status: 500 },
+        )
+      }
       let queryRef: FirebaseFirestore.Query = db.collection("users")
       if (body.audience === "newsletter") {
         queryRef = queryRef.where("newsletterSubscribed", "==", true)
@@ -112,6 +118,7 @@ export async function POST(request: Request) {
   // Save send history
   try {
     const db = getAdminDb()
+    if (!db) throw new Error("Firebase Admin not configured")
     await db.collection("newsletter_sends").add({
       sentAt: new Date(),
       audience: body.audience,

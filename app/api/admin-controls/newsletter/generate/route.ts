@@ -52,6 +52,10 @@ async function fetchRecentArticles(): Promise<RawArticle[]> {
   // 1) Try Firestore first
   try {
     const db = getAdminDb()
+    if (!db) {
+      console.error("[v0] Firestore unavailable, will fall back to NewsAPI")
+      throw new Error("Firestore unavailable")
+    }
     const snap = await db
       .collection("articles")
       .orderBy("publishedAt", "desc")

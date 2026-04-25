@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server"
 import { isAdminAuthenticated } from "@/lib/admin-auth"
-import { getAdminDb } from "@/lib/firebase-admin"
+import { getAdminDb, getAdminInitError } from "@/lib/firebase-admin"
 
 export async function GET(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const db = getAdminDb()
+  if (!db) {
+    return NextResponse.json({
+      articles: [],
+      total: 0,
+      recent24h: 0,
+      shown: 0,
+      configError: getAdminInitError() || "Firebase Admin not configured",
+    })
   }
 
   try {
@@ -13,15 +24,12 @@ export async function GET(request: Request) {
     const category = searchParams.get("category") || ""
     const search = searchParams.get("search")?.toLowerCase() || ""
 
-    const db = getAdminDb()
-
     let queryRef: FirebaseFirestore.Query = db.collection("articles")
 
     if (category && category !== "all") {
       queryRef = queryRef.where("category", "==", category)
     }
 
-    // Order by publishedAt desc; fallback to createdAt if not present
     queryRef = queryRef.orderBy("publishedAt", "desc").limit(limit)
 
     const snapshot = await queryRef.get()
@@ -48,15 +56,13 @@ export async function GET(request: Request) {
         (a) =>
           a.title.toLowerCase().includes(search) ||
           a.sourceName.toLowerCase().includes(search) ||
-          a.summary.toLowerCase().includes(search)
+          a.summary.toLowerCase().includes(search),
       )
     }
 
-    // Get total count separately
     const countAgg = await db.collection("articles").count().get()
     const total = countAgg.data().count
 
-    // Calculate articles in last 24 hours
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const recent24h = articles.filter((a) => a.publishedAt && a.publishedAt > dayAgo).length
 
@@ -67,10 +73,13 @@ export async function GET(request: Request) {
       shown: articles.length,
     })
   } catch (err) {
-    console.error("Articles list error:", err)
-    return NextResponse.json(
-      { articles: [], total: 0, recent24h: 0, shown: 0, error: (err as Error).message },
-      { status: 200 }
-    )
+    console.error("[v0] Articles list error:", err)
+    return NextResponse.json({
+      articles: [],
+      total: 0,
+      recent24h: 0,
+      shown: 0,
+      error: (err as Error).message,
+    })
   }
 }
