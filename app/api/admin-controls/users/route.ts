@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url)
-    const filter = searchParams.get("filter") || "all" // all | pro | free | newsletter | onboarded
+    const filter = searchParams.get("filter") || "all" // all | pro | free | newsletter | onboarded | expired
     const search = searchParams.get("search")?.toLowerCase() || ""
     const limit = Math.min(parseInt(searchParams.get("limit") || "200", 10), 500)
 
@@ -28,6 +28,8 @@ export async function GET(request: Request) {
     else if (filter === "free") queryRef = queryRef.where("plan", "==", "free")
     else if (filter === "newsletter") queryRef = queryRef.where("newsletterSubscribed", "==", true)
     else if (filter === "onboarded") queryRef = queryRef.where("hasOnboarded", "==", true)
+    else if (filter === "expired")
+      queryRef = queryRef.where("subscriptionStatus", "==", "expired")
 
     const snapshot = await queryRef.limit(limit).get()
 

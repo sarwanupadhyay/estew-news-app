@@ -1,6 +1,14 @@
 import { UsersView } from "@/components/admin-controls/users-view"
 
-export default function UsersPage() {
+interface Props {
+  searchParams: Promise<{ filter?: string }>
+}
+
+export default async function UsersPage({ searchParams }: Props) {
+  const sp = await searchParams
+  const allowed = ["all", "onboarded", "pro", "free", "expired", "newsletter"]
+  const initial = allowed.includes(sp.filter ?? "") ? (sp.filter as string) : "all"
+
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
       <header className="mb-6">
@@ -11,7 +19,7 @@ export default function UsersPage() {
           All registered users on Estew. Filter by plan, onboarding status, or newsletter preference.
         </p>
       </header>
-      <UsersView defaultFilter="all" />
+      <UsersView defaultFilter={initial} />
     </div>
   )
 }

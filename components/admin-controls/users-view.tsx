@@ -35,6 +35,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "onboarded", label: "Onboarded" },
   { value: "pro", label: "Pro" },
   { value: "free", label: "Free" },
+  { value: "expired", label: "Expired Pro" },
   { value: "newsletter", label: "Newsletter" },
 ]
 

@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react"
 import { StatCard } from "./stat-card"
+import { ExpiredProBanner } from "./expired-pro-banner"
 
 interface Stats {
   totalUsers: number
@@ -40,6 +41,8 @@ export function DashboardOverview() {
           <span className="font-medium text-warning">Database warning:</span> {data.error}
         </div>
       )}
+
+      <ExpiredProBanner />
 
       <section
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"

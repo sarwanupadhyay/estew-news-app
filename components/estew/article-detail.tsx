@@ -212,10 +212,10 @@ function AiSummarySection({ title, summary, url, isPro }: { title: string; summa
       <div className="mb-5 rounded-xl border border-warning/20 bg-warning/5 p-4">
         <div className="mb-2 flex items-center gap-2">
           <Lock size={14} className="text-warning" />
-          <span className="text-xs font-semibold text-warning">AI Summary</span>
+          <span className="text-xs font-semibold text-warning">AI Summary in News</span>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">
-          AI-powered summaries are available with Estew Pro.
+          AI-powered summaries of every article are available with Estew Pro.
         </p>
         <button className="flex items-center gap-1.5 rounded-lg bg-warning/10 px-3 py-1.5 text-xs font-medium text-warning transition-colors hover:bg-warning/20">
           <Sparkles size={12} />
@@ -230,7 +230,7 @@ function AiSummarySection({ title, summary, url, isPro }: { title: string; summa
       <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
         <div className="mb-3 flex items-center gap-2">
           <Sparkles size={14} className="animate-pulse text-primary" />
-          <span className="text-xs font-semibold text-primary">AI Summary</span>
+          <span className="text-xs font-semibold text-primary">AI Summary in News</span>
         </div>
         <div className="space-y-2">
           <div className="h-3 w-full animate-shimmer rounded" />
@@ -246,7 +246,7 @@ function AiSummarySection({ title, summary, url, isPro }: { title: string; summa
     <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
       <div className="mb-2 flex items-center gap-2">
         <Sparkles size={14} className="text-primary" />
-        <span className="text-xs font-semibold text-primary">AI Summary</span>
+        <span className="text-xs font-semibold text-primary">AI Summary in News</span>
       </div>
       <p className="text-sm leading-relaxed text-foreground">
         {aiSummary}
