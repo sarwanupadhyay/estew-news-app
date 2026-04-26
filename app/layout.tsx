@@ -22,16 +22,18 @@ export const metadata: Metadata = {
   generator: 'v0.app',
   manifest: '/manifest.json',
   icons: {
-    // Modern browsers pick the SVG (which auto-themes via prefers-color-scheme
-    // baked into the file itself) and fall back to the PNG when SVG isn't
-    // supported. The SVG version flips fg/bg automatically for dark vs light
-    // browser chrome so the tab icon is always legible.
+    // Browser-tab icon. We point directly at the PNG (no SVG wrapper)
+    // because browsers sandbox favicon SVGs and refuse to load external
+    // <image href> references inside them — that was causing the icon
+    // to render as a blank white tile. Every modern browser supports
+    // PNG favicons natively. The 192px entry doubles as the iOS /
+    // Android home-screen icon when the site is installed as a PWA.
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/images/logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/images/icon-estew.png', sizes: '32x32', type: 'image/png' },
+      { url: '/images/icon-estew.png', sizes: '192x192', type: 'image/png' },
     ],
-    shortcut: '/favicon.svg',
-    apple: '/images/logo.png',
+    shortcut: '/images/icon-estew.png',
+    apple: '/images/icon-estew.png',
   },
 }
 
