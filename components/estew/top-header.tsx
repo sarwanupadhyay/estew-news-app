@@ -18,22 +18,18 @@ export function TopHeader() {
   }
 
   return (
-    <header 
+    <header
       className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-card px-4"
       style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)", paddingBottom: 12 }}
     >
-      {/* Logo — rounded white chip so the dark teal mark is always legible
-          regardless of the surrounding theme (matches the look of native app
-          icons in the browser favicon area). */}
+      {/* Logo */}
       <div className="flex items-center gap-2.5">
-        <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-black/5">
+        <div className="relative h-7 w-7">
           <Image
-            src="/images/estew-logo.svg"
+            src="/images/logo.svg"
             alt="Estew"
-            width={28}
-            height={28}
-            className="h-[26px] w-[26px] object-contain"
-            priority
+            fill
+            className="object-contain dark:invert"
           />
         </div>
         <span className="text-lg font-semibold tracking-tight text-foreground">
