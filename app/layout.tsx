@@ -22,14 +22,13 @@ export const metadata: Metadata = {
   generator: 'v0.app',
   manifest: '/manifest.json',
   icons: {
-    // Browser-tab icon. The SVG wrapper at /favicon.svg embeds
-    // /images/icon-estew.png inside a rounded clipPath so the tab icon
-    // always renders with native-app-style rounded corners, regardless
-    // of whether the source PNG has rounded corners. Browsers that
-    // don't support SVG favicons fall back to the raw PNG below; the
-    // 192px entry doubles as the iOS/Android home-screen icon.
+    // Browser-tab icon. We point directly at the PNG (no SVG wrapper)
+    // because browsers sandbox favicon SVGs and refuse to load external
+    // <image href> references inside them — that was causing the icon
+    // to render as a blank white tile. Every modern browser supports
+    // PNG favicons natively. The 192px entry doubles as the iOS /
+    // Android home-screen icon when the site is installed as a PWA.
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/images/icon-estew.png', sizes: '32x32', type: 'image/png' },
       { url: '/images/icon-estew.png', sizes: '192x192', type: 'image/png' },
     ],
