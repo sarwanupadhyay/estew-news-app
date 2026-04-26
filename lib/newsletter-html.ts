@@ -347,28 +347,64 @@ function renderArticleCard(article: NewsletterArticle): string {
 }
 
 function renderAiTool(tool: AiToolOfDay): string {
+  // Blue accent palette used only for this card so it visually pops out of
+  // the rest of the editorial layout (which leans red/cream).
+  const BLUE = "#2563EB" // primary accent
+  const BLUE_DARK = "#1D4ED8" // hover/accent border
+  const BLUE_TINT = "#EFF5FF" // soft tinted background
+
+  // Full-bleed 16:9 hero image. Email-safe technique: a fixed-height table
+  // cell with object-fit:cover. Falls back to a plain blue panel when the
+  // tool has no image so the layout never collapses.
   const imageBlock = tool.imageUrl
-    ? `<img src="${escapeAttr(tool.imageUrl)}" alt="${escapeAttr(tool.name)}" width="120" style="display:block;width:120px;height:120px;object-fit:cover;border:1px solid ${COLOR.border};" />`
-    : ""
+    ? `<a href="${escapeAttr(tool.url)}" style="display:block;text-decoration:none;line-height:0;">
+         <img
+           src="${escapeAttr(tool.imageUrl)}"
+           alt="${escapeAttr(tool.name)}"
+           width="640"
+           style="display:block;width:100%;max-width:100%;height:auto;border:0;outline:none;"
+         />
+       </a>`
+    : `<div style="background:${BLUE};width:100%;height:200px;"></div>`
 
   return `
     <div style="margin:0 0 36px;">
-      <p style="margin:0 0 14px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.18em;color:${COLOR.accent};text-transform:uppercase;border-top:1px solid ${COLOR.border};padding-top:24px;">
-        AI Tool of the Day
-      </p>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${COLOR.card};border:1px solid ${COLOR.border};">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="background:${BLUE_TINT};border:1px solid ${BLUE};border-radius:6px;overflow:hidden;">
+        <!-- Blue header strip -->
         <tr>
-          ${imageBlock ? `<td valign="top" width="120" style="padding:18px;width:120px;" class="stack">${imageBlock}</td>` : ""}
-          <td valign="top" style="padding:18px ${imageBlock ? "18px 18px 0" : "18px"};" class="stack">
+          <td style="background:${BLUE};padding:12px 20px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.18em;color:#FFFFFF;text-transform:uppercase;">
+                  ★ AI Tool of the Day
+                </td>
+                <td align="right" style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.12em;color:#DBEAFE;text-transform:uppercase;">
+                  Sponsored Pick
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Hero image -->
+        <tr>
+          <td style="line-height:0;">${imageBlock}</td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:24px;background:${BLUE_TINT};">
             <a href="${escapeAttr(tool.url)}" style="text-decoration:none;color:inherit;">
-              <h4 style="margin:0 0 10px;font-family:Georgia,'Fraunces',serif;font-size:22px;line-height:1.2;font-weight:700;color:${COLOR.text};">
+              <h4 style="margin:0 0 10px;font-family:Georgia,'Fraunces',serif;font-size:26px;line-height:1.2;font-weight:700;color:${COLOR.text};letter-spacing:-0.01em;">
                 ${escapeHtml(tool.name)}
               </h4>
             </a>
-            <p style="margin:0 0 14px;font-family:Georgia,'Fraunces',serif;font-size:14px;line-height:1.55;color:${COLOR.text};">
+            <p style="margin:0 0 18px;font-family:Georgia,'Fraunces',serif;font-size:15px;line-height:1.6;color:${COLOR.text};">
               ${escapeHtml(tool.description)}
             </p>
-            <a href="${escapeAttr(tool.url)}" style="display:inline-block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#FFFFFF;background:${COLOR.ink};text-decoration:none;text-transform:uppercase;padding:10px 18px;">
+            <a href="${escapeAttr(tool.url)}"
+               style="display:inline-block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#FFFFFF;background:${BLUE};text-decoration:none;text-transform:uppercase;padding:12px 22px;border-radius:4px;border:1px solid ${BLUE_DARK};">
               Try it →
             </a>
           </td>
