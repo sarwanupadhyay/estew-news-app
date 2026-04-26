@@ -1,25 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!--
-    Browser tab favicon.
-    Embeds /images/estew_logo.png inside a rounded clipPath so the icon
-    always renders with the same rounded-corner shape as a native app
-    icon (iOS-style, ~22% radius), regardless of whether the source PNG
-    has rounded corners. Browsers that don't support SVG favicons fall
-    back to the raw PNG declared in app/layout.tsx.
-  -->
+<!--
+  Browser-tab favicon for Estew.
+
+  This is a thin SVG wrapper around /images/icon-estew.png. It draws the
+  PNG inside a rounded-square clipPath so the tab icon always renders
+  with native-app-style rounded corners, regardless of whether the
+  source PNG has rounded corners or a transparent background.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 64 64"
+     width="64"
+     height="64">
   <defs>
     <clipPath id="rounded">
-      <rect x="0" y="0" width="64" height="64" rx="14" ry="14"/>
+      <rect x="0" y="0" width="64" height="64" rx="14" ry="14" />
     </clipPath>
   </defs>
 
-  <!-- White safety plate so transparent PNGs and dark browser chrome
-       both render the mark legibly. -->
-  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="#FFFFFF"/>
+  <!-- Light neutral background tile so the dark mark stays legible
+       in both light and dark browser chrome. -->
+  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="#E5E7EB" />
 
-  <!-- The actual brand mark, clipped to the rounded square. -->
-  <g clip-path="url(#rounded)">
-    <image href="/images/estew_logo.png" x="0" y="0" width="64" height="64" preserveAspectRatio="xMidYMid meet"/>
-  </g>
+  <!-- Embedded PNG, clipped to the same rounded square. -->
+  <image
+    href="/images/icon-estew.png"
+    x="0"
+    y="0"
+    width="64"
+    height="64"
+    preserveAspectRatio="xMidYMid meet"
+    clip-path="url(#rounded)" />
 </svg>

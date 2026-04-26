@@ -23,18 +23,18 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     // Browser-tab icon. The SVG wrapper at /favicon.svg embeds
-    // /images/estew_logo.png inside a rounded clipPath so the icon always
-    // renders with native-app-style rounded corners (iOS/Android home
-    // screen look), regardless of whether the source PNG has rounded
-    // corners. Browsers that don't render SVG favicons fall back to the
-    // raw PNG below.
+    // /images/icon-estew.png inside a rounded clipPath so the tab icon
+    // always renders with native-app-style rounded corners, regardless
+    // of whether the source PNG has rounded corners. Browsers that
+    // don't support SVG favicons fall back to the raw PNG below; the
+    // 192px entry doubles as the iOS/Android home-screen icon.
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/images/estew_logo.png', sizes: '32x32', type: 'image/png' },
-      { url: '/images/estew_logo.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/icon-estew.png', sizes: '32x32', type: 'image/png' },
+      { url: '/images/icon-estew.png', sizes: '192x192', type: 'image/png' },
     ],
-    shortcut: '/images/estew_logo.png',
-    apple: '/images/estew_logo.png',
+    shortcut: '/images/icon-estew.png',
+    apple: '/images/icon-estew.png',
   },
 }
 
