@@ -28,9 +28,9 @@ export const metadata: Metadata = {
     // regardless of whether the source PNG has rounded corners. Browsers
     // that don't render SVG favicons fall back to the raw PNG.
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/images/Estew-logo.png', sizes: '32x32', type: 'image/png' },
       { url: '/images/Estew-logo.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
     shortcut: '/images/Estew-logo.png',
     apple: '/images/Estew-logo.png',
