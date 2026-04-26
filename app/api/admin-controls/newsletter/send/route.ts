@@ -20,12 +20,15 @@ function buildFromEmail(): string {
 
 const FROM_EMAIL = buildFromEmail()
 
-// Public site URL used to build per-recipient unsubscribe + view-online links.
-// Falls back to the production domain if the env var isn't set.
+// Public site URL used to build per-recipient unsubscribe + view-online
+// links. We deliberately do NOT fall through to VERCEL_URL — preview
+// deployments live behind Vercel deployment protection, which would prompt
+// recipients to authenticate before they could unsubscribe. Newsletter
+// system links must always resolve on the canonical production domain.
 function getSiteUrl(): string {
   const raw =
+    process.env.NEWSLETTER_BASE_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
     "https://estew.xyz"
   return raw.replace(/\/$/, "")
 }

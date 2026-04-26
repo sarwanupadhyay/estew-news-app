@@ -245,65 +245,11 @@ export function NewsletterPreview({ newsletter }: { newsletter: Newsletter }) {
               </div>
             ))}
 
-            {/* AI Tool */}
+            {/* AI Tool — full-width hero card with a blue accent strip so
+                it visually breaks from the editorial flow and mirrors the
+                same treatment recipients see in the email. */}
             {newsletter.aiToolOfDay && (
-              <div style={{ margin: "0 0 36px" }}>
-                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
-                  <SectionLabel>AI Tool of the Day</SectionLabel>
-                </div>
-                <div
-                  className="mt-4 flex flex-col gap-0 sm:flex-row"
-                  style={{ background: C.card, border: `1px solid ${C.border}` }}
-                >
-                  {newsletter.aiToolOfDay.imageUrl && (
-                    <div className="shrink-0" style={{ padding: 18 }}>
-                      <ImageBlock
-                        src={newsletter.aiToolOfDay.imageUrl}
-                        alt={newsletter.aiToolOfDay.name}
-                        square
-                      />
-                    </div>
-                  )}
-                  <div style={{ padding: 18 }} className="flex flex-col gap-3">
-                    <h4
-                      style={{
-                        margin: 0,
-                        fontFamily: "Georgia, 'Fraunces', serif",
-                        fontSize: 22,
-                        fontWeight: 700,
-                        color: C.text,
-                      }}
-                    >
-                      {newsletter.aiToolOfDay.name}
-                    </h4>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: "Georgia, 'Fraunces', serif",
-                        fontSize: 14,
-                        lineHeight: 1.55,
-                        color: C.text,
-                      }}
-                    >
-                      {newsletter.aiToolOfDay.description}
-                    </p>
-                    <span
-                      style={{
-                        alignSelf: "flex-start",
-                        background: C.ink,
-                        color: "#FFFFFF",
-                        padding: "10px 18px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: "0.14em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Try it →
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <AiToolCard tool={newsletter.aiToolOfDay} />
             )}
 
             {/* CTA */}
@@ -449,6 +395,115 @@ function ArticleCard({ article }: { article: NewsletterArticle }) {
         >
           Read more →
         </span>
+      </div>
+    </div>
+  )
+}
+
+function AiToolCard({
+  tool,
+}: {
+  tool: NonNullable<Newsletter["aiToolOfDay"]>
+}) {
+  // Blue accent palette — kept inline (not in C) because this card is the
+  // only place in the editorial layout that uses blue.
+  const BLUE = "#2563EB"
+  const BLUE_DARK = "#1D4ED8"
+  const BLUE_TINT = "#EFF5FF"
+  const BLUE_MUTED = "#DBEAFE"
+
+  return (
+    <div style={{ margin: "0 0 36px" }}>
+      <div
+        style={{
+          background: BLUE_TINT,
+          border: `1px solid ${BLUE}`,
+          borderRadius: 6,
+          overflow: "hidden",
+        }}
+      >
+        {/* Blue header strip */}
+        <div
+          style={{
+            background: BLUE,
+            padding: "12px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.18em",
+              color: "#FFFFFF",
+              textTransform: "uppercase",
+            }}
+          >
+            ★ AI Tool of the Day
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              color: BLUE_MUTED,
+              textTransform: "uppercase",
+            }}
+          >
+            Sponsored Pick
+          </span>
+        </div>
+
+        {/* Hero image — fills the full card width with a clean 16:9 ratio
+            so the image is never the tiny thumbnail it used to be. */}
+        <ImageBlock src={tool.imageUrl} alt={tool.name} cover />
+
+        {/* Body */}
+        <div style={{ padding: 24, background: BLUE_TINT }}>
+          <h4
+            style={{
+              margin: "0 0 10px",
+              fontFamily: "Georgia, 'Fraunces', serif",
+              fontSize: 26,
+              fontWeight: 700,
+              color: C.text,
+              letterSpacing: "-0.01em",
+              lineHeight: 1.2,
+            }}
+          >
+            {tool.name}
+          </h4>
+          <p
+            style={{
+              margin: "0 0 18px",
+              fontFamily: "Georgia, 'Fraunces', serif",
+              fontSize: 15,
+              lineHeight: 1.6,
+              color: C.text,
+            }}
+          >
+            {tool.description}
+          </p>
+          <span
+            style={{
+              display: "inline-block",
+              background: BLUE,
+              color: "#FFFFFF",
+              padding: "12px 22px",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              borderRadius: 4,
+              border: `1px solid ${BLUE_DARK}`,
+            }}
+          >
+            Try it →
+          </span>
+        </div>
       </div>
     </div>
   )
