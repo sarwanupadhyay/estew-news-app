@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context"
 import { TopHeader } from "./top-header"
 import { BottomNav } from "./bottom-nav"
 import { ErrorParticles } from "../error/error-particles"
+import { MarketingFooter } from "./marketing-footer"
 
 /**
  * Top-level wrapper for the /not-found route. Mounts its own AuthProvider
@@ -125,36 +126,9 @@ function MarketingShell() {
         <NotFoundHero variant="marketing" />
       </main>
 
-      {/* Footer — same minimal landing-page footer */}
-      <footer className="border-t border-border px-6 py-6">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="relative h-5 w-5">
-              <Image
-                src="/images/logo.svg"
-                alt="Estew"
-                fill
-                className="object-contain dark:invert"
-              />
-            </div>
-            <span className="text-xs text-muted-foreground">Estew 2026</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/privacy-policy"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/terms-of-service"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Terms
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* Footer — shared marketing footer (full nav + branding + copyright).
+          Same component used on every other public/marketing surface. */}
+      <MarketingFooter />
     </div>
   )
 }

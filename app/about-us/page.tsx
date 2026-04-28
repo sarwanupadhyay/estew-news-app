@@ -3,6 +3,7 @@ import Image from "next/image"
 import { ArrowLeft, Zap, Sparkles, Clock, Globe, Shield, Users, Target, Newspaper, Mail, ChevronRight } from "lucide-react"
 import type { Metadata } from "next"
 import { ErrorParticles } from "@/components/error/error-particles"
+import { MarketingFooter } from "@/components/estew/marketing-footer"
 
 export const metadata: Metadata = {
   title: "About Us - Estew",
@@ -347,35 +348,9 @@ export default function AboutUsPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 px-6 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="relative h-5 w-5">
-              <Image
-                src="/images/logo.svg"
-                alt="Estew"
-                fill
-                className="object-contain dark:invert"
-              />
-            </div>
-            <span className="font-sans text-xs text-muted-foreground">
-              Estew 2026
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/about-us" className="font-sans text-xs text-foreground font-medium">
-              About
-            </Link>
-            <Link href="/privacy-policy" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Privacy
-            </Link>
-            <Link href="/terms-of-service" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Terms
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* Footer — shared marketing footer with full nav, branding, and
+          copyright (replaces the previous minimal bar). */}
+      <MarketingFooter />
     </div>
   )
 }

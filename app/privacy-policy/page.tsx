@@ -3,6 +3,7 @@ import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
 import { ErrorParticles } from "@/components/error/error-particles"
+import { MarketingFooter } from "@/components/estew/marketing-footer"
 
 export const metadata: Metadata = {
   title: "Privacy Policy - Estew",
@@ -203,22 +204,9 @@ export default function PrivacyPolicyPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 px-6 py-8">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <span className="font-sans text-xs text-muted-foreground">
-            Estew 2026
-          </span>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy-policy" className="font-sans text-xs text-foreground font-medium">
-              Privacy
-            </Link>
-            <Link href="/terms-of-service" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Terms
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* Footer — shared marketing footer with full nav, branding, and
+          copyright (replaces the previous minimal bar). */}
+      <MarketingFooter />
     </div>
   )
 }
