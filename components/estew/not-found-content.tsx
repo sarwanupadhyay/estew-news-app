@@ -52,7 +52,7 @@ function NotFoundShell() {
 
 function AuthenticatedShell() {
   return (
-    <div className="relative mx-auto min-h-screen max-w-[428px] bg-background">
+    <div className="relative mx-auto min-h-screen max-w-[428px] overflow-x-clip bg-background">
       <TopHeader />
       <main className="relative pb-32">
         <NotFoundHero variant="mobile" />
@@ -68,7 +68,7 @@ function AuthenticatedShell() {
 
 function MarketingShell() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col overflow-x-clip bg-background">
       {/* Header — intentionally mirrors components/estew/homepage.tsx so
           the unauth 404 feels like a continuation of the landing page. */}
       <header className="flex items-center justify-between px-6 py-4 md:px-12">
@@ -199,16 +199,20 @@ function NotFoundHero({ variant }: { variant: "mobile" | "marketing" }) {
       </div>
 
       {/* Big 404 — gradient-filled DISPLAY type (Syne 800) with a soft
-          purple glow. Larger on the marketing variant so it fills the
-          wider canvas. The font swap matches the typographic feel of the
-          editorial reference: condensed-feeling display sans, tightly
-          tracked, with the purple→transparent fade baked in via
-          background-clip:text. */}
+          purple glow. Font size is FLUID via clamp() so the digits scale
+          smoothly between phones, tablets and desktops without ever
+          overflowing the column.
+            - Mobile shell  (fixed 428px container): 88px → 124px
+            - Marketing      (up to 1280px viewport): 88px → 200px
+          The marketing variant uses 18vw which gives ~138px at 768px
+          (tablet) and ~184px at 1024px (laptop) — both fit cleanly
+          inside the max-w-[640px] column. */}
       <h1
-        className={`relative z-10 select-none bg-gradient-to-b from-primary via-primary/60 to-primary/15 bg-clip-text font-display font-extrabold leading-[0.9] text-transparent ${
-          isMarketing ? "text-[160px] md:text-[220px]" : "text-[140px]"
-        }`}
+        className="relative z-10 select-none bg-gradient-to-b from-primary via-primary/60 to-primary/15 bg-clip-text font-display font-extrabold leading-[0.9] text-transparent"
         style={{
+          fontSize: isMarketing
+            ? "clamp(88px, 18vw, 200px)"
+            : "clamp(88px, 32vw, 124px)",
           letterSpacing: "-0.04em",
           filter: "drop-shadow(0 10px 32px rgb(124 58 237 / 0.45))",
         }}

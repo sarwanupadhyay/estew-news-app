@@ -199,16 +199,18 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  /* Sits above the page background but below any z-10 hero content,
+     so the dots drift behind the headline / cards without ever
+     intercepting clicks. */
+  z-index: 1;
   overflow: hidden;
 }
 
 .error-particle {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  /* Width/height/background/box-shadow are set inline by the React
+     component so this rule only handles layout + animation. */
   border-radius: 9999px;
-  background: var(--primary);
   opacity: 0;
   will-change: transform, opacity;
   animation: ep-float var(--dur, 8s) var(--delay, 0s) infinite ease-in-out;
@@ -219,14 +221,14 @@
     transform: translate(0, 0) scale(1);
     opacity: 0;
   }
-  20% {
+  15% {
+    opacity: 0.9;
+  }
+  70% {
     opacity: 0.5;
   }
-  80% {
-    opacity: 0.2;
-  }
   100% {
-    transform: translate(var(--tx, 40px), var(--ty, -120px)) scale(0);
+    transform: translate(var(--tx, 40px), var(--ty, -160px)) scale(0.4);
     opacity: 0;
   }
 }
