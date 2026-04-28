@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, Zap, Clock, Sparkles } from "lucide-react"
+import { ErrorParticles } from "@/components/error/error-particles"
+import { MarketingFooter } from "@/components/estew/marketing-footer"
 
 interface HomepageProps {
   onGetStarted: () => void
@@ -34,6 +36,12 @@ export function Homepage({ onGetStarted }: HomepageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Reusable "404 Error Page Animations" particle layer — drifts
+          across the entire viewport, sits behind all content, and never
+          intercepts clicks. Adds visual atmosphere to the marketing
+          landing without altering any existing layout. */}
+      <ErrorParticles />
+
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-2.5">
@@ -246,32 +254,10 @@ export function Homepage({ onGetStarted }: HomepageProps) {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border px-6 py-6">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="relative h-5 w-5">
-              <Image
-                src="/images/logo.svg"
-                alt="Estew"
-                fill
-                className="object-contain dark:invert"
-              />
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Estew 2026
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy-policy" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Privacy
-            </Link>
-            <Link href="/terms-of-service" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Terms
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* Footer — shared marketing footer. Hands the auth modal trigger to
+          the footer's "Join Estew free" CTA so clicking it on the homepage
+          opens the in-page sign-up flow instead of round-tripping. */}
+      <MarketingFooter onJoinClick={onGetStarted} />
     </div>
   )
 }

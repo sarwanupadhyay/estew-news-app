@@ -64,6 +64,9 @@
   --font-sans: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
   --font-serif: var(--font-fraunces), 'Fraunces', Georgia, serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
+  /* Display face for editorial / error / glitch headlines (e.g. the 404
+     page). Exposed as Tailwind utility `font-display`. */
+  --font-display: var(--font-syne), 'Syne', 'DM Sans', system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -171,5 +174,85 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* =========================================================================
+ * 404 Error Page Animations
+ * -------------------------------------------------------------------------
+ * Reusable animation system for editorial error / empty / "signal lost"
+ * pages. Includes:
+ *   - .particles            full-bleed non-interactive container
+ *   - .particle             single floating dot (uses CSS custom props
+ *                           --dur, --delay, --tx, --ty for per-instance
+ *                           variation, set inline by the React component)
+ *   - @keyframes ep-float   the rising/fading lifecycle
+ *   - @keyframes ep-glitch1 horizontal jitter band 1 (used by ::before)
+ *   - @keyframes ep-glitch2 horizontal jitter band 2 (used by ::after)
+ *
+ * Class names are intentionally generic so the same system can be reused
+ * for 500, 503, "no results", and other empty-state surfaces in the
+ * future. Kept outside @layer so consumers can override with utilities.
+ * ========================================================================= */
+
+.error-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  /* Sits above the page background but below any z-10 hero content,
+     so the dots drift behind the headline / cards without ever
+     intercepting clicks. */
+  z-index: 1;
+  overflow: hidden;
+}
+
+.error-particle {
+  position: absolute;
+  /* Width/height/background/box-shadow are set inline by the React
+     component so this rule only handles layout + animation. */
+  border-radius: 9999px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: ep-float var(--dur, 8s) var(--delay, 0s) infinite ease-in-out;
+}
+
+@keyframes ep-float {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(var(--tx, 40px), var(--ty, -160px)) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes ep-glitch1 {
+  0%, 90%, 100% { transform: translate(0, 0); }
+  92% { transform: translate(-3px, 0); }
+  94% { transform: translate(3px, 0); }
+  96% { transform: translate(-2px, 0); }
+  98% { transform: translate(2px, 0); }
+}
+
+@keyframes ep-glitch2 {
+  0%, 90%, 100% { transform: translate(0, 0); }
+  93% { transform: translate(3px, 0); }
+  95% { transform: translate(-3px, 0); }
+  97% { transform: translate(2px, 0); }
+}
+
+/* Respect reduced-motion users — kill the float entirely so the page
+ * stays calm. The 404 itself is still styled, just no animation. */
+@media (prefers-reduced-motion: reduce) {
+  .error-particle {
+    animation: none;
+    opacity: 0.25;
   }
 }

@@ -2,6 +2,8 @@ import { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
 import { Check, Crown, ArrowLeft, Sparkles } from "lucide-react"
+import { ErrorParticles } from "@/components/error/error-particles"
+import { MarketingFooter } from "@/components/estew/marketing-footer"
 
 export const metadata: Metadata = {
   title: "Pricing - Estew",
@@ -11,6 +13,12 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Reusable "404 Error Page Animations" particle layer. Mounted at
+          the top of the page so it covers the full viewport during scroll
+          without affecting any existing layout (position: fixed, z-1,
+          pointer-events: none). */}
+      <ErrorParticles />
+
       {/* Header */}
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
@@ -175,30 +183,9 @@ export default function PricingPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 px-6 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="relative h-5 w-5">
-              <Image
-                src="/images/logo.svg"
-                alt="Estew"
-                fill
-                className="object-contain dark:invert"
-              />
-            </div>
-            <span className="font-sans text-xs text-muted-foreground">Estew 2026</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy-policy" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Privacy Policy
-            </Link>
-            <Link href="/terms-of-service" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Terms of Service
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* Footer — shared marketing footer with full nav, branding, and
+          copyright (replaces the previous minimal Privacy/Terms only bar). */}
+      <MarketingFooter />
     </div>
   )
 }

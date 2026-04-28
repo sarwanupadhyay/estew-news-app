@@ -1,6 +1,7 @@
 "use client"
 
 import { Home, Compass, TrendingUp, Bookmark, User } from "lucide-react"
+import { useRouter, usePathname } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 
 const tabs = [
@@ -13,10 +14,20 @@ const tabs = [
 
 export function BottomNav() {
   const { activeTab, setActiveTab } = useAppStore()
+  const router = useRouter()
+  const pathname = usePathname()
 
   const handleTabClick = (tabId: typeof tabs[number]["id"]) => {
     window.scrollTo({ top: 0, behavior: "instant" })
     setActiveTab(tabId)
+    // When the bottom nav is rendered outside the SPA shell (e.g. on the
+    // /not-found page or any other auxiliary route), setting the Zustand
+    // tab alone won't navigate the user back into the app. Push them to
+    // the root route so the AppShell can render the selected tab. This is
+    // a no-op when we're already at "/", so existing behavior is preserved.
+    if (pathname !== "/") {
+      router.push("/")
+    }
   }
 
   return (

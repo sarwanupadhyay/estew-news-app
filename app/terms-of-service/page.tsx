@@ -2,6 +2,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
+import { ErrorParticles } from "@/components/error/error-particles"
+import { MarketingFooter } from "@/components/estew/marketing-footer"
 
 export const metadata: Metadata = {
   title: "Terms of Service - Estew",
@@ -11,6 +13,10 @@ export const metadata: Metadata = {
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Reusable "404 Error Page Animations" particle layer (full-bleed
+          fixed overlay, no layout impact, no pointer events). */}
+      <ErrorParticles />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
@@ -245,22 +251,9 @@ export default function TermsOfServicePage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 px-6 py-8">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <span className="font-sans text-xs text-muted-foreground">
-            Estew 2026
-          </span>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy-policy" className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground">
-              Privacy
-            </Link>
-            <Link href="/terms-of-service" className="font-sans text-xs text-foreground font-medium">
-              Terms
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* Footer — shared marketing footer with full nav, branding, and
+          copyright (replaces the previous minimal bar). */}
+      <MarketingFooter />
     </div>
   )
 }
