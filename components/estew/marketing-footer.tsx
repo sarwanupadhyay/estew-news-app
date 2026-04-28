@@ -60,9 +60,9 @@ const companyLinks = [
 export function MarketingFooter({ onJoinClick }: MarketingFooterProps = {}) {
   return (
     <footer className="relative z-10 border-t border-border/60 bg-background">
-      <div className="mx-auto w-full max-w-6xl px-6 py-14 md:px-8 md:py-16">
+      <div className="mx-auto w-full max-w-6xl px-6 py-8 md:px-8 md:py-10">
         {/* ── Top: brand + link columns ───────────────────────────── */}
-        <div className="grid grid-cols-2 gap-10 md:grid-cols-12 md:gap-8">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-12 md:gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-6">
             <Link
@@ -83,7 +83,7 @@ export function MarketingFooter({ onJoinClick }: MarketingFooterProps = {}) {
               </span>
             </Link>
 
-            <p className="mt-5 max-w-sm font-sans text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-3 max-w-sm font-sans text-sm leading-relaxed text-muted-foreground">
               Tech news that never sleeps. Concise daily briefings, hand-picked
               stories, and a personal AI digest — delivered straight to your inbox.
             </p>
@@ -94,7 +94,7 @@ export function MarketingFooter({ onJoinClick }: MarketingFooterProps = {}) {
               <button
                 type="button"
                 onClick={onJoinClick}
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-sans text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-sans text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Join Estew free
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -102,7 +102,7 @@ export function MarketingFooter({ onJoinClick }: MarketingFooterProps = {}) {
             ) : (
               <Link
                 href="/"
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-sans text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-sans text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Join Estew free
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -118,7 +118,7 @@ export function MarketingFooter({ onJoinClick }: MarketingFooterProps = {}) {
             <h3 className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Product
             </h3>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-3 space-y-2">
               {productLinks.map((link) => (
                 <li key={link.href}>
                   <Link
@@ -140,7 +140,7 @@ export function MarketingFooter({ onJoinClick }: MarketingFooterProps = {}) {
             <h3 className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Company
             </h3>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-3 space-y-2">
               {companyLinks.map((link) => (
                 <li key={link.href}>
                   <Link
@@ -156,7 +156,7 @@ export function MarketingFooter({ onJoinClick }: MarketingFooterProps = {}) {
         </div>
 
         {/* ── Bottom: copyright bar ───────────────────────────────── */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 sm:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border/60 pt-4 sm:flex-row">
           <p className="font-sans text-xs text-muted-foreground">
             © 2026 Estew. All rights reserved.
           </p>
