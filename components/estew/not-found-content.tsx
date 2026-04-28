@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react"
 import { AuthProvider, useAuth } from "@/lib/auth-context"
 import { TopHeader } from "./top-header"
 import { BottomNav } from "./bottom-nav"
+import { ErrorParticles } from "../error/error-particles"
 
 /**
  * Top-level wrapper for the /not-found route. Mounts its own AuthProvider
@@ -173,6 +174,12 @@ function NotFoundHero({ variant }: { variant: "mobile" | "marketing" }) {
           : "relative px-5 pb-12 pt-10 text-center"
       }
     >
+      {/* Floating ambient signal particles — part of the reusable
+          "404 Error Page Animations" system in globals.css. Position is
+          fixed/full-bleed inside the component itself, so it doesn't
+          affect the hero's flow layout. */}
+      <ErrorParticles />
+
       {/* Ambient glow behind the 404, matching the editorial mockup.
           Sits behind everything and never captures clicks. */}
       <div
@@ -191,13 +198,20 @@ function NotFoundHero({ variant }: { variant: "mobile" | "marketing" }) {
         </span>
       </div>
 
-      {/* Big 404 — gradient-filled display type with a soft purple glow.
-          Larger on the marketing variant so it fills the wider canvas. */}
+      {/* Big 404 — gradient-filled DISPLAY type (Syne 800) with a soft
+          purple glow. Larger on the marketing variant so it fills the
+          wider canvas. The font swap matches the typographic feel of the
+          editorial reference: condensed-feeling display sans, tightly
+          tracked, with the purple→transparent fade baked in via
+          background-clip:text. */}
       <h1
-        className={`relative z-10 select-none bg-gradient-to-b from-primary via-primary/60 to-primary/15 bg-clip-text font-serif font-black leading-none tracking-tight text-transparent ${
+        className={`relative z-10 select-none bg-gradient-to-b from-primary via-primary/60 to-primary/15 bg-clip-text font-display font-extrabold leading-[0.9] text-transparent ${
           isMarketing ? "text-[160px] md:text-[220px]" : "text-[140px]"
         }`}
-        style={{ filter: "drop-shadow(0 10px 32px rgb(124 58 237 / 0.45))" }}
+        style={{
+          letterSpacing: "-0.04em",
+          filter: "drop-shadow(0 10px 32px rgb(124 58 237 / 0.45))",
+        }}
       >
         404
       </h1>

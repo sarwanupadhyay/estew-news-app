@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, Fraunces } from 'next/font/google'
+import { DM_Sans, Fraunces, Syne } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
@@ -13,6 +13,16 @@ const fraunces = Fraunces({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700', '800', '900'],
   variable: '--font-fraunces',
+})
+
+// Display face used for the 404 error number and (in future) any other
+// editorial display/glitch typography. Loaded as a separate variable so we
+// can opt into it on a per-element basis without affecting the rest of the
+// type system. Subset is kept latin-only to keep the bundle small.
+const syne = Syne({
+  subsets: ['latin'],
+  weight: ['400', '500', '700', '800'],
+  variable: '--font-syne',
 })
 
 export const metadata: Metadata = {
@@ -51,7 +61,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`dark ${dmSans.variable} ${fraunces.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`dark ${dmSans.variable} ${fraunces.variable} ${syne.variable}`}
+    >
       <body className="font-sans antialiased" suppressHydrationWarning>
         {children}
         <Analytics />
