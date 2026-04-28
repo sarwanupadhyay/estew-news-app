@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, Zap, Clock, Sparkles } from "lucide-react"
+import { ErrorParticles } from "@/components/error/error-particles"
 
 interface HomepageProps {
   onGetStarted: () => void
@@ -34,6 +35,12 @@ export function Homepage({ onGetStarted }: HomepageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Reusable "404 Error Page Animations" particle layer — drifts
+          across the entire viewport, sits behind all content, and never
+          intercepts clicks. Adds visual atmosphere to the marketing
+          landing without altering any existing layout. */}
+      <ErrorParticles />
+
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-2.5">

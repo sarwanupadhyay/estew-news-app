@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
 import { Check, Crown, ArrowLeft, Sparkles } from "lucide-react"
+import { ErrorParticles } from "@/components/error/error-particles"
 
 export const metadata: Metadata = {
   title: "Pricing - Estew",
@@ -11,6 +12,12 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Reusable "404 Error Page Animations" particle layer. Mounted at
+          the top of the page so it covers the full viewport during scroll
+          without affecting any existing layout (position: fixed, z-1,
+          pointer-events: none). */}
+      <ErrorParticles />
+
       {/* Header */}
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">

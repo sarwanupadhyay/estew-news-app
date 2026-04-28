@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
+import { ErrorParticles } from "@/components/error/error-particles"
 
 export const metadata: Metadata = {
   title: "Privacy Policy - Estew",
@@ -11,6 +12,10 @@ export const metadata: Metadata = {
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Reusable "404 Error Page Animations" particle layer (full-bleed
+          fixed overlay, no layout impact, no pointer events). */}
+      <ErrorParticles />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">

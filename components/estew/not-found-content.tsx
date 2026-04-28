@@ -202,22 +202,34 @@ function NotFoundHero({ variant }: { variant: "mobile" | "marketing" }) {
           purple glow. Font size is FLUID via clamp() so the digits scale
           smoothly between phones, tablets and desktops without ever
           overflowing the column.
-            - Mobile shell  (fixed 428px container): 88px → 124px
-            - Marketing      (up to 1280px viewport): 88px → 200px
-          The marketing variant uses 18vw which gives ~138px at 768px
-          (tablet) and ~184px at 1024px (laptop) — both fit cleanly
-          inside the max-w-[640px] column. */}
+            - Mobile shell  (fixed 428px container): 80px → 116px
+            - Marketing     (up to 1280px viewport): 88px → 180px
+          The actual gradient + clip-text + drop-shadow are applied to an
+          INNER inline-block span with a small horizontal padding. That
+          padding extends the background-clip:text bounding box just past
+          the rightmost glyph so Syne's wider "4" can no longer be cut on
+          large desktops (the bug was: negative letter-spacing pulled the
+          glyph past the gradient's right edge, causing the rightmost "4"
+          to render with its right stroke clipped). Letter-spacing is
+          also relaxed slightly for the same reason. */}
       <h1
-        className="relative z-10 select-none bg-gradient-to-b from-primary via-primary/60 to-primary/15 bg-clip-text font-display font-extrabold leading-[0.9] text-transparent"
+        className="relative z-10 select-none font-display font-extrabold leading-[0.9]"
         style={{
           fontSize: isMarketing
-            ? "clamp(88px, 18vw, 200px)"
-            : "clamp(88px, 32vw, 124px)",
-          letterSpacing: "-0.04em",
-          filter: "drop-shadow(0 10px 32px rgb(124 58 237 / 0.45))",
+            ? "clamp(88px, 16vw, 180px)"
+            : "clamp(80px, 30vw, 116px)",
+          letterSpacing: "-0.025em",
         }}
       >
-        404
+        <span
+          className="inline-block bg-gradient-to-b from-primary via-primary/60 to-primary/15 bg-clip-text text-transparent"
+          style={{
+            paddingInline: "0.08em",
+            filter: "drop-shadow(0 10px 32px rgb(124 58 237 / 0.45))",
+          }}
+        >
+          404
+        </span>
       </h1>
 
       {/* Headline */}
