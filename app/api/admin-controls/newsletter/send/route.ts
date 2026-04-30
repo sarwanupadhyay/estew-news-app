@@ -110,13 +110,22 @@ export async function POST(request: Request) {
             newsletterSubscribed: d.newsletterSubscribed,
           }
         })
-        .filter(
-          (r) =>
-            r.email &&
-            r.email.includes("@") &&
-            r.newsletterSubscribed !== false &&
-            !unsubscribed.has(r.email.toLowerCase()),
-        )
+        .filter((r) => {
+          if (!r.email || !r.email.includes("@")) return false
+          // Hard out-out: profile flag is the user's stated preference.
+          if (r.newsletterSubscribed === false) return false
+          // Defense-in-depth: the global `unsubscribed_emails` block list
+          // is for one-off recipients (no user doc). If the user has an
+          // account AND `newsletterSubscribed === true`, their explicit
+          // re-subscribe in Profile must beat any stale entry in the
+          // global block list. Without this, a user who unsubscribed via
+          // an email link and later toggled the newsletter back on in
+          // their profile would still be silently filtered out forever.
+          if (r.newsletterSubscribed === true) return true
+          // Otherwise (legacy users where the field is missing/null), fall
+          // back to the previous behaviour and respect the global block.
+          return !unsubscribed.has(r.email.toLowerCase())
+        })
         .map(({ email, name }) => ({ email, name }))
     } catch (err) {
       console.error("[v0] Recipient fetch error:", err)

@@ -1,8 +1,10 @@
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app"
 import { getFirestore, type Firestore } from "firebase-admin/firestore"
+import { getAuth, type Auth } from "firebase-admin/auth"
 
 let adminApp: App | null = null
 let adminDb: Firestore | null = null
+let adminAuth: Auth | null = null
 let initError: string | null = null
 
 function parseServiceAccount(raw: string): { ok: true; value: any } | { ok: false; error: string } {
@@ -117,6 +119,33 @@ function initAdmin(): Firestore | null {
 
 export function getAdminDb(): Firestore | null {
   return initAdmin()
+}
+
+/**
+ * Lazily-initialised Firebase Admin Auth instance, used by server routes
+ * that need to verify Firebase ID tokens issued to a signed-in client
+ * (e.g. the newsletter preferences endpoint).
+ *
+ * Returns `null` if Admin SDK is not configured — callers must handle
+ * that case gracefully and surface `getAdminInitError()` to the user.
+ *
+ * Note: this is purely additive — it reuses the same `adminApp`
+ * initialised by `initAdmin()` for Firestore, so it doesn't change any
+ * existing behaviour.
+ */
+export function getAdminAuth(): Auth | null {
+  // Force initAdmin() to run so adminApp is populated.
+  initAdmin()
+  if (!adminApp) return null
+  if (!adminAuth) {
+    try {
+      adminAuth = getAuth(adminApp)
+    } catch (err) {
+      console.error("[v0] Failed to obtain Firebase Admin Auth:", err)
+      return null
+    }
+  }
+  return adminAuth
 }
 
 export function getAdminInitError(): string | null {
