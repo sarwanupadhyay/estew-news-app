@@ -3,22 +3,23 @@ import { NextResponse, type NextRequest } from "next/server"
 /**
  * Host-based routing & access control for Estew.
  *
- * Two domains share a single Next.js deployment:
- *   - estew.xyz        →  the public app + marketing site (main)
- *   - admin.estew.xyz  →  the admin control panel (admin)
+ * Multiple domains share a single Next.js deployment:
+ *   - estew.xyz                    →  the public app + marketing site
+ *   - admin.estew.xyz              →  the admin control panel (prod)
+ *   - v0-estew-admin.vercel.app    →  the admin control panel (preview)
  *
  * This middleware enforces that contract at the edge so that:
  *   1. The public app can NEVER reach `/admin-controls/*` or
  *      `/api/admin-controls/*` — those return a real 404.
- *   2. The admin subdomain serves a dedicated admin landing page at `/`
+ *   2. The admin host serves a dedicated admin landing page at `/`
  *      (rewritten internally to `/admin-landing`) and only exposes the
  *      admin surface area + system routes — every other public page
  *      (pricing, about, privacy, terms, the user app, etc.) returns 404
- *      so there is no way to navigate from admin.estew.xyz back into
+ *      so there is no way to navigate from the admin host back into
  *      the consumer site.
  *   3. Local dev still works without DNS — any host that begins with
  *      `admin.` (e.g. `admin.localhost:3000`) is treated as the admin
- *      subdomain. Plain `localhost` is treated as the main domain.
+ *      host. Plain `localhost` is treated as the main domain.
  *
  * IMPORTANT: per project rules, this is purely additive — it only adds
  * host-aware gating. It does not rename, remove, or alter any existing
@@ -27,10 +28,24 @@ import { NextResponse, type NextRequest } from "next/server"
 
 const ADMIN_HOST_PREFIX = "admin."
 
+/**
+ * Exact hostnames that should also be treated as the admin host even
+ * though they don't start with the `admin.` prefix. This is where we
+ * register Vercel preview deployments (and any future aliased preview
+ * URLs) so they mirror the production admin subdomain 1:1.
+ *
+ * Lowercase only — the host comparison is case-insensitive.
+ */
+const ADMIN_EXACT_HOSTS = new Set<string>([
+  "v0-estew-admin.vercel.app",
+])
+
 function isAdminHost(host: string | null): boolean {
   if (!host) return false
   const hostname = host.split(":")[0]?.toLowerCase() ?? ""
-  return hostname.startsWith(ADMIN_HOST_PREFIX)
+  if (hostname.startsWith(ADMIN_HOST_PREFIX)) return true
+  if (ADMIN_EXACT_HOSTS.has(hostname)) return true
+  return false
 }
 
 /**
