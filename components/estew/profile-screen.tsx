@@ -224,7 +224,52 @@ export function ProfileScreen() {
     const newValue = !profile?.newsletterSubscribed
     setSavingNewsletter(true)
     try {
-      await saveProfile({ newsletterSubscribed: newValue })
+      // Prefer the server-side `/api/newsletter/preferences` endpoint so
+      // BOTH the user doc AND the global `unsubscribed_emails` list are
+      // kept in sync. This fixes the bug where a user who previously
+      // unsubscribed via the email link could re-enable the toggle here
+      // and still never receive newsletters because their email was
+      // stuck in the global block list.
+      let usedServerEndpoint = false
+      try {
+        if (user) {
+          const idToken = await user.getIdToken()
+          const res = await fetch("/api/newsletter/preferences", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ subscribed: newValue }),
+          })
+          if (res.ok) {
+            usedServerEndpoint = true
+            // Sync local AuthContext state so the UI reflects the change.
+            await saveProfile({ newsletterSubscribed: newValue })
+          } else {
+            console.error(
+              "[v0] /api/newsletter/preferences failed:",
+              res.status,
+              await res.text().catch(() => ""),
+            )
+          }
+        }
+      } catch (apiErr) {
+        // Network or token error — fall back below.
+        console.error(
+          "[v0] Newsletter preferences API errored, falling back to client write:",
+          apiErr,
+        )
+      }
+
+      // Fail-safe fallback: if the server endpoint wasn't reachable for
+      // any reason, still persist the user's preference on their profile
+      // doc using the existing client SDK path so we never silently drop
+      // the toggle. (Per project rules: preserve existing functionality
+      // and fail safely — never let a new feature crash the toggle.)
+      if (!usedServerEndpoint) {
+        await saveProfile({ newsletterSubscribed: newValue })
+      }
     } catch (err) {
       console.error("Error toggling newsletter:", err)
     } finally {
