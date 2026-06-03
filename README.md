@@ -123,7 +123,7 @@ Ready to transform how you consume tech news?
 
 - 🌐 Website: https://estew.xyz  
 - 📧 Newsletter: newsletter@news.estew.xyz
+- Dev-Contact: sarwanupadhyay19@gmail.com
 
 ---
 
-> Built with ❤️ using V0 by Vercel + modern web technologies
