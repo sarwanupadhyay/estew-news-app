@@ -552,7 +552,7 @@ The codebase is organised so each integration has **exactly one module** that ow
 ### Architectural
 
 - **Cron-driven newsletter ingestion** — replace on-demand `/api/news` persistence with a scheduled poll so articles are always fresh in Firestore even when no user opens the app
-- **Server-side rendering of the feed** with cache components (Next.js 16 `"use cache"`) for sub-second TTFB
+- **Server-side rendering of the feed** with cache components (Next.js`"use cache"`) for sub-second TTFB
 - **Replace mock data fallback** in `/api/news` with multi-source RSS aggregation so we're never single-sourced on NewsAPI
 
 ---
